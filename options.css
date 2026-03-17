@@ -1,0 +1,384 @@
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Sans', 'Yu Gothic UI', sans-serif;
+  background: #f0f4f8;
+  color: #333;
+  min-height: 100vh;
+  line-height: 1.6;
+}
+
+.options-container {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 32px 20px 60px;
+}
+
+/* ヘッダー */
+.options-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 28px;
+  padding: 20px 24px;
+  background: linear-gradient(135deg, #1565C0, #1976D2);
+  border-radius: 14px;
+  color: white;
+}
+
+.options-logo {
+  width: 48px;
+  height: 48px;
+  border-radius: 10px;
+  background: rgba(255,255,255,0.2);
+}
+
+.options-header h1 {
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.options-subtitle {
+  font-size: 14px;
+  opacity: 0.85;
+  margin-top: 2px;
+}
+
+/* カード */
+.card {
+  background: white;
+  border-radius: 14px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.07);
+  margin-bottom: 20px;
+  overflow: hidden;
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 20px;
+  background: linear-gradient(135deg, #1565C0, #1976D2);
+  color: white;
+}
+
+.card-icon {
+  font-size: 20px;
+}
+
+.card-header h2 {
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.card-body {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* ショートカット表示 */
+.shortcut-display {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.shortcut-label {
+  font-size: 15px;
+  color: #555;
+}
+
+.shortcut-badge {
+  background: #e8eaf6;
+  color: #3949ab;
+  padding: 5px 16px;
+  border-radius: 20px;
+  font-weight: 700;
+  font-size: 14px;
+  letter-spacing: 0.5px;
+}
+
+/* インフォボックス */
+.info-box {
+  background: #f8f9ff;
+  border-left: 3px solid #1976D2;
+  padding: 12px 16px;
+  border-radius: 0 8px 8px 0;
+  font-size: 14px;
+  color: #444;
+}
+
+.info-box p {
+  line-height: 1.7;
+}
+
+kbd {
+  display: inline-block;
+  background: #f1f3f4;
+  border: 1px solid #dadce0;
+  border-bottom: 2px solid #c0c4c8;
+  border-radius: 4px;
+  padding: 1px 7px;
+  font-size: 12px;
+  font-family: monospace;
+  color: #333;
+}
+
+/* 手順リスト */
+.steps-title {
+  font-weight: 600;
+  font-size: 14px;
+  color: #333;
+}
+
+.shortcut-steps ol {
+  padding-left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.shortcut-steps li {
+  font-size: 14px;
+  color: #555;
+  line-height: 1.6;
+}
+
+/* URLコピー行 */
+.shortcut-copy-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #f5f5f5;
+  padding: 10px 14px;
+  border-radius: 8px;
+  flex-wrap: wrap;
+}
+
+.shortcut-copy-row code {
+  font-family: 'Courier New', monospace;
+  font-size: 13px;
+  color: #1565C0;
+  flex: 1;
+  word-break: break-all;
+}
+
+.btn-copy {
+  padding: 6px 14px;
+  background: #1976D2;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+  white-space: nowrap;
+}
+
+.btn-copy:hover {
+  background: #1565C0;
+}
+
+/* 使い方アイテム */
+.usage-item {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.usage-item:last-child {
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+.usage-icon-wrap {
+  font-size: 26px;
+  flex-shrink: 0;
+  width: 40px;
+  text-align: center;
+  padding-top: 2px;
+}
+
+.usage-content h3 {
+  font-size: 15px;
+  font-weight: 700;
+  color: #222;
+  margin-bottom: 6px;
+}
+
+.usage-content p {
+  font-size: 14px;
+  color: #555;
+  line-height: 1.7;
+}
+
+.example-box {
+  margin-top: 8px;
+  background: #f0f7ff;
+  border: 1px solid #bbdefb;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  color: #1565C0;
+}
+
+/* バージョン情報 */
+a {
+  color: #1976D2;
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+.card-body p {
+  font-size: 14px;
+  color: #555;
+  line-height: 1.7;
+}
+
+.version-info {
+  font-size: 13px;
+  color: #999;
+}
+
+/* キーバインドテーブル */
+.keybind-note {
+  font-size: 13px;
+  color: #666;
+  margin-bottom: 14px;
+  line-height: 1.6;
+}
+
+.keybind-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.keybind-table th {
+  text-align: left;
+  padding: 8px 12px;
+  background: #e8f0fe;
+  color: #1565C0;
+  font-weight: 700;
+  border-bottom: 2px solid #c5d8f8;
+}
+
+.keybind-table td {
+  padding: 8px 12px;
+  border-bottom: 1px solid #f0f0f0;
+  color: #333;
+  vertical-align: top;
+  line-height: 1.6;
+}
+
+.keybind-table tr:last-child td {
+  border-bottom: none;
+}
+
+.keybind-table tr:nth-child(even) td {
+  background: #fafbff;
+}
+
+.keybind-table td:first-child {
+  white-space: nowrap;
+  width: 170px;
+  font-weight: 600;
+}
+
+.keybind-table code {
+  background: #f5f5f5;
+  padding: 1px 4px;
+  border-radius: 3px;
+  font-size: 12px;
+}
+
+/* ext-link: 拡張機能管理ページへのリンク */
+.ext-link {
+  color: #1976D2;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+/* ==================
+   動作設定 トグル
+   ================== */
+.setting-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 4px 0;
+}
+
+.setting-label {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  cursor: pointer;
+}
+
+.setting-title {
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.setting-desc {
+  font-size: 12px;
+  color: #666;
+}
+
+.toggle-switch {
+  position: relative;
+  display: inline-block;
+  width: 44px;
+  height: 24px;
+  flex-shrink: 0;
+}
+
+.toggle-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.toggle-slider {
+  position: absolute;
+  inset: 0;
+  background: #ccc;
+  border-radius: 24px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.toggle-slider::before {
+  content: '';
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  left: 3px;
+  top: 3px;
+  background: white;
+  border-radius: 50%;
+  transition: transform 0.2s;
+}
+
+.toggle-switch input:checked + .toggle-slider {
+  background: #1976D2;
+}
+
+.toggle-switch input:checked + .toggle-slider::before {
+  transform: translateX(20px);
+}

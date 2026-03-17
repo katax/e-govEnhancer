@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>e-gov法令検索 Enhancer - 設定</title>
+  <link rel="stylesheet" href="options.css">
+</head>
+<body>
+  <div class="options-container">
+    <header class="options-header">
+      <img src="icons/icon48.png" alt="" class="options-logo">
+      <div>
+        <h1>e-gov法令検索 Enhancer</h1>
+        <p class="options-subtitle">設定・使い方ガイド</p>
+      </div>
+    </header>
+
+    <main>
+      <!-- 動作設定 -->
+      <section class="card">
+        <div class="card-header">
+          <span class="card-icon">⚙️</span>
+          <h2>動作設定</h2>
+        </div>
+        <div class="card-body">
+          <div class="setting-row">
+            <label class="setting-label" for="smoothScrollToggle">
+              <span class="setting-title">スムーズスクロール</span>
+              <span class="setting-desc">条文ジャンプ・検索ナビのスクロールをアニメーションにする（オフ = 瞬時ワープ）</span>
+            </label>
+            <label class="toggle-switch">
+              <input type="checkbox" id="smoothScrollToggle">
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+        </div>
+      </section>
+
+      <!-- ショートカットキー設定 -->
+      <section class="card">
+        <div class="card-header">
+          <span class="card-icon">⌨️</span>
+          <h2>ショートカットキー設定</h2>
+        </div>
+        <div class="card-body">
+          <div class="shortcut-display">
+            <span class="shortcut-label">現在のショートカットキー</span>
+            <span class="shortcut-badge" id="currentShortcut">読み込み中...</span>
+          </div>
+
+          <div class="info-box">
+            <p>
+              ショートカットキーは <a id="openShortcutsPageLink" href="#" class="ext-link">Chromeの拡張機能管理ページ</a> から変更できます。<br>
+              デフォルト設定：<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>E</kbd>（macOS：<kbd>⌘</kbd>+<kbd>Shift</kbd>+<kbd>E</kbd>）
+            </p>
+          </div>
+
+          <div class="shortcut-steps">
+            <p class="steps-title">ショートカットキーの変更手順：</p>
+            <ol>
+              <li>Chromeのアドレスバーに <code>chrome://extensions/shortcuts</code> と入力してアクセス</li>
+              <li>「e-gov法令検索 Enhancer」の項目を探す</li>
+              <li>「e-gov法令検索ポップアップを開く」の鉛筆アイコンをクリック</li>
+              <li>新しいショートカットキーを入力する</li>
+            </ol>
+          </div>
+
+          <div class="shortcut-copy-row">
+            <code id="shortcutUrl">chrome://extensions/shortcuts</code>
+            <button class="btn-copy" id="copyUrl">コピー</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- 使い方ガイド -->
+      <section class="card">
+        <div class="card-header">
+          <span class="card-icon">📖</span>
+          <h2>使い方ガイド</h2>
+        </div>
+        <div class="card-body">
+
+          <div class="usage-item">
+            <div class="usage-icon-wrap">🌐</div>
+            <div class="usage-content">
+              <h3>どこからでも法令を検索</h3>
+              <p>
+                Chrome上の任意のページでショートカットキーを押すと、ポップアップが開きます。
+                法令名やキーワードを入力して検索すると、新しいタブでe-Gov法令検索の結果が表示されます。
+              </p>
+            </div>
+          </div>
+
+          <div class="usage-item">
+            <div class="usage-icon-wrap">⭐</div>
+            <div class="usage-content">
+              <h3>お気に入り・開いた法令履歴</h3>
+              <p>
+                検索結果の ☆ボタン または履歴パネルの <kbd>Shift</kbd>+<kbd>Enter</kbd> でお気に入りに追加できます。
+                ポップアップで <kbd>◀</kbd>（左矢印キー）で「開いた法令」一覧、<kbd>▶</kbd>（右矢印キー）でお気に入りを表示します。
+                お気に入りはフォルダで整理でき、ドラッグ＆ドロップで移動できます。
+              </p>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- 法令ページ キーバインド一覧 -->
+      <section class="card">
+        <div class="card-header">
+          <span class="card-icon">🗂️</span>
+          <h2>法令ページのキーボードショートカット</h2>
+        </div>
+        <div class="card-body">
+          <p class="keybind-note">e-Gov法令ページ（https://laws.e-gov.go.jp/）を開いているとき、入力欄にフォーカスがない状態でキーを押すと機能します。</p>
+          <table class="keybind-table">
+            <thead>
+              <tr><th>キー</th><th>機能</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><kbd>0</kbd>〜<kbd>9</kbd></td>
+                <td>条文ジャンプ — 条番号を入力して <kbd>Enter</kbd> で該当条文へ移動。<kbd>.</kbd> で項・号を指定（例: <code>3.2.1</code> → 第3条第2項第1号）</td>
+              </tr>
+              <tr>
+                <td><kbd>h</kbd> / <kbd>l</kbd></td>
+                <td>条文ジャンプ履歴の前後に移動</td>
+              </tr>
+              <tr>
+                <td><kbd>n</kbd> / <kbd>p</kbd></td>
+                <td>次の条文 / 前の条文を画面上端に表示</td>
+              </tr>
+              <tr>
+                <td><kbd>d</kbd> / <kbd>u</kbd></td>
+                <td>画面を80%下スクロール / 上スクロール</td>
+              </tr>
+              <tr>
+                <td><kbd>s</kbd></td>
+                <td>ページ内検索 — キーワードをハイライト。<kbd>Enter</kbd> で次の一致箇所、<kbd>Ctrl</kbd>+<kbd>Enter</kbd> で現在位置から検索</td>
+              </tr>
+              <tr>
+                <td><kbd>r</kbd></td>
+                <td>現在表示中の法令名でポップアップ検索（別タブで開く）</td>
+              </tr>
+              <tr>
+                <td><kbd>c</kbd></td>
+                <td>条文番号の漢数字 ↔ アラビア数字を切り替え（号タイトルは丸数字 ①②③）</td>
+              </tr>
+              <tr>
+                <td><kbd>k</kbd></td>
+                <td>ページ内のカタカナをひらがなに変換（一回のみ）</td>
+              </tr>
+              <tr>
+                <td><kbd>Alt</kbd>+<kbd>P</kbd></td>
+                <td>上記すべてのキーボードショートカットを一時的に有効 / 無効に切り替え（右下ボタンの色で確認：青=有効、灰=無効）</td>
+              </tr>
+              <tr>
+                <td>右下 <kbd>⌨️</kbd> ボタンクリック</td>
+                <td>ショートカットの有効 / 無効を切り替え（ホバーでショートカット一覧を表示）</td>
+              </tr>
+              <tr>
+                <td><kbd>Esc</kbd></td>
+                <td>ダイアログを閉じる</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- 拡張機能情報 -->
+      <section class="card">
+        <div class="card-header">
+          <span class="card-icon">ℹ️</span>
+          <h2>このアプリについて</h2>
+        </div>
+        <div class="card-body">
+          <p>
+            本拡張機能は
+            <a href="https://laws.e-gov.go.jp/" target="_blank" rel="noopener">e-Gov法令検索</a>
+            をより便利に使うためのツールです。
+          </p>
+          <p class="version-info">バージョン：1.0.0</p>
+        </div>
+      </section>
+    </main>
+  </div>
+  <script src="options.js"></script>
+</body>
+</html>

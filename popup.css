@@ -1,0 +1,880 @@
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Sans', 'Yu Gothic UI', sans-serif;
+  background: #fff;
+  width: 340px;
+  color: #333;
+}
+
+/* ヘッダー */
+.popup-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  background: linear-gradient(135deg, #1565C0, #1976D2);
+  color: white;
+}
+
+.popup-logo {
+  width: 22px;
+  height: 22px;
+  border-radius: 4px;
+}
+
+.popup-title {
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+}
+
+/* 検索フォーム */
+.search-form {
+  padding: 12px 14px 10px;
+  border-bottom: 1px solid #f0f0f0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.search-icon {
+  position: absolute;
+  left: 9px;
+  font-size: 12px;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.search-input {
+  width: 100%;
+  height: 36px;
+  padding: 0 10px 0 30px;
+  border: 2px solid #e0e0e0;
+  border-radius: 7px;
+  font-size: 13px;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  color: #333;
+  background: #fafafa;
+}
+
+.search-input:focus {
+  border-color: #1976D2;
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(25, 118, 210, 0.1);
+}
+
+/* Mode1/Mode2 時の検索フォームグレーアウト */
+.search-form-inactive {
+  opacity: 0.4;
+  pointer-events: none;
+}
+
+.search-form-inactive .search-input {
+  background: #f0f0f0;
+  color: #999;
+  cursor: default;
+}
+
+.search-input::placeholder {
+  color: #bbb;
+  font-size: 12px;
+}
+
+.search-btn {
+  width: 100%;
+  height: 34px;
+  background: #1976D2;
+  color: white;
+  border: none;
+  border-radius: 7px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.search-btn:hover {
+  background: #1565C0;
+}
+
+/* ================================================
+   履歴パネル
+   ================================================ */
+.history-panel {
+  border-bottom: 1px solid #f0f0f0;
+  max-height: 320px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.history-panel-nav {
+  display: flex;
+  align-items: center;
+  padding: 5px 8px;
+  background: #fafafa;
+  border-bottom: 1px solid #f0f0f0;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.hist-nav-btn {
+  background: none;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+  width: 28px;
+  height: 24px;
+  font-size: 11px;
+  cursor: pointer;
+  color: #555;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.12s, color 0.12s;
+  flex-shrink: 0;
+  padding: 0;
+}
+
+.hist-nav-btn:hover:not(:disabled) {
+  background: #e8f0fe;
+  color: #1565C0;
+  border-color: #aac4f0;
+}
+
+.hist-nav-btn:disabled,
+.hist-nav-btn[style*="hidden"] {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.history-panel-title {
+  flex: 1;
+  text-align: center;
+  font-size: 12px;
+  font-weight: 700;
+  color: #1565C0;
+  letter-spacing: 0.3px;
+}
+
+.history-list {
+  list-style: none;
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+}
+
+.history-item {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 14px;
+  cursor: pointer;
+  border-bottom: 1px solid #f5f5f5;
+  transition: background 0.1s;
+  min-height: 36px;
+}
+
+.history-item:last-child {
+  border-bottom: none;
+}
+
+.history-item:hover,
+.history-item-focused {
+  background: #e8f0fe;
+}
+
+.history-item-focused .hist-text {
+  color: #1565C0;
+}
+
+.hist-icon {
+  font-size: 11px;
+  flex-shrink: 0;
+  opacity: 0.6;
+}
+
+.hist-text {
+  font-size: 13px;
+  color: #222;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hist-meta {
+  font-size: 11px;
+  color: #999;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+/* 履歴パネルの★ボタン（Mode2: 開いた法令） */
+.hist-fav-btn {
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  font-size: 13px;
+  color: #ccc;
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 4px;
+  line-height: 1;
+  transition: color 0.12s, background 0.12s;
+  opacity: 0;
+}
+
+.history-item:hover .hist-fav-btn,
+.history-item-focused .hist-fav-btn {
+  opacity: 1;
+}
+
+.hist-fav-btn:hover {
+  color: #f5a623;
+  background: #fff8e1;
+}
+
+.hist-fav-btn.hist-fav-active {
+  color: #f5a623;
+  opacity: 1;
+}
+
+.hist-fav-btn.hist-fav-active:hover {
+  color: #e08e00;
+  background: #fff3cd;
+}
+
+/* 履歴・お気に入りの削除ボタン（×） */
+.hist-del-btn {
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  font-size: 13px;
+  color: #bbb;
+  cursor: pointer;
+  padding: 2px 5px;
+  border-radius: 4px;
+  line-height: 1;
+  transition: color 0.12s, background 0.12s;
+  opacity: 0;
+}
+
+.history-item:hover .hist-del-btn,
+.history-item-focused .hist-del-btn {
+  opacity: 1;
+}
+
+.hist-del-btn:hover {
+  color: #e53935;
+  background: #ffeaea;
+}
+
+/* 空欄状態の検索履歴アイテム: ホバー/フォーカス時に × ボタンを表示 */
+.result-item:hover .hist-del-btn,
+.result-item-focused .hist-del-btn {
+  opacity: 1;
+}
+
+.history-empty {
+  padding: 14px 16px;
+  font-size: 13px;
+  color: #aaa;
+  text-align: center;
+  list-style: none;
+}
+
+/* 検索結果エリア */
+.search-results {
+  max-height: 320px;
+  overflow-y: auto;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.loading {
+  padding: 14px 16px;
+  font-size: 13px;
+  color: #888;
+  text-align: center;
+}
+
+.results-label {
+  padding: 7px 14px 4px;
+  font-size: 11px;
+  color: #888;
+  background: #fafafa;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.results-list {
+  list-style: none;
+}
+
+.result-item {
+  padding: 9px 14px;
+  cursor: pointer;
+  border-bottom: 1px solid #f5f5f5;
+  transition: background 0.12s;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+}
+
+/* 法令名・種別・番号をまとめる縦並びラッパー */
+.result-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0; /* テキストの省略表示を有効にするために必要 */
+}
+
+/* 検索結果の★ボタン */
+.result-fav-btn {
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  font-size: 14px;
+  color: #ccc;
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 4px;
+  line-height: 1;
+  transition: color 0.12s, background 0.12s;
+  opacity: 0;
+}
+
+.result-item:hover .result-fav-btn,
+.result-item-focused .result-fav-btn {
+  opacity: 1;
+}
+
+.result-fav-btn:hover {
+  color: #f5a623;
+  background: #fff8e1;
+}
+
+.result-fav-btn.result-fav-active {
+  color: #f5a623;
+  opacity: 1;
+}
+
+.result-fav-btn.result-fav-active:hover {
+  color: #e08e00;
+  background: #fff3cd;
+}
+
+.result-item:hover,
+.result-item-focused {
+  background: #e8f0fe;
+}
+
+.result-item-focused .result-name {
+  color: #1565C0;
+}
+
+.result-item:last-child {
+  border-bottom: none;
+}
+
+.result-type {
+  font-size: 10px;
+  color: #1976D2;
+  background: #e8f0fe;
+  padding: 1px 6px;
+  border-radius: 10px;
+  display: inline-block;
+  width: fit-content;
+  font-weight: 600;
+}
+
+.result-name {
+  font-size: 13px;
+  color: #222;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.result-num {
+  font-size: 11px;
+  color: #999;
+}
+
+/* Mode2（開いた法令）に含まれる検索結果 */
+.result-item-visited {
+  background: #f0faf2;
+}
+
+.result-item-visited:hover,
+.result-item-visited.result-item-focused {
+  background: #d6f0da;
+}
+
+/* 通常モード用ガイドヒント */
+.search-hint {
+  font-size: 11px;
+  color: #bbb;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 2px 8px 4px;
+  gap: 4px;
+}
+
+.search-hint-text {
+  flex: 1;
+  text-align: center;
+}
+
+/* Mode0 の ◀▶ ナビゲーションボタン */
+.mode0-nav-btn {
+  background: none;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  width: 26px;
+  height: 20px;
+  font-size: 10px;
+  cursor: pointer;
+  color: #aaa;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  padding: 0;
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+}
+.mode0-nav-btn:hover {
+  background: #e8f0fe;
+  color: #1565C0;
+  border-color: #aac4f0;
+}
+
+/* 履歴パネル内ガイドヒント */
+.hist-panel-hint {
+  font-size: 11px;
+  color: #aaa;
+  padding: 3px 12px 5px;
+  border-bottom: 1px solid #f0f0f0;
+  line-height: 1.4;
+}
+
+/* 結果なし・エラー */
+.no-results {
+  padding: 14px 16px;
+  font-size: 13px;
+  color: #666;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.fallback-link {
+  color: #1976D2;
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.fallback-link:hover {
+  text-decoration: underline;
+}
+
+.results-overflow-notice {
+  padding: 8px 16px;
+  font-size: 12px;
+  color: #888;
+  border-top: 1px solid #f0f0f0;
+  text-align: center;
+}
+
+/* クイックリンク */
+.quick-links {
+  padding: 8px 10px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.quick-link {
+  padding: 7px 10px;
+  border-radius: 5px;
+  text-decoration: none;
+  color: #555;
+  font-size: 12px;
+  transition: background 0.12s;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.quick-link:hover {
+  background: #e8f0fe;
+  color: #1976D2;
+}
+
+/* フッター */
+.popup-footer {
+  padding: 7px 14px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.footer-btn {
+  background: none;
+  border: none;
+  color: #aaa;
+  font-size: 11px;
+  cursor: pointer;
+  padding: 3px 7px;
+  border-radius: 4px;
+  transition: background 0.12s, color 0.12s;
+}
+
+.footer-btn:hover {
+  background: #f0f0f0;
+  color: #555;
+}
+
+/* フォルダ作成ボタン（タイトルバー内） */
+.hist-folder-btn {
+  width: auto;
+  padding: 0 8px;
+  font-size: 11px;
+  letter-spacing: -0.3px;
+}
+
+/* 未分類フォルダヘッダー（D&D 不可、削除ボタンなし） */
+.fav-uncat-header {
+  cursor: default;
+}
+.fav-uncat-header:active {
+  cursor: default;
+}
+
+/* 全折りたたみ/全展開コントロールバー */
+.fav-control-bar {
+  list-style: none;
+  display: flex;
+  gap: 6px;
+  padding: 4px 10px;
+  background: #f8f9fa;
+  border-bottom: 1px solid #e8eaf0;
+}
+
+.fav-ctrl-btn {
+  font-size: 11px;
+  padding: 2px 8px;
+  background: #fff;
+  border: 1px solid #c8cfe0;
+  border-radius: 3px;
+  color: #555;
+  cursor: pointer;
+  transition: background 0.12s;
+}
+.fav-ctrl-btn:hover {
+  background: #e8f0fe;
+  color: #1565C0;
+  border-color: #90b4f0;
+}
+
+/* フォルダ折りたたみトグルボタン */
+.fav-folder-toggle {
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  font-size: 10px;
+  color: #6070a0;
+  cursor: pointer;
+  padding: 1px 3px;
+  line-height: 1;
+  border-radius: 3px;
+  transition: background 0.12s;
+}
+.fav-folder-toggle:hover {
+  background: rgba(0,0,0,0.08);
+}
+
+/* フォルダヘッダー */
+.fav-folder-header {
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px 5px 8px;
+  background: #f0f4ff;
+  border-top: 1px solid #dce5ff;
+  border-bottom: 1px solid #dce5ff;
+  margin-top: 2px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #3c4a7a;
+  cursor: grab;
+}
+.fav-folder-header:active {
+  cursor: grabbing;
+}
+
+.fav-folder-icon {
+  font-size: 12px;
+  flex-shrink: 0;
+}
+
+.fav-folder-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fav-folder-del-btn {
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  font-size: 13px;
+  color: #bbb;
+  cursor: pointer;
+  padding: 2px 5px;
+  border-radius: 4px;
+  line-height: 1;
+  transition: color 0.12s, background 0.12s;
+  opacity: 0;
+}
+
+.fav-folder-header:hover .fav-folder-del-btn {
+  opacity: 1;
+}
+
+.fav-folder-del-btn:hover {
+  color: #e53935;
+  background: #ffeaea;
+}
+
+/* フォルダ内アイテム（インデント） */
+.fav-folder-item {
+  padding-left: 26px !important;
+}
+
+/* 空フォルダのドロップゾーン */
+.fav-folder-empty-zone {
+  list-style: none;
+  padding: 7px 18px 7px 26px;
+  font-size: 11px;
+  color: #ccc;
+  font-style: italic;
+  border: 1px dashed #e8e8e8;
+  margin: 4px 12px;
+  border-radius: 5px;
+  text-align: center;
+}
+
+/* フォルダ作成フォーム行 */
+.fav-create-folder-row {
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 10px;
+  background: #fffde7;
+  border-bottom: 1px solid #fff9c4;
+}
+
+.fav-folder-name-input {
+  flex: 1;
+  height: 26px;
+  padding: 0 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 12px;
+  outline: none;
+  font-family: inherit;
+}
+
+.fav-folder-name-input:focus {
+  border-color: #1976D2;
+  box-shadow: 0 0 0 2px rgba(25,118,210,0.1);
+}
+
+.fav-folder-create-ok {
+  padding: 3px 9px;
+  background: #1976D2;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 11px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.fav-folder-create-ok:hover {
+  background: #1565C0;
+}
+
+.fav-folder-create-cancel {
+  background: none;
+  border: none;
+  color: #aaa;
+  cursor: pointer;
+  font-size: 13px;
+  padding: 2px 5px;
+  border-radius: 4px;
+}
+
+.fav-folder-create-cancel:hover {
+  background: #f0f0f0;
+  color: #555;
+}
+
+/* D&D スタイル */
+.fav-item.fav-dragging,
+.fav-folder-header.fav-dragging {
+  opacity: 0.3;
+}
+
+.fav-item.fav-drop-above,
+.fav-folder-header.fav-drop-above {
+  border-top: 2px solid #1976D2 !important;
+}
+
+.fav-item.fav-drop-below,
+.fav-folder-header.fav-drop-below {
+  border-bottom: 2px solid #1976D2 !important;
+}
+
+.fav-folder-header.fav-drop-folder,
+.fav-section-root-header.fav-drop-folder,
+.fav-folder-empty-zone.fav-drop-folder {
+  background: #e3eeff !important;
+  outline: 2px dashed #1976D2;
+  outline-offset: -2px;
+}
+
+/* フォルダ削除確認ダイアログ（パネル内） */
+.folder-del-confirm {
+  padding: 10px 14px;
+  background: #fff8e1;
+  border-bottom: 1px solid #ffe082;
+  flex-shrink: 0;
+}
+
+.folder-del-confirm-msg {
+  font-size: 12px;
+  color: #5d4037;
+  margin-bottom: 8px;
+  line-height: 1.6;
+}
+
+.folder-del-confirm-btns {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.folder-del-confirm-btns button {
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 11px;
+  cursor: pointer;
+  border: 1px solid #ddd;
+  background: #fff;
+  font-family: inherit;
+  transition: background 0.12s;
+}
+
+.folder-del-confirm-btns .fdc-root:hover   { background: #e8f5e9; border-color: #a5d6a7; }
+.folder-del-confirm-btns .fdc-del:hover    { background: #ffeaea; border-color: #ef9a9a; }
+.folder-del-confirm-btns .fdc-cancel:hover { background: #f5f5f5; }
+
+/* ヒストリーアイテム ツールチップ */
+.hist-item-tooltip {
+  position: fixed;
+  background: #2c2c2c;
+  color: #fff;
+  border-radius: 5px;
+  padding: 6px 10px;
+  font-size: 11px;
+  line-height: 1.5;
+  z-index: 99999;
+  pointer-events: none;
+  max-width: 260px;
+  word-break: break-all;
+  box-shadow: 0 3px 10px rgba(0,0,0,0.35);
+}
+
+.hist-tooltip-name {
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+
+.hist-tooltip-num {
+  color: #aaa;
+  font-size: 10px;
+}
+
+/* フォルダリネームボタン */
+.fav-folder-rename-btn {
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  font-size: 12px;
+  color: #9ea8c0;
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 4px;
+  line-height: 1;
+  transition: color 0.12s, background 0.12s;
+  opacity: 0;
+}
+.fav-folder-header:hover .fav-folder-rename-btn {
+  opacity: 1;
+}
+.fav-folder-rename-btn:hover {
+  color: #1565C0;
+  background: #e8f0fe;
+}
+
+/* フォルダ名インライン編集フォーム */
+.fav-folder-rename-input {
+  flex: 1;
+  min-width: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: #3c4a7a;
+  border: 1px solid #90b4f0;
+  border-radius: 4px;
+  padding: 2px 6px;
+  outline: none;
+  background: #fff;
+}
+.fav-folder-rename-ok,
+.fav-folder-rename-cancel {
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  font-size: 13px;
+  cursor: pointer;
+  padding: 2px 5px;
+  border-radius: 4px;
+  line-height: 1;
+}
+.fav-folder-rename-ok {
+  color: #2e7d32;
+}
+.fav-folder-rename-ok:hover {
+  background: #e8f5e9;
+}
+.fav-folder-rename-cancel {
+  color: #c62828;
+}
+.fav-folder-rename-cancel:hover {
+  background: #ffeaea;
+}

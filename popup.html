@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>e-Gov法令検索</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="popup-container">
+    <div class="popup-header">
+      <img src="icons/icon32.png" alt="" class="popup-logo">
+      <h1 class="popup-title">法令検索Enhancer</h1>
+    </div>
+
+    <form id="searchForm" class="search-form">
+      <div class="input-wrapper">
+        <span class="search-icon">🔍</span>
+        <input
+          type="text"
+          id="searchInput"
+          class="search-input"
+          placeholder="法令名を入力（例：道路交通法）"
+          autofocus
+          autocomplete="off"
+          lang="ja"
+          inputmode="text"
+        >
+      </div>
+      <button type="submit" class="search-btn">検索</button>
+    </form>
+
+    <!-- 通常モード用ガイド -->
+    <div id="searchHint" class="search-hint">
+      <button id="mode0NavLeft"  class="mode0-nav-btn" title="開いた法令履歴を開く">◀</button>
+      <span class="search-hint-text">開いた法令 ｜ お気に入り</span>
+      <button id="mode0NavRight" class="mode0-nav-btn" title="お気に入りを開く">▶</button>
+    </div>
+
+    <!-- 履歴パネル（← キーで表示） -->
+    <div id="historyPanel" class="history-panel" style="display:none">
+      <div class="history-panel-nav">
+        <button id="histNavLeft"  class="hist-nav-btn" title="開いた法令履歴">◀</button>
+        <span   id="histPanelTitle" class="history-panel-title">検索履歴</span>
+        <button id="favFolderBtn" class="hist-nav-btn hist-folder-btn" title="フォルダを作成" style="display:none">📁+</button>
+        <button id="histNavRight" class="hist-nav-btn" title="検索に戻る">▶</button>
+      </div>
+      <div id="histPanelHint" class="hist-panel-hint"></div>
+      <ul id="historyList" class="history-list"></ul>
+    </div>
+
+    <!-- 検索結果エリア -->
+    <div id="searchResults" class="search-results"></div>
+
+    <div class="quick-links">
+      <a href="#" class="quick-link" data-url="https://laws.e-gov.go.jp/">
+        🏠 e-Govトップページ
+      </a>
+    </div>
+
+    <div class="popup-footer">
+      <button id="openOptions" class="footer-btn">⚙️ 設定</button>
+    </div>
+  </div>
+  <script src="popup.js"></script>
+</body>
+</html>

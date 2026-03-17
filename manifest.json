@@ -1,0 +1,45 @@
+{
+  "manifest_version": 3,
+  "name": "e-gov法令検索 Enhancer",
+  "version": "1.0.0",
+  "description": "ショートカットキーでe-Gov法令検索を素早く開き、法令ページでの条文ジャンプ・ページ内検索を便利にします。",
+  "permissions": ["storage", "tabs"],
+  "host_permissions": ["https://laws.e-gov.go.jp/*"],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "e-Gov法令検索",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "commands": {
+    "_execute_action": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+E",
+        "mac": "Command+Shift+E"
+      },
+      "description": "e-Gov法令検索ポップアップを開く"
+    }
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://laws.e-gov.go.jp/*"],
+      "js": ["content.js"],
+      "css": ["content.css"],
+      "run_at": "document_end"
+    }
+  ],
+  "options_ui": {
+    "page": "options.html",
+    "open_in_tab": true
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
+}
