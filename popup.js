@@ -61,6 +61,51 @@ document.addEventListener('DOMContentLoaded', async () => {
     tooltipEl.style.display = 'none';
   }
 
+  function isMainModeArrowKey(e) {
+    return !e.shiftKey && !e.ctrlKey && !e.altKey && !e.metaKey
+      && (e.key === 'ArrowLeft' || e.key === 'ArrowRight');
+  }
+
+  function isEditableForModeSwitch(el) {
+    if (!el) return false;
+    const tag = (el.tagName || '').toLowerCase();
+    return tag === 'input' || tag === 'textarea' || tag === 'select' || el.isContentEditable;
+  }
+
+  function handleModeArrowNavigation(e) {
+    if (!isMainModeArrowKey(e)) return false;
+
+    const activeEl = document.activeElement;
+    if (isEditableForModeSwitch(activeEl) && activeEl !== searchInput) return false;
+
+    if (historyMode === null) {
+      if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        showHistoryPanel('law');
+        return true;
+      }
+      if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        showHistoryPanel('favorites');
+        return true;
+      }
+      return false;
+    }
+
+    if (historyMode === 'law' && e.key === 'ArrowRight') {
+      e.preventDefault();
+      hideHistoryPanel();
+      return true;
+    }
+    if (historyMode === 'favorites' && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
+      e.preventDefault();
+      hideHistoryPanel();
+      return true;
+    }
+
+    return false;
+  }
+
   // D&D 状態
   let dragFromArrayIdx = -1;
   let dragType         = '';   // 'item' | 'folder'
@@ -121,6 +166,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   searchInput.focus();
   showEmptyState();
   setupFavoritesDnD();
+  document.addEventListener('keydown', (e) => {
+    if (handleModeArrowNavigation(e)) e.stopPropagation();
+  }, true);
 
   // ================================================
   // IME変換確定後に検索
@@ -162,6 +210,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   searchInput.addEventListener('keydown', (e) => {
     // 履歴パネル表示中はパネル内操作に委譲
     if (historyMode !== null) { handleHistoryKeydown(e); return; }
+    if (handleModeArrowNavigation(e)) return;
 
     if (e.key === 'ArrowDown') {
       e.preventDefault(); moveFocus(+1); return;
@@ -232,6 +281,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   // 履歴パネル内キー操作
   // ================================================
   function handleHistoryKeydown(e) {
+    if (handleModeArrowNavigation(e)) return;
+
     e.preventDefault();
 
     if (e.key === 'ArrowUp')   { moveHistFocus(-1, getHistItemCount()); return; }

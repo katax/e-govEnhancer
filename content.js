@@ -45,6 +45,9 @@
   let activeFlashOrigTr = '';
   let activeFlashTimer = null;
   let activeFlashTransitionTimer = null;
+  let favoriteScrollSaveTimer = null;
+  let favoriteScrollRestored = false;
+  let pinIndicatorTimer = null;
 
   // スクロール速度（'instant' | 'smooth'、デフォ: instant）
   let scrollBehavior = 'instant';
@@ -180,6 +183,156 @@
 
   function toFullWidth(s) {
     return String(s).replace(/[0-9]/g, c => String.fromCharCode(c.charCodeAt(0) + 0xFEE0));
+  }
+
+  function getCurrentLawIdFromUrl() {
+    const m = location.pathname.match(/\/law\/([^/?#]+)/);
+    return m ? decodeURIComponent(m[1]) : '';
+  }
+
+  function getCurrentLawInfo() {
+    return {
+      lawId: getCurrentLawIdFromUrl(),
+      lawName: getCurrentLawName(),
+      lawNum: '',
+      lawType: '',
+      folderId: null,
+    };
+  }
+
+  async function getFavoritesList() {
+    try {
+      const data = await chrome.storage.local.get(['favorites']);
+      return Array.isArray(data.favorites) ? data.favorites : [];
+    } catch (_) {
+      return [];
+    }
+  }
+
+  async function setFavoritesList(favorites) {
+    try {
+      await chrome.storage.local.set({ favorites });
+    } catch (_) {}
+  }
+
+  async function setCurrentLawFavorite(shouldFavorite) {
+    const law = getCurrentLawInfo();
+    if (!law.lawId) return false;
+
+    const favorites = await getFavoritesList();
+    const idx = favorites.findIndex((f) => f.lawId === law.lawId);
+    const isFavorite = idx !== -1;
+    if (shouldFavorite === isFavorite) return isFavorite;
+
+    if (shouldFavorite) {
+      favorites.unshift(law);
+      if (favorites.length > 50) favorites.length = 50;
+    } else {
+      favorites.splice(idx, 1);
+    }
+
+    await setFavoritesList(favorites);
+    return shouldFavorite;
+  }
+
+  function showPinIndicator(message) {
+    let ind = document.getElementById('egov-pin-indicator');
+    if (!ind) {
+      ind = document.createElement('div');
+      ind.id = 'egov-pin-indicator';
+      ind.style.setProperty('position', 'fixed', 'important');
+      ind.style.setProperty('right', '16px', 'important');
+      ind.style.setProperty('bottom', '16px', 'important');
+      ind.style.setProperty('z-index', '2147483647', 'important');
+      ind.style.setProperty('padding', '8px 12px', 'important');
+      ind.style.setProperty('border-radius', '10px', 'important');
+      ind.style.setProperty('background', 'rgba(40, 40, 56, 0.92)', 'important');
+      ind.style.setProperty('color', '#fff', 'important');
+      ind.style.setProperty('font-size', '12px', 'important');
+      ind.style.setProperty('box-shadow', '0 8px 24px rgba(0,0,0,0.25)', 'important');
+      ind.style.setProperty('opacity', '0', 'important');
+      ind.style.setProperty('transition', 'opacity 0.18s ease', 'important');
+      document.body.appendChild(ind);
+    }
+
+    ind.textContent = message;
+    ind.style.setProperty('display', 'block', 'important');
+    ind.style.setProperty('opacity', '1', 'important');
+
+    clearTimeout(pinIndicatorTimer);
+    pinIndicatorTimer = setTimeout(() => {
+      ind.style.setProperty('opacity', '0', 'important');
+      setTimeout(() => { ind.style.setProperty('display', 'none', 'important'); }, 180);
+    }, 1400);
+  }
+
+  async function getLawPinsMap() {
+    try {
+      const data = await chrome.storage.local.get(['lawPins']);
+      return data.lawPins && typeof data.lawPins === 'object' ? data.lawPins : {};
+    } catch (_) {
+      return {};
+    }
+  }
+
+  async function saveLawPinsMap(lawPins) {
+    try {
+      await chrome.storage.local.set({ lawPins });
+    } catch (_) {}
+  }
+
+  async function addCurrentLawPin() {
+    const lawId = getCurrentLawIdFromUrl();
+    if (!lawId) return;
+
+    const lawPins = await getLawPinsMap();
+    const pins = Array.isArray(lawPins[lawId]) ? [...lawPins[lawId]] : [];
+    const scrollTop = Math.max(0, Math.round(getCurrentScrollTop()));
+
+    const existing = pins.findIndex((pin) => Math.abs((pin.scrollTop ?? 0) - scrollTop) <= 24);
+    if (existing !== -1) {
+      pins[existing] = { ...pins[existing], scrollTop };
+      showPinIndicator('近くのピンを更新しました');
+    } else {
+      pins.push({ scrollTop });
+      pins.sort((a, b) => (a.scrollTop ?? 0) - (b.scrollTop ?? 0));
+      showPinIndicator(`ピンを追加しました (${pins.length})`);
+    }
+
+    lawPins[lawId] = pins;
+    await saveLawPinsMap(lawPins);
+  }
+
+  async function navigateLawPin(direction) {
+    const lawId = getCurrentLawIdFromUrl();
+    if (!lawId) return;
+
+    const lawPins = await getLawPinsMap();
+    const pins = Array.isArray(lawPins[lawId]) ? [...lawPins[lawId]] : [];
+    if (pins.length === 0) {
+      showPinIndicator('この法令にはピンがありません');
+      return;
+    }
+
+    pins.sort((a, b) => (a.scrollTop ?? 0) - (b.scrollTop ?? 0));
+    const currentTop = getCurrentScrollTop();
+    let target = null;
+
+    if (direction > 0) {
+      target = pins.find((pin) => (pin.scrollTop ?? 0) > currentTop + 8) || pins[0];
+    } else {
+      for (let i = pins.length - 1; i >= 0; i--) {
+        if ((pins[i].scrollTop ?? 0) < currentTop - 8) {
+          target = pins[i];
+          break;
+        }
+      }
+      if (!target) target = pins[pins.length - 1];
+    }
+
+    scrollToStoredTop(target.scrollTop ?? 0, scrollBehavior);
+    clearHighlights();
+    showPinIndicator(`ピン ${pins.indexOf(target) + 1} / ${pins.length}`);
   }
 
   const KANJI_NUMS = ['〇','一','二','三','四','五','六','七','八','九',
@@ -323,12 +476,16 @@
     if (!activeDialog) {
       if (e.key === 'h') { e.preventDefault(); navigateJumpHistory(-1); return; }
       if (e.key === 'l') { e.preventDefault(); navigateJumpHistory(+1); return; }
+      if (e.key === 'j') { e.preventDefault(); navigateLawPin(+1); return; }
+      if (e.key === 'k') { e.preventDefault(); navigateLawPin(-1); return; }
       if (e.key === 'd') { e.preventDefault(); scrollPage(+0.8); return; }
       if (e.key === 'u') { e.preventDefault(); scrollPage(-0.8); return; }
+      if (e.key === 'm') { e.preventDefault(); addCurrentLawPin(); return; }
       if (e.key === 'n') { e.preventDefault(); navigateArticle(+1); return; }
       if (e.key === 'p') { e.preventDefault(); navigateArticle(-1); return; }
+      if (e.key === 'f') { e.preventDefault(); showFavoriteDialog(); return; }
       if (e.key === 'c') { e.preventDefault(); toggleNumberMode(); return; }
-      if (e.key === 'k') { e.preventDefault(); convertKatakanaToHiragana(); return; }
+      if (e.shiftKey && e.key === 'K') { e.preventDefault(); convertKatakanaToHiragana(); return; }
     }
 
     e.preventDefault();
@@ -359,6 +516,55 @@
     overlay.addEventListener('click', (e) => { if (e.target === overlay) closeDialog(); });
     dialog.querySelector('.egov-ext-close')?.addEventListener('click', closeDialog);
     return dialog;
+  }
+
+  async function showFavoriteDialog() {
+    const law = getCurrentLawInfo();
+    if (!law.lawId) return;
+
+    const favorites = await getFavoritesList();
+    const isFavorite = favorites.some((f) => f.lawId === law.lawId);
+
+    const dialog = createDialog(`
+      <div class="egov-ext-dialog-header">
+        <div class="egov-ext-dialog-title">
+          <span class="egov-ext-title-icon">★</span> お気に入り
+        </div>
+        <button class="egov-ext-close" aria-label="閉じる">×</button>
+      </div>
+      <div class="egov-ext-dialog-body">
+        <div class="egov-ext-result" style="color:#333 !important; min-height:auto !important;">
+          ${escapeHtml(law.lawName)}
+        </div>
+        <p class="egov-ext-hint">
+          <kbd>Enter</kbd> で ${isFavorite ? 'お気に入りから外す' : 'お気に入りに追加'} /
+          <kbd>Esc</kbd> / <kbd>f</kbd> で閉じる
+        </p>
+        <div class="egov-ext-actions">
+          <button class="egov-ext-btn-primary" id="egov-favorite-toggle-btn">
+            ${isFavorite ? 'お気に入りから外す' : 'お気に入りに追加'}
+          </button>
+        </div>
+      </div>
+    `, 'egov-ext-law-mode');
+
+    const button = dialog.querySelector('#egov-favorite-toggle-btn');
+
+    async function apply() {
+      await setCurrentLawFavorite(!isFavorite);
+      closeDialog();
+      showPinIndicator(isFavorite ? 'お気に入りから外しました' : 'お気に入りに追加しました');
+    }
+
+    button.addEventListener('click', () => { apply(); });
+    dialog.addEventListener('keydown', (e) => {
+      e.stopPropagation();
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        apply();
+      }
+    });
+    button.focus();
   }
 
   // ==================
@@ -761,47 +967,35 @@
     if (articles.length === 0) return;
 
     const container = getScrollContainer();
+    const containerRect = container ? container.getBoundingClientRect() : null;
+    const anchorTop = container ? container.clientHeight * 0.25 : window.innerHeight * 0.25;
 
-    function getAbsTop(el) {
+    function getViewportTop(el) {
       const rect = el.getBoundingClientRect();
-      if (container) {
-        return rect.top - container.getBoundingClientRect().top + container.scrollTop;
-      }
-      return rect.top + window.scrollY;
+      return containerRect ? rect.top - containerRect.top : rect.top;
     }
-
-    const viewTop = container ? container.scrollTop : window.scrollY;
-    const MARGIN  = 60;
-
-    clearHighlights();
 
     let currentIdx = -1;
     for (let i = 0; i < articles.length; i++) {
-      if (getAbsTop(articles[i]) <= viewTop + MARGIN) currentIdx = i;
+      if (getViewportTop(articles[i]) <= anchorTop + 1) currentIdx = i;
+      else break;
     }
 
-    const targetIdx = direction > 0
-      ? currentIdx + 1
-      : currentIdx - 1;
-    const targetEl = targetIdx >= 0 && targetIdx < articles.length
-      ? articles[targetIdx]
-      : null;
+    const targetIdx = direction > 0 ? currentIdx + 1 : currentIdx - 1;
+    if (targetIdx < 0 || targetIdx >= articles.length) return;
 
-    if (!targetEl) return;
+    const targetEl = articles[targetIdx];
 
-    const targetTop = getAbsTop(targetEl);
-
-    if (container) {
-      container.scrollTo({ top: Math.max(0, targetTop - 16), behavior: scrollBehavior });
-    } else {
-      window.scrollTo({ top: Math.max(0, targetTop - 16), behavior: scrollBehavior });
-    }
-
-    flashElementHighlight(targetEl);
+    clearHighlights();
+    scrollToElement25pct(targetEl);
+    requestAnimationFrame(() => {
+      flashElementHighlight(targetEl);
+    });
   }
 
   function moveToFirstArticleOnLoad() {
     if (autoMovedToFirstArticle) return;
+    if (favoriteScrollRestored) return;
     if (location.hash) return;
 
     const move = () => {
@@ -829,6 +1023,105 @@
     });
     observer.observe(document.body, { childList: true, subtree: true });
     setTimeout(() => observer.disconnect(), 10000);
+  }
+
+  function getCurrentScrollTop() {
+    const container = getScrollContainer();
+    return container ? container.scrollTop : window.scrollY;
+  }
+
+  function scrollToStoredTop(top, behavior = 'instant') {
+    const targetTop = Math.max(0, Number(top) || 0);
+    const container = getScrollContainer();
+    if (container) {
+      container.scrollTo({ top: targetTop, behavior });
+    } else {
+      window.scrollTo({ top: targetTop, behavior });
+    }
+  }
+
+  async function updateFavoriteScrollPosition(scrollTop) {
+    const lawId = getCurrentLawIdFromUrl();
+    if (!lawId) return;
+
+    try {
+      const data = await chrome.storage.local.get(['favorites']);
+      const favorites = Array.isArray(data.favorites) ? data.favorites : [];
+      const idx = favorites.findIndex((f) => f.lawId === lawId);
+      if (idx === -1) return;
+
+      const normalizedTop = Math.max(0, Math.round(Number(scrollTop) || 0));
+      if ((favorites[idx].lastScrollTop ?? 0) === normalizedTop) return;
+
+      favorites[idx] = { ...favorites[idx], lastScrollTop: normalizedTop };
+      await chrome.storage.local.set({ favorites });
+    } catch (_) {}
+  }
+
+  function scheduleFavoriteScrollSave() {
+    if (favoriteScrollSaveTimer) clearTimeout(favoriteScrollSaveTimer);
+    favoriteScrollSaveTimer = setTimeout(() => {
+      favoriteScrollSaveTimer = null;
+      updateFavoriteScrollPosition(getCurrentScrollTop());
+    }, 400);
+  }
+
+  function setupFavoriteScrollPersistence() {
+    const lawId = getCurrentLawIdFromUrl();
+    if (!lawId) return;
+
+    let saveEnabled = false;
+    chrome.storage.local.get(['favorites']).then((data) => {
+      const favorites = Array.isArray(data.favorites) ? data.favorites : [];
+      saveEnabled = favorites.some((f) => f.lawId === lawId);
+      if (!saveEnabled) return;
+
+      const container = getScrollContainer();
+      const target = container || window;
+      target.addEventListener('scroll', scheduleFavoriteScrollSave, { passive: true });
+      window.addEventListener('pagehide', () => { updateFavoriteScrollPosition(getCurrentScrollTop()); }, { once: true });
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'hidden') updateFavoriteScrollPosition(getCurrentScrollTop());
+      });
+    }).catch(() => {});
+  }
+
+  async function restoreFavoriteScrollOnLoad() {
+    const lawId = getCurrentLawIdFromUrl();
+    if (!lawId || location.hash) return false;
+
+    try {
+      const data = await chrome.storage.local.get(['favorites']);
+      const favorites = Array.isArray(data.favorites) ? data.favorites : [];
+      const fav = favorites.find((f) => f.lawId === lawId);
+      if (!fav || typeof fav.lastScrollTop !== 'number') return false;
+
+      const restore = () => {
+        scrollToStoredTop(fav.lastScrollTop, 'instant');
+        favoriteScrollRestored = true;
+        return true;
+      };
+
+      if (getAllArticles().length > 0) return restore();
+
+      await new Promise((resolve) => {
+        const observer = new MutationObserver(() => {
+          if (getAllArticles().length === 0) return;
+          observer.disconnect();
+          resolve();
+        });
+        observer.observe(document.body, { childList: true, subtree: true });
+        setTimeout(() => {
+          observer.disconnect();
+          resolve();
+        }, 10000);
+      });
+
+      if (getAllArticles().length === 0) return false;
+      return restore();
+    } catch (_) {
+      return false;
+    }
   }
 
   // ==================
@@ -1567,6 +1860,29 @@
         </table>
       </div>
     `;
+
+    const guideTable = guide.querySelector('.egov-ext-guide-table');
+    const npRow = [...guideTable.querySelectorAll('tr')].find((tr) => tr.querySelector('td')?.textContent.includes('n'));
+    if (npRow) {
+      npRow.insertAdjacentHTML('beforebegin', `
+        <tr><td><kbd>j</kbd> / <kbd>k</kbd></td><td>ピンを順に移動</td></tr>
+        <tr><td><kbd>m</kbd></td><td>現在位置にピンを追加</td></tr>
+      `);
+    }
+
+    const sRow = [...guideTable.querySelectorAll('tr')].find((tr) => tr.querySelector('td')?.textContent.trim() === 's');
+    if (sRow) {
+      sRow.insertAdjacentHTML('beforebegin', `
+        <tr><td><kbd>f</kbd></td><td>お気に入りに追加 / 解除</td></tr>
+      `);
+    }
+
+    const kRow = [...guideTable.querySelectorAll('tr')].find((tr) => tr.querySelector('td')?.textContent.trim() === 'k');
+    if (kRow) {
+      const firstCell = kRow.querySelector('td');
+      if (firstCell) firstCell.innerHTML = '<kbd>Shift</kbd>+<kbd>K</kbd>';
+    }
+
     document.body.appendChild(guide);
 
     // ガイドボタンクリックで有効/無効トグル
@@ -1577,15 +1893,20 @@
     });
   }
 
+  async function initializeLawPageFeatures() {
+    addShortcutGuide();
+    await restoreFavoriteScrollOnLoad();
+    moveToFirstArticleOnLoad();
+    setupFavoriteScrollPersistence();
+  }
+
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
-      addShortcutGuide();
-      moveToFirstArticleOnLoad();
+      initializeLawPageFeatures();
     });
   } else {
     setTimeout(() => {
-      addShortcutGuide();
-      moveToFirstArticleOnLoad();
+      initializeLawPageFeatures();
     }, 800);
   }
 })();
