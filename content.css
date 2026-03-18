@@ -34,7 +34,7 @@
   max-width: calc(100vw - 32px) !important;
   font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Sans', 'Yu Gothic UI', sans-serif !important;
   font-size: 14px !important;
-  overflow: hidden !important;
+  overflow: visible !important;
   animation: egov-ext-slidein 0.15s ease-out !important;
   color: #333 !important;
 }
@@ -112,6 +112,7 @@
   display: flex !important;
   flex-direction: column !important;
   gap: 10px !important;
+  overflow: visible !important;
 }
 
 /* 条文ジャンプ: 入力行 */
@@ -366,6 +367,10 @@ mark.egov-ext-mark-current {
 }
 
 #egov-ext-guide:hover .egov-ext-guide-tooltip {
+  display: block !important;
+}
+
+#egov-ext-guide.egov-ext-guide-open .egov-ext-guide-tooltip {
   display: block !important;
 }
 

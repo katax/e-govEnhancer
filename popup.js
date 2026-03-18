@@ -609,6 +609,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     li.className   = 'history-item fav-item';
     li.draggable   = true;
     li.dataset.idx = arrayIdx;
+    li.dataset.folderId = item.folderId || '';
 
     li.innerHTML =
       `<span class="hist-icon">★</span>` +
@@ -885,6 +886,7 @@ document.addEventListener('DOMContentLoaded', async () => {
           const rect         = target.getBoundingClientRect();
           const insertBefore = e.clientY < rect.top + rect.height / 2;
           const [moved]      = favorites.splice(fromIdx, 1);
+          moved.folderId     = target.dataset.folderId || null;
           const adjustedTo   = toIdx > fromIdx ? toIdx - 1 : toIdx;
           favorites.splice(insertBefore ? adjustedTo : adjustedTo + 1, 0, moved);
 

@@ -38,6 +38,13 @@
 
   // ショートカット有効/無効
   let extensionEnabled = true;
+  let guideTooltipPinned = false;
+  let autoMovedToFirstArticle = false;
+  let activeFlashEl = null;
+  let activeFlashOrigBg = '';
+  let activeFlashOrigTr = '';
+  let activeFlashTimer = null;
+  let activeFlashTransitionTimer = null;
 
   // スクロール速度（'instant' | 'smooth'、デフォ: instant）
   let scrollBehavior = 'instant';
@@ -63,6 +70,10 @@
     if (!num) return;
     if (articleJumpCursor >= 0 && articleJumpCursor < articleJumpHistory.length - 1) {
       articleJumpHistory.splice(articleJumpCursor + 1);
+    }
+    if (articleJumpHistory[articleJumpHistory.length - 1] === num) {
+      articleJumpCursor = articleJumpHistory.length - 1;
+      return;
     }
     articleJumpHistory.push(num);
     if (articleJumpHistory.length > 50) articleJumpHistory.shift();
@@ -277,6 +288,24 @@
       return;
     }
 
+    if (guideTooltipPinned) {
+      hideShortcutGuideTooltip();
+      e.preventDefault();
+      return;
+    }
+
+    const isGuideShortcut =
+      e.key === '?' ||
+      (e.shiftKey && e.key === '/') ||
+      (e.shiftKey && e.code === 'Slash');
+    if (!activeDialog && !isInputActive() && !e.ctrlKey && !e.altKey && !e.metaKey && isGuideShortcut) {
+      if (document.querySelector('#provisionview')) {
+        e.preventDefault();
+        showShortcutGuideTooltip();
+        return;
+      }
+    }
+
     if (isInputActive()) return;
 
     if (e.key === 'Escape') {
@@ -360,11 +389,15 @@
     }
 
     function setHighlight(index) {
-      dropdown.querySelectorAll('.egov-ext-history-item').forEach((el, i) => {
+      const items = dropdown.querySelectorAll('.egov-ext-history-item');
+      items.forEach((el, i) => {
         el.classList.toggle('egov-ext-history-item-focused', i === index);
       });
       highlightedIndex = index;
       if (index >= 0) input.value = history[index];
+      if (index >= 0 && items[index]) {
+        items[index].scrollIntoView({ block: 'nearest' });
+      }
     }
 
     function moveHighlight(direction) {
@@ -389,6 +422,7 @@
       hoverEnabled = false;
       setTimeout(() => { hoverEnabled = true; }, 250);
       render();
+      dropdown.scrollTop = 0;
       dropdown.style.display = 'block';
     }
 
@@ -435,6 +469,14 @@
     try { input.style.imeMode = 'disabled'; } catch (_) {}
     input.focus();
     input.setSelectionRange(initial.length, initial.length);
+    input.addEventListener('input', () => {
+      const filtered = input.value.replace(/[^0-9.-]/g, '');
+      if (input.value !== filtered) {
+        const cursor = Math.min(input.selectionStart ?? filtered.length, filtered.length);
+        input.value = filtered;
+        try { input.setSelectionRange(cursor, cursor); } catch (_) {}
+      }
+    });
 
     const hist = buildHistoryDropdown(input, articleHistory, (val) => { doJump(val); });
 
@@ -460,9 +502,6 @@
       const raw = (overrideNum !== undefined ? overrideNum : input.value).trim();
       if (!raw) return;
 
-      pushHistory(articleHistory, raw);
-      pushJumpHistory(raw);
-
       const parts      = raw.split('.');
       const articleRaw = parts[0] || '';
       const paraRaw    = parts[1] || null;
@@ -472,6 +511,8 @@
       const resultEl = dialog.querySelector('#egov-article-result');
 
       if (found) {
+        pushHistory(articleHistory, raw);
+        pushJumpHistory(raw);
         closeDialog();
       } else {
         const dispArticle = articleRaw.replace(/[-－‐ー_]/g, 'の').replace(/のの+/g, 'の');
@@ -480,6 +521,8 @@
         if (itemRaw) msg += `第${itemRaw}号`;
         resultEl.textContent = `「${msg}」が見つかりませんでした`;
         resultEl.className   = 'egov-ext-result egov-ext-result-error';
+        input.focus();
+        input.select();
       }
     }
   }
@@ -510,7 +553,7 @@
             }
           }
           console.log(`[e-Gov Jump] ヒット: ${sel} → id="${target.id}"`);
-          highlightAndScroll(target);
+          highlightAndScroll(target, 0.25);
           return true;
         }
       } catch (_) {}
@@ -523,7 +566,7 @@
       if (el.children.length > 3) continue;
       const text = el.textContent.trim();
       if (text.length > 60) continue;
-      if (exactPattern.test(text)) { highlightAndScroll(el); return true; }
+      if (exactPattern.test(text)) { highlightAndScroll(el, 0.25); return true; }
     }
     return false;
   }
@@ -568,7 +611,7 @@
 
     if (!paraEl) return false;
 
-    if (!ni) { highlightAndScroll(paraEl); return true; }
+    if (!ni) { highlightAndScroll(paraEl, 0.25); return true; }
 
     let itemEl = null;
     for (const sel of [
@@ -602,20 +645,79 @@
     }
 
     if (!itemEl) return false;
-    highlightAndScroll(itemEl);
+    highlightAndScroll(itemEl, 0.25);
     return true;
   }
 
-  function highlightAndScroll(el) {
-    el.scrollIntoView({ behavior: scrollBehavior, block: 'center' });
-    const origBg = el.style.backgroundColor;
-    const origTr = el.style.transition;
+  function highlightAndScroll(el, viewportRatio = 0.5) {
+    const container = getScrollContainer();
+    const targetRatio = Math.max(0, Math.min(1, viewportRatio));
+
+    if (container) {
+      const rect = el.getBoundingClientRect();
+      const cRect = container.getBoundingClientRect();
+      const top = rect.top - cRect.top + container.scrollTop - (container.clientHeight * targetRatio);
+      container.scrollTo({ top: Math.max(0, top), behavior: scrollBehavior });
+    } else {
+      const top = el.getBoundingClientRect().top + window.scrollY - (window.innerHeight * targetRatio);
+      window.scrollTo({ top: Math.max(0, top), behavior: scrollBehavior });
+    }
+
+    flashElementHighlight(el);
+  }
+
+  function flashElementHighlight(el) {
+    if (!el) return;
+
+    if (activeFlashTimer) {
+      clearTimeout(activeFlashTimer);
+      activeFlashTimer = null;
+    }
+    if (activeFlashTransitionTimer) {
+      clearTimeout(activeFlashTransitionTimer);
+      activeFlashTransitionTimer = null;
+    }
+    if (activeFlashEl && activeFlashEl !== el) {
+      activeFlashEl.style.backgroundColor = activeFlashOrigBg;
+      activeFlashEl.style.transition = activeFlashOrigTr;
+    }
+
+    activeFlashEl = el;
+    activeFlashOrigBg = el.style.backgroundColor;
+    activeFlashOrigTr = el.style.transition;
     el.style.backgroundColor = '#FFF9C4';
     el.style.transition = 'background-color 1s';
-    setTimeout(() => {
-      el.style.backgroundColor = origBg;
-      setTimeout(() => { el.style.transition = origTr; }, 1000);
+
+    activeFlashTimer = setTimeout(() => {
+      el.style.backgroundColor = activeFlashOrigBg;
+      activeFlashTransitionTimer = setTimeout(() => {
+        el.style.transition = activeFlashOrigTr;
+        if (activeFlashEl === el) {
+          activeFlashEl = null;
+          activeFlashOrigBg = '';
+          activeFlashOrigTr = '';
+        }
+      }, 1000);
+      activeFlashTimer = null;
     }, 1200);
+  }
+
+  function clearFlashElementHighlight() {
+    if (activeFlashTimer) {
+      clearTimeout(activeFlashTimer);
+      activeFlashTimer = null;
+    }
+    if (activeFlashTransitionTimer) {
+      clearTimeout(activeFlashTransitionTimer);
+      activeFlashTransitionTimer = null;
+    }
+    if (activeFlashEl) {
+      activeFlashEl.style.backgroundColor = activeFlashOrigBg;
+      activeFlashEl.style.transition = activeFlashOrigTr;
+      activeFlashEl = null;
+    }
+    activeFlashOrigBg = '';
+    activeFlashOrigTr = '';
   }
 
   // ==================
@@ -671,15 +773,22 @@
     const viewTop = container ? container.scrollTop : window.scrollY;
     const MARGIN  = 60;
 
-    let currentIdx = 0;
+    clearHighlights();
+
+    let currentIdx = -1;
     for (let i = 0; i < articles.length; i++) {
       if (getAbsTop(articles[i]) <= viewTop + MARGIN) currentIdx = i;
     }
 
-    const targetIdx = currentIdx + direction;
-    if (targetIdx < 0 || targetIdx >= articles.length) return;
+    const targetIdx = direction > 0
+      ? currentIdx + 1
+      : currentIdx - 1;
+    const targetEl = targetIdx >= 0 && targetIdx < articles.length
+      ? articles[targetIdx]
+      : null;
 
-    const targetEl  = articles[targetIdx];
+    if (!targetEl) return;
+
     const targetTop = getAbsTop(targetEl);
 
     if (container) {
@@ -688,16 +797,38 @@
       window.scrollTo({ top: Math.max(0, targetTop - 16), behavior: scrollBehavior });
     }
 
-    {
-      const origBg = targetEl.style.backgroundColor;
-      const origTr = targetEl.style.transition;
-      targetEl.style.backgroundColor = '#FFF9C4';
-      targetEl.style.transition       = 'background-color 1s';
-      setTimeout(() => {
-        targetEl.style.backgroundColor = origBg;
-        setTimeout(() => { targetEl.style.transition = origTr; }, 1000);
-      }, 1200);
-    }
+    flashElementHighlight(targetEl);
+  }
+
+  function moveToFirstArticleOnLoad() {
+    if (autoMovedToFirstArticle) return;
+    if (location.hash) return;
+
+    const move = () => {
+      const articles = getAllArticles();
+      if (articles.length === 0) return false;
+      autoMovedToFirstArticle = true;
+      const firstArticle = articles[0];
+      const container = getScrollContainer();
+      if (container) {
+        const rect = firstArticle.getBoundingClientRect();
+        const cRect = container.getBoundingClientRect();
+        const top = rect.top - cRect.top + container.scrollTop;
+        container.scrollTo({ top: Math.max(0, top - 16), behavior: 'instant' });
+      } else {
+        const top = firstArticle.getBoundingClientRect().top + window.scrollY;
+        window.scrollTo({ top: Math.max(0, top - 16), behavior: 'instant' });
+      }
+      return true;
+    };
+
+    if (move()) return;
+
+    const observer = new MutationObserver(() => {
+      if (move()) observer.disconnect();
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
+    setTimeout(() => observer.disconnect(), 10000);
   }
 
   // ==================
@@ -722,7 +853,9 @@
         </div>
         <div class="egov-ext-result" id="egov-search-result"></div>
         <p class="egov-ext-hint">
-          <kbd>Enter</kbd> 画面先頭から検索 ｜ <kbd>Shift</kbd>+<kbd>Enter</kbd> 上方向に検索 ｜ <kbd>Ctrl</kbd>+<kbd>Enter</kbd> 現在位置から検索<br>
+          <kbd>Enter</kbd> ページトップから検索
+          <span id="egov-search-hint-shift" style="display:none"> ｜ <kbd>Shift</kbd>+<kbd>Enter</kbd> 上方向に検索</span>
+          <span id="egov-search-hint-ctrl"> ｜ <kbd>Ctrl</kbd>+<kbd>Enter</kbd> 現在位置から検索</span><br>
           <kbd>↑</kbd><kbd>↓</kbd> 履歴 ｜ <kbd>Tab</kbd> 条文ジャンプへ
         </p>
       </div>
@@ -730,11 +863,38 @@
 
     const input    = dialog.querySelector('#egov-search-text');
     const resultEl = dialog.querySelector('#egov-search-result');
+    const shiftHint = dialog.querySelector('#egov-search-hint-shift');
+    const ctrlHint  = dialog.querySelector('#egov-search-hint-ctrl');
 
     try { input.style.imeMode = 'active'; } catch (_) {}
     input.focus();
 
     let lastExecutedQuery = '';
+    let hasExecutedSearch = false;
+
+    function refocusSearchInput() {
+      try { input.focus({ preventScroll: true }); }
+      catch (_) { input.focus(); }
+      try { input.setSelectionRange(input.value.length, input.value.length); } catch (_) {}
+    }
+
+    function updateSearchHints() {
+      if (shiftHint) shiftHint.style.display = hasExecutedSearch ? '' : 'none';
+      if (ctrlHint) ctrlHint.style.display = hasExecutedSearch ? 'none' : '';
+    }
+
+    function markSearchExecuted() {
+      hasExecutedSearch = true;
+      updateSearchHints();
+    }
+
+    function resetSearchExecutionState() {
+      lastExecutedQuery = '';
+      hasExecutedSearch = false;
+      updateSearchHints();
+    }
+
+    updateSearchHints();
 
     function doSearchNext(query) {
       if (!query) return;
@@ -742,9 +902,12 @@
         lastExecutedQuery = query;
         pushHistory(searchHistory, query);
         performSearch(query, resultEl);
-        navigateFromViewportStart(resultEl);
+        markSearchExecuted();
+        navigate(1, resultEl);
+        refocusSearchInput();
       } else {
         navigate(1, resultEl);
+        refocusSearchInput();
       }
     }
 
@@ -754,9 +917,12 @@
         lastExecutedQuery = query;
         pushHistory(searchHistory, query);
         performSearch(query, resultEl);
+        markSearchExecuted();
         navigateFromViewportStart(resultEl);
+        refocusSearchInput();
       } else {
         navigate(-1, resultEl);
+        refocusSearchInput();
       }
     }
 
@@ -766,21 +932,26 @@
         lastExecutedQuery = query;
         pushHistory(searchHistory, query);
         performSearch(query, resultEl);
+        markSearchExecuted();
         navigateFromCurrentScrollPos(resultEl);
+        refocusSearchInput();
       } else {
         navigateFromCurrentScrollPos(resultEl);
+        refocusSearchInput();
       }
     }
 
     const hist = buildHistoryDropdown(input, searchHistory, (val) => {
       lastExecutedQuery = val;
       performSearch(val, resultEl);
+      markSearchExecuted();
       navigateFromViewportStart(resultEl);
+      refocusSearchInput();
     });
 
     input.addEventListener('input', () => {
-      if (input.value.trim() !== lastExecutedQuery) {
-        lastExecutedQuery = '';
+      if (hasExecutedSearch || lastExecutedQuery) {
+        resetSearchExecutionState();
         resultEl.textContent = '';
       }
       hist.hide();
@@ -809,7 +980,10 @@
       hist.hide();
     });
 
-    dialog.querySelector('#egov-search-prev').addEventListener('click', () => navigate(-1, resultEl));
+    dialog.querySelector('#egov-search-prev').addEventListener('click', () => {
+      navigate(-1, resultEl);
+      refocusSearchInput();
+    });
     dialog.querySelector('#egov-search-next').addEventListener('click', () => doSearchNext(input.value.trim()));
   }
 
@@ -957,6 +1131,7 @@
   }
 
   function clearHighlights() {
+    clearFlashElementHighlight();
     if (CSS.highlights) {
       CSS.highlights.delete('egov-search');
       CSS.highlights.delete('egov-search-current');
@@ -1330,6 +1505,24 @@
     }
   }
 
+  function showShortcutGuideTooltip() {
+    const guide = document.getElementById('egov-ext-guide');
+    if (!guide) return;
+    guideTooltipPinned = true;
+    guide.classList.add('egov-ext-guide-open');
+  }
+
+  function hideShortcutGuideTooltip() {
+    const guide = document.getElementById('egov-ext-guide');
+    guideTooltipPinned = false;
+    if (!guide) return;
+    guide.classList.remove('egov-ext-guide-open');
+  }
+
+  window.addEventListener('blur', () => {
+    if (guideTooltipPinned) hideShortcutGuideTooltip();
+  });
+
   // ==================
   // ショートカットガイドボタン（右下に常駐）
   // ==================
@@ -1367,6 +1560,8 @@
           <tr><td><kbd>Alt</kbd>+<kbd>P</kbd></td>
               <td>ショートカット有効/無効の切り替え<br>
                 <span class="egov-ext-guide-sub">青=有効 / 灰=無効。このボタンクリックでも切り替え可</span></td></tr>
+          <tr><td><kbd>?</kbd></td>
+              <td>操作ガイドを表示</td></tr>
           <tr><td><kbd>Esc</kbd></td>
               <td>ダイアログを閉じる</td></tr>
         </table>
@@ -1383,8 +1578,14 @@
   }
 
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', addShortcutGuide);
+    document.addEventListener('DOMContentLoaded', () => {
+      addShortcutGuide();
+      moveToFirstArticleOnLoad();
+    });
   } else {
-    setTimeout(addShortcutGuide, 800);
+    setTimeout(() => {
+      addShortcutGuide();
+      moveToFirstArticleOnLoad();
+    }, 800);
   }
 })();

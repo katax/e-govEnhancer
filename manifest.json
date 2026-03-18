@@ -2,12 +2,12 @@
   "manifest_version": 3,
   "name": "e-gov法令検索 Enhancer",
   "version": "1.0.0",
-  "description": "ショートカットキーでe-Gov法令検索を素早く開き、法令ページでの条文ジャンプ・ページ内検索を便利にします。",
+  "description": "e-gov法令検索をもっと便利にします",
   "permissions": ["storage", "tabs"],
   "host_permissions": ["https://laws.e-gov.go.jp/*"],
   "action": {
     "default_popup": "popup.html",
-    "default_title": "e-Gov法令検索",
+    "default_title": "e-gov法令検索Enhancer",
     "default_icon": {
       "16": "icons/icon16.png",
       "32": "icons/icon32.png",
