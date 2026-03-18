@@ -48,16 +48,47 @@
   let favoriteScrollSaveTimer = null;
   let favoriteScrollRestored = false;
   let pinIndicatorTimer = null;
+  let pinToastVisible = false;
+  let pinToastPinned = false;
+  let pinToastTimer = null;
+  let pinToastDefaultVisible = true;
+  const PIN_SLOT_ORDER = ['i', 'o', 'j', 'k', 'm'];
+  const PIN_SLOT_CONFIG = {
+    i: { color: '#ef6b73', label: 'i' },
+    o: { color: '#f6b73c', label: 'o' },
+    j: { color: '#5bbd72', label: 'j' },
+    k: { color: '#4c8df6', label: 'k' },
+    m: { color: '#9a6df2', label: 'm' },
+  };
 
   // スクロール速度（'instant' | 'smooth'、デフォ: instant）
   let scrollBehavior = 'instant';
   chrome.storage.local.get(['scrollBehavior'], (data) => {
     if (data.scrollBehavior === 'smooth') scrollBehavior = 'smooth';
   });
+  chrome.storage.local.get(['pinToastDefaultVisible'], (data) => {
+    if (typeof data.pinToastDefaultVisible === 'boolean') pinToastDefaultVisible = data.pinToastDefaultVisible;
+  });
   chrome.storage.onChanged.addListener((changes, area) => {
     if (area === 'local' && changes.scrollBehavior) scrollBehavior = changes.scrollBehavior.newValue;
     if (area === 'local' && changes.favorites) refreshFavoriteHeaderBadge();
+    if (area === 'local' && changes.pinToastDefaultVisible) {
+      pinToastDefaultVisible = !!changes.pinToastDefaultVisible.newValue;
+      if (pinToastDefaultVisible) {
+        pinToastPinned = true;
+        showPinToast(false);
+      } else if (pinToastPinned) {
+        pinToastPinned = false;
+        hidePinToast(true);
+      }
+    }
+    if (area === 'session' && changes.colorPins) {
+      refreshColorPinHighlights();
+      if (pinToastVisible) renderPinToast();
+    }
   });
+  window.addEventListener('resize', () => { if (pinToastVisible) renderPinToast(); });
+  window.addEventListener('scroll', () => { if (pinToastVisible) renderPinToast(); }, { passive: true });
 
   // ==================
   // 履歴ユーティリティ
@@ -245,9 +276,23 @@
     badge.setAttribute('aria-label', isFavorite ? 'お気に入りに登録済み' : 'お気に入り未登録');
   }
 
-  function ensureFavoriteHeaderBadge() {
+  function ensureHeaderControlHost() {
     const heading = document.querySelector('h1.appid');
     if (!heading) return null;
+
+    let host = document.getElementById('egov-ext-header-controls');
+    if (host) return host;
+
+    host = document.createElement('span');
+    host.id = 'egov-ext-header-controls';
+    host.className = 'egov-ext-header-controls';
+    heading.insertAdjacentElement('afterend', host);
+    return host;
+  }
+
+  function ensureFavoriteHeaderBadge() {
+    const host = ensureHeaderControlHost();
+    if (!host) return null;
 
     let badge = document.getElementById('egov-ext-favorite-header-badge');
     if (badge) return badge;
@@ -269,7 +314,7 @@
       showPinIndicator(nextFavorite ? 'お気に入りに追加しました' : 'お気に入りから外しました');
     });
 
-    heading.insertAdjacentElement('afterend', badge);
+    host.appendChild(badge);
     return badge;
   }
 
@@ -298,14 +343,12 @@
     setTimeout(() => observer.disconnect(), 10000);
   }
 
-  function showPinIndicator(message) {
+  function showPinIndicator(message, anchorEl = null) {
     let ind = document.getElementById('egov-pin-indicator');
     if (!ind) {
       ind = document.createElement('div');
       ind.id = 'egov-pin-indicator';
       ind.style.setProperty('position', 'fixed', 'important');
-      ind.style.setProperty('right', '16px', 'important');
-      ind.style.setProperty('bottom', '16px', 'important');
       ind.style.setProperty('z-index', '2147483647', 'important');
       ind.style.setProperty('padding', '8px 12px', 'important');
       ind.style.setProperty('border-radius', '10px', 'important');
@@ -319,6 +362,20 @@
     }
 
     ind.textContent = message;
+    if (anchorEl) {
+      const rect = anchorEl.getBoundingClientRect();
+      const top = Math.max(12, rect.top - 34);
+      const left = Math.max(12, Math.min(rect.left, window.innerWidth - 220));
+      ind.style.setProperty('left', `${Math.round(left)}px`, 'important');
+      ind.style.setProperty('top', `${Math.round(top)}px`, 'important');
+      ind.style.setProperty('right', 'auto', 'important');
+      ind.style.setProperty('bottom', 'auto', 'important');
+    } else {
+      ind.style.setProperty('right', '16px', 'important');
+      ind.style.setProperty('bottom', '16px', 'important');
+      ind.style.setProperty('left', 'auto', 'important');
+      ind.style.setProperty('top', 'auto', 'important');
+    }
     ind.style.setProperty('display', 'block', 'important');
     ind.style.setProperty('opacity', '1', 'important');
 
@@ -329,73 +386,390 @@
     }, 1400);
   }
 
-  async function getLawPinsMap() {
+  function normalizeColorPins(raw) {
+    const pins = {};
+    for (const slotKey of PIN_SLOT_ORDER) {
+      pins[slotKey] = raw && typeof raw === 'object' && raw[slotKey] && typeof raw[slotKey] === 'object'
+        ? raw[slotKey]
+        : null;
+    }
+    return pins;
+  }
+
+  async function getColorPins() {
     try {
-      const data = await chrome.storage.local.get(['lawPins']);
-      return data.lawPins && typeof data.lawPins === 'object' ? data.lawPins : {};
+      const data = await chrome.storage.session.get(['colorPins']);
+      return normalizeColorPins(data.colorPins);
     } catch (_) {
-      return {};
+      return normalizeColorPins(null);
     }
   }
 
-  async function saveLawPinsMap(lawPins) {
+  async function saveColorPins(colorPins) {
     try {
-      await chrome.storage.local.set({ lawPins });
-    } catch (_) {}
+      await chrome.storage.session.set({ colorPins: normalizeColorPins(colorPins) });
+      return true;
+    } catch (_) {
+      return false;
+    }
   }
 
-  async function addCurrentLawPin() {
-    const lawId = getCurrentLawIdFromUrl();
-    if (!lawId) return;
+  function getArticleAbsoluteTop(el) {
+    const rect = el.getBoundingClientRect();
+    const container = getScrollContainer();
+    if (container) {
+      const cRect = container.getBoundingClientRect();
+      return rect.top - cRect.top + container.scrollTop;
+    }
+    return rect.top + window.scrollY;
+  }
 
-    const lawPins = await getLawPinsMap();
-    const pins = Array.isArray(lawPins[lawId]) ? [...lawPins[lawId]] : [];
-    const scrollTop = Math.max(0, Math.round(getCurrentScrollTop()));
+  function getArticleAtViewport25pct() {
+    const articles = getAllArticles();
+    if (articles.length === 0) return null;
 
-    const existing = pins.findIndex((pin) => Math.abs((pin.scrollTop ?? 0) - scrollTop) <= 24);
-    if (existing !== -1) {
-      pins[existing] = { ...pins[existing], scrollTop };
-      showPinIndicator('近くのピンを更新しました');
-    } else {
-      pins.push({ scrollTop });
-      pins.sort((a, b) => (a.scrollTop ?? 0) - (b.scrollTop ?? 0));
-      showPinIndicator(`ピンを追加しました (${pins.length})`);
+    const container = getScrollContainer();
+    const containerRect = container ? container.getBoundingClientRect() : null;
+    const anchorTop = container ? container.clientHeight * 0.25 : window.innerHeight * 0.25;
+    let current = articles[0];
+
+    for (const article of articles) {
+      const rect = article.getBoundingClientRect();
+      const top = containerRect ? rect.top - containerRect.top : rect.top;
+      if (top <= anchorTop + 1) current = article;
+      else break;
+    }
+    return current;
+  }
+
+  async function waitForArticles(timeoutMs = 8000) {
+    if (getAllArticles().length > 0) return true;
+
+    return new Promise((resolve) => {
+      const observer = new MutationObserver(() => {
+        if (getAllArticles().length === 0) return;
+        observer.disconnect();
+        resolve(true);
+      });
+      observer.observe(document.documentElement, { childList: true, subtree: true });
+      setTimeout(() => {
+        observer.disconnect();
+        resolve(getAllArticles().length > 0);
+      }, timeoutMs);
+    });
+  }
+
+  function buildColorPinRecord(slotKey, articleEl) {
+    return {
+      slotKey,
+      lawId: getCurrentLawIdFromUrl(),
+      lawName: getCurrentLawName(),
+      articleId: articleEl.id || '',
+      scrollTop: Math.max(0, Math.round(getArticleAbsoluteTop(articleEl))),
+      updatedAt: Date.now(),
+    };
+  }
+
+  function findPinSlotOnArticle(colorPins, lawId, articleId, excludeSlotKey) {
+    for (const slotKey of PIN_SLOT_ORDER) {
+      if (slotKey === excludeSlotKey) continue;
+      const pin = colorPins[slotKey];
+      if (pin && pin.lawId === lawId && pin.articleId === articleId) return slotKey;
+    }
+    return '';
+  }
+
+  function getPinArticleElement(pin) {
+    if (!pin || pin.lawId !== getCurrentLawIdFromUrl()) return null;
+    if (pin.articleId) {
+      const direct = document.getElementById(pin.articleId);
+      if (direct) return direct;
     }
 
-    lawPins[lawId] = pins;
-    await saveLawPinsMap(lawPins);
+    const articles = getAllArticles();
+    if (articles.length === 0 || typeof pin.scrollTop !== 'number') return null;
+
+    let nearest = null;
+    let nearestDiff = Infinity;
+    for (const article of articles) {
+      const diff = Math.abs(getArticleAbsoluteTop(article) - pin.scrollTop);
+      if (diff < nearestDiff) {
+        nearest = article;
+        nearestDiff = diff;
+      }
+    }
+    return nearestDiff <= 120 ? nearest : null;
   }
 
-  async function navigateLawPin(direction) {
+  function clearColorPinHighlights() {
+    for (const el of document.querySelectorAll('.egov-ext-color-pin')) {
+      el.classList.remove('egov-ext-color-pin');
+      el.style.removeProperty('--egov-pin-color');
+      delete el.dataset.egovPinKey;
+      delete el.dataset.egovPinSlot;
+    }
+  }
+
+  async function refreshColorPinHighlights() {
+    clearColorPinHighlights();
     const lawId = getCurrentLawIdFromUrl();
     if (!lawId) return;
 
-    const lawPins = await getLawPinsMap();
-    const pins = Array.isArray(lawPins[lawId]) ? [...lawPins[lawId]] : [];
-    if (pins.length === 0) {
-      showPinIndicator('この法令にはピンがありません');
+    const colorPins = await getColorPins();
+    for (const slotKey of PIN_SLOT_ORDER) {
+      const pin = colorPins[slotKey];
+      if (!pin || pin.lawId !== lawId) continue;
+      const article = getPinArticleElement(pin);
+      if (!article) continue;
+      article.classList.add('egov-ext-color-pin');
+      article.style.setProperty('--egov-pin-color', PIN_SLOT_CONFIG[slotKey].color);
+      article.dataset.egovPinSlot = slotKey;
+      article.dataset.egovPinKey = PIN_SLOT_CONFIG[slotKey].label;
+    }
+  }
+
+  function ensurePinToast() {
+    let toast = document.getElementById('egov-ext-pin-toast');
+    if (toast) return toast;
+
+    toast = document.createElement('div');
+    toast.id = 'egov-ext-pin-toast';
+    toast.className = 'egov-ext-pin-toast';
+    toast.innerHTML = '<div class="egov-ext-pin-toast-slots"></div>';
+    toast.addEventListener('click', (e) => {
+      const slotEl = e.target.closest('.egov-ext-pin-slot');
+      if (!slotEl) return;
+      const slotKey = slotEl.dataset.slotKey;
+      if (!slotKey || !PIN_SLOT_ORDER.includes(slotKey)) return;
+      e.preventDefault();
+      e.stopPropagation();
+      handleColorPinShortcut(slotKey);
+    });
+    const host = ensureHeaderControlHost();
+    if (host) host.appendChild(toast);
+    else document.body.appendChild(toast);
+    return toast;
+  }
+
+  function positionPinToast(toast) {
+    const host = ensureHeaderControlHost();
+    if (host && toast.parentElement !== host) host.appendChild(toast);
+  }
+
+  function hidePinToast(force = false) {
+    if (!force && pinToastPinned) return;
+    const toast = document.getElementById('egov-ext-pin-toast');
+    pinToastVisible = false;
+    clearTimeout(pinToastTimer);
+    pinToastTimer = null;
+    if (toast) toast.classList.remove('is-visible');
+  }
+
+  async function renderPinToast() {
+    const toast = ensurePinToast();
+    const slotsEl = toast.querySelector('.egov-ext-pin-toast-slots');
+    const colorPins = await getColorPins();
+    const currentLawId = getCurrentLawIdFromUrl();
+
+    slotsEl.innerHTML = PIN_SLOT_ORDER.map((slotKey) => {
+      const pin = colorPins[slotKey];
+      const classes = [
+        'egov-ext-pin-slot',
+        pin ? 'is-set' : 'is-empty',
+        pin && pin.lawId === currentLawId ? 'is-current-law' : '',
+      ].filter(Boolean).join(' ');
+      const title = pin
+        ? `${slotKey}: ${pin.lawName || pin.lawId}`
+        : `${slotKey}: 未設定`;
+      return `
+        <div class="${classes}" data-slot-key="${slotKey}" title="${escapeHtml(title)}" style="--egov-pin-color:${PIN_SLOT_CONFIG[slotKey].color}">
+          <span class="egov-ext-pin-slot-dot">●</span>
+          <span class="egov-ext-pin-slot-key">${escapeHtml(slotKey)}</span>
+        </div>
+      `;
+    }).join('');
+
+    positionPinToast(toast);
+    toast.classList.add('is-visible');
+  }
+
+  function showPinToast(temporary = false) {
+    clearTimeout(pinToastTimer);
+    pinToastVisible = true;
+    if (!temporary) pinToastPinned = true;
+    renderPinToast();
+    if (temporary) {
+      pinToastTimer = setTimeout(() => {
+        if (!pinToastPinned) hidePinToast(true);
+      }, 1600);
+    }
+  }
+
+  function togglePinToast() {
+    if (pinToastPinned) {
+      pinToastPinned = false;
+      hidePinToast(true);
+    } else {
+      pinToastPinned = true;
+      showPinToast(false);
+    }
+  }
+
+  async function refreshPinToastAfterMutation() {
+    if (pinToastPinned) {
+      await renderPinToast();
+      return;
+    }
+    showPinToast(true);
+  }
+
+  function ensureArticleVisibleForPin(article) {
+    if (!article) return;
+    const container = getScrollContainer();
+    const rect = article.getBoundingClientRect();
+    if (container) {
+      const cRect = container.getBoundingClientRect();
+      const fullyVisible = rect.top >= cRect.top && rect.bottom <= cRect.bottom;
+      if (!fullyVisible) scrollToElement25pct(article);
       return;
     }
 
-    pins.sort((a, b) => (a.scrollTop ?? 0) - (b.scrollTop ?? 0));
-    const currentTop = getCurrentScrollTop();
-    let target = null;
+    const fullyVisible = rect.top >= 0 && rect.bottom <= window.innerHeight;
+    if (!fullyVisible) scrollToElement25pct(article);
+  }
 
-    if (direction > 0) {
-      target = pins.find((pin) => (pin.scrollTop ?? 0) > currentTop + 8) || pins[0];
-    } else {
-      for (let i = pins.length - 1; i >= 0; i--) {
-        if ((pins[i].scrollTop ?? 0) < currentTop - 8) {
-          target = pins[i];
-          break;
-        }
-      }
-      if (!target) target = pins[pins.length - 1];
+  async function placeColorPin(slotKey) {
+    const ready = await waitForArticles();
+    if (!ready) {
+      showPinIndicator('条文の読み込み完了後にもう一度試してください');
+      return;
+    }
+    const article = getArticleAtViewport25pct();
+    if (!article) {
+      showPinIndicator('条文が見つかりません');
+      return;
     }
 
-    scrollToStoredTop(target.scrollTop ?? 0, scrollBehavior);
-    clearHighlights();
-    showPinIndicator(`ピン ${pins.indexOf(target) + 1} / ${pins.length}`);
+    const lawId = getCurrentLawIdFromUrl();
+    const colorPins = await getColorPins();
+    const newPin = buildColorPinRecord(slotKey, article);
+    const existingSlotPin = colorPins[slotKey];
+    const conflictingSlotKey = findPinSlotOnArticle(colorPins, lawId, newPin.articleId, slotKey);
+
+    if (existingSlotPin && existingSlotPin.lawId === lawId && existingSlotPin.articleId === newPin.articleId) {
+      colorPins[slotKey] = null;
+      if (!await saveColorPins(colorPins)) {
+        showPinIndicator('ピン解除の保存に失敗しました');
+        return;
+      }
+      await refreshColorPinHighlights();
+      await refreshPinToastAfterMutation();
+      showPinIndicator(`${slotKey} のピンを外しました`, article);
+      return;
+    }
+
+    if (conflictingSlotKey) {
+      if (!window.confirm(`この条文には ${conflictingSlotKey} のピンがあります。${slotKey} に入れ替えますか？`)) return;
+      colorPins[conflictingSlotKey] = null;
+    }
+
+    colorPins[slotKey] = newPin;
+    if (!await saveColorPins(colorPins)) {
+      showPinIndicator('ピン設定の保存に失敗しました');
+      return;
+    }
+    await refreshColorPinHighlights();
+    ensureArticleVisibleForPin(article);
+    await refreshPinToastAfterMutation();
+    showPinIndicator(`${slotKey} のピンを設定しました`, article);
+  }
+
+  async function jumpToStoredColorPin(pin) {
+    const ready = await waitForArticles();
+    if (!ready) return false;
+    const article = getPinArticleElement(pin);
+    if (article) {
+      clearHighlights();
+      scrollToElement25pct(article);
+      requestAnimationFrame(() => {
+        flashElementHighlight(article);
+      });
+      return true;
+    }
+    return false;
+  }
+
+  async function jumpToColorPinSlot(slotKey) {
+    const colorPins = await getColorPins();
+    const pin = colorPins[slotKey];
+    if (!pin) {
+      showPinIndicator(`${slotKey} のピンは未設定です`);
+      return;
+    }
+
+    if (pin.lawId === getCurrentLawIdFromUrl()) {
+      const ok = await jumpToStoredColorPin(pin);
+      if (ok) {
+        showPinIndicator(`${slotKey} のピンへ移動しました`);
+        return;
+      }
+    }
+
+    try {
+      const response = await chrome.runtime.sendMessage({ type: 'egov-jump-color-pin', pin });
+      if (!response || !response.ok) showPinIndicator('別タブのピン移動に失敗しました');
+    } catch (_) {
+      showPinIndicator('別タブのピン移動に失敗しました');
+    }
+  }
+
+  async function forceRemoveColorPinSlot(slotKey) {
+    const colorPins = await getColorPins();
+    const pin = colorPins[slotKey];
+    if (!pin) {
+      showPinIndicator(`${slotKey} のピンは未設定です`);
+      return;
+    }
+
+    colorPins[slotKey] = null;
+    if (!await saveColorPins(colorPins)) {
+      showPinIndicator('ピン解除の保存に失敗しました');
+      return;
+    }
+    await refreshColorPinHighlights();
+    await refreshPinToastAfterMutation();
+    showPinIndicator(`${slotKey} のピンを強制解除しました`);
+  }
+
+
+  async function handleColorPinShortcut(slotKey) {
+    const ready = await waitForArticles();
+    if (!ready) {
+      showPinIndicator('条文の読み込み完了後にもう一度試してください');
+      return;
+    }
+    const article = getArticleAtViewport25pct();
+    if (!article) {
+      showPinIndicator('条文が見つかりません');
+      return;
+    }
+
+    const currentLawId = getCurrentLawIdFromUrl();
+    const currentArticleId = article.id || '';
+    const colorPins = await getColorPins();
+    const pin = colorPins[slotKey];
+
+    if (pin && pin.lawId === currentLawId && pin.articleId === currentArticleId) {
+      await placeColorPin(slotKey);
+      return;
+    }
+
+    if (pin) {
+      await jumpToColorPinSlot(slotKey);
+      return;
+    }
+
+    await placeColorPin(slotKey);
   }
 
   const KANJI_NUMS = ['〇','一','二','三','四','五','六','七','八','九',
@@ -503,6 +877,11 @@
       updateGuideButtonState();
       return;
     }
+    if (e.altKey && !e.ctrlKey && !e.metaKey && (e.key === 'o' || e.key === 'O')) {
+      e.preventDefault();
+      chrome.runtime.sendMessage({ type: 'egov-open-options-page' }).catch(() => {});
+      return;
+    }
 
     if (guideTooltipPinned) {
       hideShortcutGuideTooltip();
@@ -525,6 +904,11 @@
     if (isInputActive()) return;
 
     if (e.key === 'Escape') {
+      if (pinToastVisible && !pinToastPinned) {
+        e.preventDefault();
+        hidePinToast(true);
+        return;
+      }
       if (activeDialog) { e.preventDefault(); closeDialog(); }
       return;
     }
@@ -537,18 +921,19 @@
 
     // ダイアログ非表示時のみ有効なキー
     if (!activeDialog) {
+      const lowerKey = e.key.toLowerCase();
+      if (e.shiftKey && PIN_SLOT_ORDER.includes(lowerKey)) { e.preventDefault(); forceRemoveColorPinSlot(lowerKey); return; }
+      if (e.shiftKey && lowerKey === 'h') { e.preventDefault(); convertKatakanaToHiragana(); return; }
       if (e.key === 'h') { e.preventDefault(); navigateJumpHistory(-1); return; }
       if (e.key === 'l') { e.preventDefault(); navigateJumpHistory(+1); return; }
-      if (e.key === 'j') { e.preventDefault(); navigateLawPin(+1); return; }
-      if (e.key === 'k') { e.preventDefault(); navigateLawPin(-1); return; }
+      if (e.key === 'b') { e.preventDefault(); togglePinToast(); return; }
+      if (PIN_SLOT_ORDER.includes(lowerKey)) { e.preventDefault(); handleColorPinShortcut(lowerKey); return; }
       if (e.key === 'd') { e.preventDefault(); scrollPage(+0.8); return; }
       if (e.key === 'u') { e.preventDefault(); scrollPage(-0.8); return; }
-      if (e.key === 'm') { e.preventDefault(); addCurrentLawPin(); return; }
       if (e.key === 'n') { e.preventDefault(); navigateArticle(+1); return; }
       if (e.key === 'p') { e.preventDefault(); navigateArticle(-1); return; }
       if (e.key === 'f') { e.preventDefault(); showFavoriteDialog(); return; }
       if (e.key === 'c') { e.preventDefault(); toggleNumberMode(); return; }
-      if (e.shiftKey && e.key === 'K') { e.preventDefault(); convertKatakanaToHiragana(); return; }
     }
 
     e.preventDefault();
@@ -1873,8 +2258,10 @@
           <tr><td><kbd>c</kbd></td>
               <td>条文番号の漢数字/アラビア数字の切り替え<br>
                 <span class="egov-ext-guide-sub">号タイトルは丸数字（①②③）</span></td></tr>
-          <tr><td><kbd>k</kbd></td>
+          <tr><td><kbd>Shift</kbd>+<kbd>H</kbd></td>
               <td>カタカナをひらがなに変換</td></tr>
+          <tr><td><kbd>Alt</kbd>+<kbd>O</kbd></td>
+              <td>オプション画面を開く</td></tr>
           <tr><td><kbd>Alt</kbd>+<kbd>P</kbd></td>
               <td>ショートカット有効/無効の切り替え<br>
                 <span class="egov-ext-guide-sub">青=有効 / 灰=無効。このボタンクリックでも切り替え可</span></td></tr>
@@ -1890,8 +2277,8 @@
     const npRow = [...guideTable.querySelectorAll('tr')].find((tr) => tr.querySelector('td')?.textContent.includes('n'));
     if (npRow) {
       npRow.insertAdjacentHTML('beforebegin', `
-        <tr><td><kbd>j</kbd> / <kbd>k</kbd></td><td>ピンを順に移動</td></tr>
-        <tr><td><kbd>m</kbd></td><td>現在位置にピンを追加</td></tr>
+        <tr><td><kbd>b</kbd></td><td>ピン状態の常時表示切り替え</td></tr>
+        <tr><td><kbd>i</kbd> <kbd>o</kbd> <kbd>j</kbd> <kbd>k</kbd> <kbd>m</kbd></td><td>対応色のピンを設定 / 解除 / 移動</td></tr>
       `);
     }
 
@@ -1900,12 +2287,6 @@
       sRow.insertAdjacentHTML('beforebegin', `
         <tr><td><kbd>f</kbd></td><td>お気に入りに追加 / 解除</td></tr>
       `);
-    }
-
-    const kRow = [...guideTable.querySelectorAll('tr')].find((tr) => tr.querySelector('td')?.textContent.trim() === 'k');
-    if (kRow) {
-      const firstCell = kRow.querySelector('td');
-      if (firstCell) firstCell.innerHTML = '<kbd>Shift</kbd>+<kbd>K</kbd>';
     }
 
     document.body.appendChild(guide);
@@ -1934,9 +2315,41 @@
     setTimeout(() => observer.disconnect(), 10000);
   }
 
+  function setupColorPinFeatures() {
+    refreshColorPinHighlights();
+    chrome.storage.local.get(['pinToastDefaultVisible'], (data) => {
+      pinToastDefaultVisible = typeof data.pinToastDefaultVisible === 'boolean' ? data.pinToastDefaultVisible : true;
+      pinToastPinned = pinToastDefaultVisible;
+      if (pinToastPinned) showPinToast(false);
+      else hidePinToast(true);
+    });
+    if (getAllArticles().length > 0) return;
+
+    const observer = new MutationObserver(() => {
+      if (getAllArticles().length === 0) return;
+      observer.disconnect();
+      refreshColorPinHighlights();
+    });
+    observer.observe(document.documentElement, { childList: true, subtree: true });
+    setTimeout(() => observer.disconnect(), 10000);
+  }
+
+  chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+    if (message?.type !== 'egov-perform-color-pin-jump') return undefined;
+
+    jumpToStoredColorPin(message.pin)
+      .then((ok) => {
+        if (ok) refreshColorPinHighlights();
+        sendResponse({ ok });
+      })
+      .catch(() => sendResponse({ ok: false }));
+    return true;
+  });
+
   async function initializeLawPageFeatures() {
     ensureShortcutGuide();
     setupFavoriteHeaderBadge();
+    setupColorPinFeatures();
     await restoreFavoriteScrollOnLoad();
     moveToFirstArticleOnLoad();
     setupFavoriteScrollPersistence();

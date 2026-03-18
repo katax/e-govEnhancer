@@ -313,6 +313,15 @@ mark.egov-ext-mark-current {
   padding: 0 1px !important;
 }
 
+.egov-ext-header-controls {
+  display: inline-flex !important;
+  align-items: center !important;
+  vertical-align: middle !important;
+  overflow: visible !important;
+  position: relative !important;
+  z-index: 1000 !important;
+}
+
 .egov-ext-favorite-header-badge {
   display: inline-flex !important;
   align-items: center !important;
@@ -340,6 +349,108 @@ mark.egov-ext-mark-current {
 .egov-ext-favorite-header-badge.is-not-favorite {
   color: #b8b8b8 !important;
   opacity: 0.95 !important;
+}
+
+.egov-ext-color-pin {
+  position: relative !important;
+}
+
+.egov-ext-color-pin::before {
+  content: attr(data-egov-pin-key) !important;
+  position: absolute !important;
+  left: -1px !important;
+  top: 4px !important;
+  min-width: 16px !important;
+  height: 16px !important;
+  padding: 0 4px !important;
+  border-radius: 999px !important;
+  background: var(--egov-pin-color) !important;
+  color: #fff !important;
+  font-size: 10px !important;
+  font-weight: 700 !important;
+  line-height: 16px !important;
+  text-align: center !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.18) !important;
+  z-index: 2 !important;
+}
+
+.egov-ext-pin-toast {
+  display: inline-flex !important;
+  vertical-align: middle !important;
+  position: relative !important;
+  z-index: 1000 !important;
+  margin-left: 0 !important;
+  min-width: 0 !important;
+  max-width: 0 !important;
+  padding: 0 !important;
+  border-radius: 16px !important;
+  background: transparent !important;
+  color: #fff !important;
+  box-shadow: none !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  transform: translateY(4px) !important;
+  overflow: hidden !important;
+  white-space: nowrap !important;
+  transition: opacity 0.18s ease, transform 0.18s ease, max-width 0.18s ease, padding 0.18s ease !important;
+}
+
+.egov-ext-pin-toast.is-visible {
+  opacity: 1 !important;
+  transform: translateY(0) !important;
+  margin-left: 10px !important;
+  max-width: 260px !important;
+  padding: 10px 12px !important;
+  pointer-events: auto !important;
+}
+
+.egov-ext-pin-toast-slots {
+  display: flex !important;
+  gap: 8px !important;
+  align-items: center !important;
+}
+
+.egov-ext-pin-slot {
+  width: 40px !important;
+  height: 46px !important;
+  border-radius: 12px !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  background: rgba(255, 255, 255, 0.06) !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 4px !important;
+  cursor: pointer !important;
+  transition: transform 0.15s ease, opacity 0.15s ease, border-color 0.15s ease !important;
+}
+
+.egov-ext-pin-slot.is-set {
+  background: rgba(255, 255, 255, 0.12) !important;
+  border-color: var(--egov-pin-color) !important;
+  box-shadow: 0 0 0 1px var(--egov-pin-color) inset !important;
+}
+
+.egov-ext-pin-slot.is-empty {
+  opacity: 0.45 !important;
+}
+
+.egov-ext-pin-slot.is-current-law {
+  transform: translateY(-2px) !important;
+  box-shadow: 0 0 0 1px var(--egov-pin-color) inset, 0 10px 18px rgba(0, 0, 0, 0.2) !important;
+}
+
+.egov-ext-pin-slot-dot {
+  color: var(--egov-pin-color) !important;
+  font-size: 18px !important;
+  line-height: 1 !important;
+}
+
+.egov-ext-pin-slot-key {
+  font-size: 10px !important;
+  font-weight: 700 !important;
+  line-height: 1 !important;
+  color: var(--egov-pin-color) !important;
 }
 
 /* =============================================

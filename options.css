@@ -151,42 +151,6 @@ kbd {
   line-height: 1.6;
 }
 
-/* URLコピー行 */
-.shortcut-copy-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  background: #f5f5f5;
-  padding: 10px 14px;
-  border-radius: 8px;
-  flex-wrap: wrap;
-}
-
-.shortcut-copy-row code {
-  font-family: 'Courier New', monospace;
-  font-size: 13px;
-  color: #1565C0;
-  flex: 1;
-  word-break: break-all;
-}
-
-.btn-copy {
-  padding: 6px 14px;
-  background: #1976D2;
-  color: white;
-  border: none;
-  border-radius: 6px;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 0.2s;
-  white-space: nowrap;
-}
-
-.btn-copy:hover {
-  background: #1565C0;
-}
-
 /* 使い方アイテム */
 .usage-item {
   display: flex;

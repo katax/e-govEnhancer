@@ -33,6 +33,16 @@
               <span class="toggle-slider"></span>
             </label>
           </div>
+          <div class="setting-row">
+            <label class="setting-label" for="pinToastToggle">
+              <span class="setting-title">ピン状態の常時表示</span>
+              <span class="setting-desc">法令ページ上でピントーストを常に表示する（デフォルト ON）</span>
+            </label>
+            <label class="toggle-switch">
+              <input type="checkbox" id="pinToastToggle">
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
         </div>
       </section>
 
@@ -62,11 +72,6 @@
               <li>「e-gov法令検索ポップアップを開く」の鉛筆アイコンをクリック</li>
               <li>新しいショートカットキーを入力する</li>
             </ol>
-          </div>
-
-          <div class="shortcut-copy-row">
-            <code id="shortcutUrl">chrome://extensions/shortcuts</code>
-            <button class="btn-copy" id="copyUrl">コピー</button>
           </div>
         </div>
       </section>
@@ -140,12 +145,32 @@
                 <td>現在表示中の法令名でポップアップ検索（別タブで開く）</td>
               </tr>
               <tr>
+                <td><kbd>f</kbd></td>
+                <td>現在の法令をお気に入りに追加 / 解除</td>
+              </tr>
+              <tr>
+                <td><kbd>b</kbd></td>
+                <td>ピン状態の常時表示を切り替え</td>
+              </tr>
+              <tr>
+                <td><kbd>i</kbd> <kbd>o</kbd> <kbd>j</kbd> <kbd>k</kbd> <kbd>m</kbd></td>
+                <td>対応色のピンを設定 / 同じ条項なら解除 / 別条項ならそのピンへ移動</td>
+              </tr>
+              <tr>
+                <td><kbd>Shift</kbd>+<kbd>I</kbd> / <kbd>O</kbd> / <kbd>J</kbd> / <kbd>K</kbd> / <kbd>M</kbd></td>
+                <td>対応色のピンを強制解除</td>
+              </tr>
+              <tr>
                 <td><kbd>c</kbd></td>
                 <td>条文番号の漢数字 ↔ アラビア数字を切り替え（号タイトルは丸数字 ①②③）</td>
               </tr>
               <tr>
-                <td><kbd>k</kbd></td>
+                <td><kbd>Shift</kbd>+<kbd>H</kbd></td>
                 <td>ページ内のカタカナをひらがなに変換（一回のみ）</td>
+              </tr>
+              <tr>
+                <td><kbd>Alt</kbd>+<kbd>O</kbd></td>
+                <td>このオプション画面を開く</td>
               </tr>
               <tr>
                 <td><kbd>Alt</kbd>+<kbd>P</kbd></td>

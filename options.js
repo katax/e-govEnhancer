@@ -1,10 +1,15 @@
 document.addEventListener('DOMContentLoaded', async () => {
   // スムーズスクロール設定
   const smoothToggle = document.getElementById('smoothScrollToggle');
-  const { scrollBehavior } = await chrome.storage.local.get(['scrollBehavior']);
+  const pinToastToggle = document.getElementById('pinToastToggle');
+  const { scrollBehavior, pinToastDefaultVisible } = await chrome.storage.local.get(['scrollBehavior', 'pinToastDefaultVisible']);
   smoothToggle.checked = (scrollBehavior === 'smooth');
+  pinToastToggle.checked = (typeof pinToastDefaultVisible === 'boolean') ? pinToastDefaultVisible : true;
   smoothToggle.addEventListener('change', () => {
     chrome.storage.local.set({ scrollBehavior: smoothToggle.checked ? 'smooth' : 'instant' });
+  });
+  pinToastToggle.addEventListener('change', () => {
+    chrome.storage.local.set({ pinToastDefaultVisible: pinToastToggle.checked });
   });
 
   // 現在のショートカットキーを取得して表示
@@ -27,27 +32,5 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('openShortcutsPageLink').addEventListener('click', (e) => {
     e.preventDefault();
     chrome.tabs.create({ url: 'chrome://extensions/shortcuts' });
-  });
-
-  // URLコピーボタン
-  document.getElementById('copyUrl').addEventListener('click', async () => {
-    const url = document.getElementById('shortcutUrl').textContent;
-    try {
-      await navigator.clipboard.writeText(url);
-      const btn = document.getElementById('copyUrl');
-      btn.textContent = 'コピーしました！';
-      btn.style.background = '#2e7d32';
-      setTimeout(() => {
-        btn.textContent = 'コピー';
-        btn.style.background = '';
-      }, 2000);
-    } catch (e) {
-      // フォールバック
-      const el = document.getElementById('shortcutUrl');
-      const range = document.createRange();
-      range.selectNode(el);
-      window.getSelection().removeAllRanges();
-      window.getSelection().addRange(range);
-    }
   });
 });
