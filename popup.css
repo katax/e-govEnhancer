@@ -9,6 +9,30 @@ body {
   background: #fff;
   width: 340px;
   color: #333;
+  position: relative;
+}
+
+.popup-toast {
+  position: fixed;
+  left: 50%;
+  bottom: 14px;
+  transform: translate(-50%, 10px);
+  background: rgba(32, 44, 68, 0.94);
+  color: #fff;
+  padding: 8px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.18);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.18s ease, transform 0.18s ease;
+  z-index: 1000;
+}
+
+.popup-toast.is-visible {
+  opacity: 1;
+  transform: translate(-50%, 0);
 }
 
 /* ヘッダー */

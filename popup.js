@@ -37,6 +37,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   tooltipEl.className = 'hist-item-tooltip';
   tooltipEl.style.display = 'none';
   document.body.appendChild(tooltipEl);
+  let toastTimer = null;
+  const toastEl = document.createElement('div');
+  toastEl.className = 'popup-toast';
+  toastEl.setAttribute('aria-live', 'polite');
+  document.body.appendChild(toastEl);
 
   function showTooltip(el, name, num) {
     clearTimeout(tooltipTimer);
@@ -59,6 +64,15 @@ document.addEventListener('DOMContentLoaded', async () => {
   function hideTooltip() {
     clearTimeout(tooltipTimer);
     tooltipEl.style.display = 'none';
+  }
+
+  function showToast(message) {
+    clearTimeout(toastTimer);
+    toastEl.textContent = message;
+    toastEl.classList.add('is-visible');
+    toastTimer = setTimeout(() => {
+      toastEl.classList.remove('is-visible');
+    }, 1800);
   }
 
   function isMainModeArrowKey(e) {
@@ -1262,9 +1276,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     const idx = favorites.findIndex(f => f.lawId === lawId);
     if (idx !== -1) {
       favorites.splice(idx, 1);
+      showToast('お気に入りから削除しました');
     } else {
       favorites.unshift({ lawId, lawName, lawNum, lawType, folderId: null });
       if (favorites.length > FAV_MAX) favorites.length = FAV_MAX;
+      showToast('お気に入りに追加しました');
     }
     chrome.storage.local.set({ favorites }).catch(() => {});
   }

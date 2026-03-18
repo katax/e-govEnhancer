@@ -56,6 +56,7 @@
   });
   chrome.storage.onChanged.addListener((changes, area) => {
     if (area === 'local' && changes.scrollBehavior) scrollBehavior = changes.scrollBehavior.newValue;
+    if (area === 'local' && changes.favorites) refreshFavoriteHeaderBadge();
   });
 
   // ==================
@@ -233,6 +234,68 @@
 
     await setFavoritesList(favorites);
     return shouldFavorite;
+  }
+
+  function updateFavoriteHeaderBadgeState(badge, isFavorite) {
+    if (!badge) return;
+    badge.classList.toggle('is-favorite', !!isFavorite);
+    badge.classList.toggle('is-not-favorite', !isFavorite);
+    badge.textContent = '★';
+    badge.title = isFavorite ? 'お気に入りに登録済み' : 'お気に入り未登録';
+    badge.setAttribute('aria-label', isFavorite ? 'お気に入りに登録済み' : 'お気に入り未登録');
+  }
+
+  function ensureFavoriteHeaderBadge() {
+    const heading = document.querySelector('h1.appid');
+    if (!heading) return null;
+
+    let badge = document.getElementById('egov-ext-favorite-header-badge');
+    if (badge) return badge;
+
+    badge = document.createElement('button');
+    badge.id = 'egov-ext-favorite-header-badge';
+    badge.type = 'button';
+    badge.className = 'egov-ext-favorite-header-badge is-not-favorite';
+    badge.textContent = '★';
+    badge.addEventListener('click', async (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const favorites = await getFavoritesList();
+      const lawId = getCurrentLawIdFromUrl();
+      const isFavorite = favorites.some((f) => f.lawId === lawId);
+      const nextFavorite = !isFavorite;
+      await setCurrentLawFavorite(nextFavorite);
+      updateFavoriteHeaderBadgeState(badge, nextFavorite);
+      showPinIndicator(nextFavorite ? 'お気に入りに追加しました' : 'お気に入りから外しました');
+    });
+
+    heading.insertAdjacentElement('afterend', badge);
+    return badge;
+  }
+
+  async function refreshFavoriteHeaderBadge() {
+    const lawId = getCurrentLawIdFromUrl();
+    if (!lawId) return;
+    const badge = ensureFavoriteHeaderBadge();
+    if (!badge) return;
+
+    const favorites = await getFavoritesList();
+    updateFavoriteHeaderBadgeState(badge, favorites.some((f) => f.lawId === lawId));
+  }
+
+  function setupFavoriteHeaderBadge() {
+    if (ensureFavoriteHeaderBadge()) {
+      refreshFavoriteHeaderBadge();
+      return;
+    }
+
+    const observer = new MutationObserver(() => {
+      if (!ensureFavoriteHeaderBadge()) return;
+      observer.disconnect();
+      refreshFavoriteHeaderBadge();
+    });
+    observer.observe(document.documentElement, { childList: true, subtree: true });
+    setTimeout(() => observer.disconnect(), 10000);
   }
 
   function showPinIndicator(message) {
@@ -524,47 +587,9 @@
 
     const favorites = await getFavoritesList();
     const isFavorite = favorites.some((f) => f.lawId === law.lawId);
-
-    const dialog = createDialog(`
-      <div class="egov-ext-dialog-header">
-        <div class="egov-ext-dialog-title">
-          <span class="egov-ext-title-icon">★</span> お気に入り
-        </div>
-        <button class="egov-ext-close" aria-label="閉じる">×</button>
-      </div>
-      <div class="egov-ext-dialog-body">
-        <div class="egov-ext-result" style="color:#333 !important; min-height:auto !important;">
-          ${escapeHtml(law.lawName)}
-        </div>
-        <p class="egov-ext-hint">
-          <kbd>Enter</kbd> で ${isFavorite ? 'お気に入りから外す' : 'お気に入りに追加'} /
-          <kbd>Esc</kbd> / <kbd>f</kbd> で閉じる
-        </p>
-        <div class="egov-ext-actions">
-          <button class="egov-ext-btn-primary" id="egov-favorite-toggle-btn">
-            ${isFavorite ? 'お気に入りから外す' : 'お気に入りに追加'}
-          </button>
-        </div>
-      </div>
-    `, 'egov-ext-law-mode');
-
-    const button = dialog.querySelector('#egov-favorite-toggle-btn');
-
-    async function apply() {
-      await setCurrentLawFavorite(!isFavorite);
-      closeDialog();
-      showPinIndicator(isFavorite ? 'お気に入りから外しました' : 'お気に入りに追加しました');
-    }
-
-    button.addEventListener('click', () => { apply(); });
-    dialog.addEventListener('keydown', (e) => {
-      e.stopPropagation();
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        apply();
-      }
-    });
-    button.focus();
+    const nextFavorite = !isFavorite;
+    await setCurrentLawFavorite(nextFavorite);
+    showPinIndicator(nextFavorite ? 'お気に入りに追加しました' : 'お気に入りから外しました');
   }
 
   // ==================
@@ -1893,8 +1918,25 @@
     });
   }
 
+  function ensureShortcutGuide() {
+    if (document.getElementById('egov-ext-guide')) return;
+    if (document.querySelector('#provisionview')) {
+      addShortcutGuide();
+      return;
+    }
+
+    const observer = new MutationObserver(() => {
+      if (!document.querySelector('#provisionview')) return;
+      observer.disconnect();
+      addShortcutGuide();
+    });
+    observer.observe(document.documentElement, { childList: true, subtree: true });
+    setTimeout(() => observer.disconnect(), 10000);
+  }
+
   async function initializeLawPageFeatures() {
-    addShortcutGuide();
+    ensureShortcutGuide();
+    setupFavoriteHeaderBadge();
     await restoreFavoriteScrollOnLoad();
     moveToFirstArticleOnLoad();
     setupFavoriteScrollPersistence();
