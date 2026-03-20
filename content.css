@@ -737,12 +737,16 @@ body[data-egov-paren-mode="nested"] .egov-ext-muted-paren.egov-ext-muted-paren-l
 body[data-egov-paren-mode] .egov-ext-muted-paren-hover {
   color: inherit !important;
   font-weight: 700 !important;
+  background: rgba(255, 243, 179, 0.85) !important;
+  border-radius: 3px !important;
 }
 
 body[data-egov-paren-mode] a .egov-ext-muted-paren-hover,
 body[data-egov-paren-mode] .egov-ext-muted-paren.egov-ext-muted-paren-link.egov-ext-muted-paren-hover {
   color: inherit !important;
   font-weight: 700 !important;
+  background: rgba(255, 243, 179, 0.85) !important;
+  border-radius: 3px !important;
 }
 
 .egov-ext-law-result-item.focused .egov-ext-law-result-name {
