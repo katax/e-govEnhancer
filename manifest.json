@@ -30,7 +30,7 @@
   "content_scripts": [
     {
       "matches": ["https://laws.e-gov.go.jp/*"],
-      "js": ["content.js"],
+      "js": ["shared/egov-shared.js", "content.js"],
       "css": ["content.css"],
       "run_at": "document_end"
     }

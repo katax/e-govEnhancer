@@ -1,4 +1,12 @@
 document.addEventListener('DOMContentLoaded', async () => {
+  const shared = globalThis.EgovShared;
+  const {
+    buildLawUrl,
+    escapeHtml,
+    formatLawNameHtml,
+    getLawFields,
+    searchLawsByTitle,
+  } = shared;
   const searchForm    = document.getElementById('searchForm');
   const searchInput   = document.getElementById('searchInput');
   const resultsEl     = document.getElementById('searchResults');
@@ -1134,7 +1142,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       hideHistoryPanel();
       // お気に入り・法令履歴どちらから開いた場合も「開いた法令履歴」に追加
       if (historyMode !== 'law') pushOpenedLaw(law);
-      chrome.tabs.create({ url: `https://laws.e-gov.go.jp/law/${law.lawId}` });
+      chrome.tabs.create({ url: buildLawUrl(law.lawId) });
       window.close();
     }
   }
@@ -1188,7 +1196,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   function openResult(law) {
     const { lawId, lawName, lawNum, lawType } = getLawFields(law);
     pushOpenedLaw({ lawId, lawName, lawNum, lawType });
-    chrome.tabs.create({ url: `https://laws.e-gov.go.jp/law/${lawId}` });
+    chrome.tabs.create({ url: buildLawUrl(lawId) });
     window.close();
   }
 
@@ -1214,11 +1222,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     focusedResultIndex = -1;
     showLoading(true);
     try {
-      const url = `https://laws.e-gov.go.jp/api/2/laws?law_title=${encodeURIComponent(query)}&limit=31&response_format=json`;
-      const res  = await fetch(url);
-      if (!res.ok) { showError(`APIエラー: ${res.status}`); return; }
-      const data    = await res.json();
-      const laws    = extractLaws(data);
+      const laws = await searchLawsByTitle(query, { limit: 31 });
       const hasMore = laws.length > 30;
       const display = hasMore ? laws.slice(0, 30) : laws;
       currentResults = display;
@@ -1290,30 +1294,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   // ================================================
   // API レスポンス解析
   // ================================================
-  function extractLaws(data) {
-    if (Array.isArray(data.laws))       return data.laws;
-    if (Array.isArray(data.data?.laws)) return data.data.laws;
-    if (Array.isArray(data.result))     return data.result;
-    if (Array.isArray(data))            return data;
-    if (data.law_lists) {
-      const ll = data.law_lists;
-      if (Array.isArray(ll.law)) return ll.law;
-      if (ll.law)                return [ll.law];
-    }
-    return [];
-  }
-
-  function getLawFields(law) {
-    const info = law.law_info              || {};
-    const rev  = law.current_revision_info || law.revision_info || {};
-    return {
-      lawId:   info.law_id   || '',
-      lawName: rev.law_title  || rev.abbrev || '(名称不明)',
-      lawNum:  info.law_num  || '',
-      lawType: info.law_type || rev.law_type || '',
-    };
-  }
-
   // ================================================
   // 結果表示
   // ================================================
@@ -1421,16 +1401,4 @@ document.addEventListener('DOMContentLoaded', async () => {
     return map[type] || type || '法令';
   }
 
-  function escapeHtml(str) {
-    return String(str)
-      .replace(/&/g, '&amp;').replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-  }
-
-  function formatLawNameHtml(name) {
-    return escapeHtml(String(name || '')).replace(
-      /（[^）]*）/g,
-      (match) => `<span class="law-name-muted">${match}</span>`
-    );
-  }
 });

@@ -14,6 +14,14 @@
 (function () {
   'use strict';
 
+  const shared = globalThis.EgovShared;
+  const {
+    buildLawUrl,
+    escapeHtml,
+    getLawFields,
+  } = shared;
+  const formatLawNameHtml = (name) => shared.formatLawNameHtml(name, 'egov-ext-law-name-muted');
+
   // ==================
   // 状態管理
   // ==================
@@ -47,15 +55,19 @@
   let activeFlashTransitionTimer = null;
   let favoriteScrollSaveTimer = null;
   let favoriteScrollRestored = false;
+  let favoritesCache = null;
+  let favoritesCachePromise = null;
   let pinIndicatorTimer = null;
   let pinToastVisible = false;
   let pinToastPinned = false;
   let pinToastTimer = null;
+  let pinToastRenderRaf = 0;
   let pinToastDefaultVisible = true;
   let parenthesesMuteMode = 'off'; // 'off' | 'flat' | 'nested'
   let parenthesesMutingInitialized = false;
   let mutedParenGroupSeq = 0;
   let activeMutedParenGroup = '';
+  let articleElementsCache = null;
   const PIN_SLOT_ORDER = ['i', 'o', 'j', 'k', 'm'];
   const PIN_SLOT_CONFIG = {
     i: { color: '#ef6b73', label: 'i' },
@@ -76,6 +88,9 @@
   chrome.storage.onChanged.addListener((changes, area) => {
     if (area === 'local' && changes.scrollBehavior) scrollBehavior = changes.scrollBehavior.newValue;
     if (area === 'local' && changes.favorites) refreshFavoriteHeaderBadge();
+    if (area === 'local' && changes.favorites) {
+      favoritesCache = Array.isArray(changes.favorites.newValue) ? changes.favorites.newValue : [];
+    }
     if (area === 'local' && changes.pinToastDefaultVisible) {
       pinToastDefaultVisible = !!changes.pinToastDefaultVisible.newValue;
       if (pinToastDefaultVisible) {
@@ -88,11 +103,11 @@
     }
     if (area === 'session' && changes.colorPins) {
       refreshColorPinHighlights();
-      if (pinToastVisible) renderPinToast();
+      if (pinToastVisible) schedulePinToastRender();
     }
   });
-  window.addEventListener('resize', () => { if (pinToastVisible) renderPinToast(); });
-  window.addEventListener('scroll', () => { if (pinToastVisible) renderPinToast(); }, { passive: true });
+  window.addEventListener('resize', () => { if (pinToastVisible) schedulePinToastRender(); });
+  window.addEventListener('scroll', () => { if (pinToastVisible) schedulePinToastRender(); }, { passive: true });
 
   // ==================
   // 履歴ユーティリティ
@@ -211,28 +226,8 @@
 
   function escapeRegex(str) { return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
 
-  function escapeHtml(str) {
-    return String(str)
-      .replace(/&/g, '&amp;').replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-  }
-
-  function formatLawNameHtml(name) {
-    return escapeHtml(String(name || '')).replace(
-      /（[^）]*）/g,
-      (match) => `<span class="egov-ext-law-name-muted">${match}</span>`
-    );
-  }
-
   function toFullWidth(s) {
     return String(s).replace(/[0-9]/g, c => String.fromCharCode(c.charCodeAt(0) + 0xFEE0));
-  }
-
-  function formatLawNameHtml(name) {
-    return escapeHtml(String(name || '')).replace(
-      new RegExp('\uFF08[^\uFF09]*\uFF09', 'g'),
-      (match) => `<span class="egov-ext-law-name-muted">${match}</span>`
-    );
   }
 
   function isWithinMutedParen(node) {
@@ -784,9 +779,21 @@
     if (!force && pinToastPinned) return;
     const toast = document.getElementById('egov-ext-pin-toast');
     pinToastVisible = false;
+    if (pinToastRenderRaf) {
+      cancelAnimationFrame(pinToastRenderRaf);
+      pinToastRenderRaf = 0;
+    }
     clearTimeout(pinToastTimer);
     pinToastTimer = null;
     if (toast) toast.classList.remove('is-visible');
+  }
+
+  function schedulePinToastRender() {
+    if (pinToastRenderRaf) return;
+    pinToastRenderRaf = requestAnimationFrame(() => {
+      pinToastRenderRaf = 0;
+      if (pinToastVisible) renderPinToast();
+    });
   }
 
   async function renderPinToast() {
@@ -821,7 +828,7 @@
     clearTimeout(pinToastTimer);
     pinToastVisible = true;
     if (!temporary) pinToastPinned = true;
-    renderPinToast();
+    schedulePinToastRender();
     if (temporary) {
       pinToastTimer = setTimeout(() => {
         if (!pinToastPinned) hidePinToast(true);
@@ -841,7 +848,7 @@
 
   async function refreshPinToastAfterMutation() {
     if (pinToastPinned) {
-      await renderPinToast();
+      schedulePinToastRender();
       return;
     }
     showPinToast(true);
@@ -1065,17 +1072,6 @@
   }
 
   // APIレスポンスから法令フィールドを取り出す
-  function getLawFields(law) {
-    const info = law.law_info              || {};
-    const rev  = law.current_revision_info || law.revision_info || {};
-    return {
-      lawId:   info.law_id    || '',
-      lawName: rev.law_title  || rev.abbrev || '(名称不明)',
-      lawNum:  info.law_num   || '',
-      lawType: info.law_type  || rev.law_type || '',
-    };
-  }
-
   // ページ上部25%の位置に要素をスクロール表示する
   function scrollToElement25pct(el) {
     const container = getScrollContainer();
@@ -1575,6 +1571,35 @@
     return null;
   }
 
+  function invalidateArticleCache() {
+    articleElementsCache = null;
+  }
+
+  async function getFavoritesCache() {
+    if (Array.isArray(favoritesCache)) return favoritesCache;
+    if (!favoritesCachePromise) {
+      favoritesCachePromise = chrome.storage.local.get(['favorites'])
+        .then((data) => {
+          favoritesCache = Array.isArray(data.favorites) ? data.favorites : [];
+          favoritesCachePromise = null;
+          return favoritesCache;
+        })
+        .catch(() => {
+          favoritesCache = [];
+          favoritesCachePromise = null;
+          return favoritesCache;
+        });
+    }
+    return favoritesCachePromise;
+  }
+
+  async function saveFavoritesCache() {
+    if (!Array.isArray(favoritesCache)) return;
+    try {
+      await chrome.storage.local.set({ favorites: favoritesCache });
+    } catch (_) {}
+  }
+
   function scrollPage(ratio) {
     const container = getScrollContainer();
     if (container) {
@@ -1588,7 +1613,8 @@
   // 条文ナビゲーション（n/p キー）
   // ==================
   function getAllArticles() {
-    return [...document.querySelectorAll('[id*="-At_"]')]
+    if (articleElementsCache) return articleElementsCache;
+    articleElementsCache = [...document.querySelectorAll('[id*="-At_"]')]
       .filter(el => /\-At_[\d_]+$/.test(el.id))
       .sort((a, b) => {
         const pos = a.compareDocumentPosition(b);
@@ -1596,6 +1622,7 @@
         if (pos & Node.DOCUMENT_POSITION_PRECEDING) return  1;
         return 0;
       });
+    return articleElementsCache;
   }
 
   function navigateArticle(direction) {
@@ -1681,8 +1708,7 @@
     if (!lawId) return;
 
     try {
-      const data = await chrome.storage.local.get(['favorites']);
-      const favorites = Array.isArray(data.favorites) ? data.favorites : [];
+      const favorites = await getFavoritesCache();
       const idx = favorites.findIndex((f) => f.lawId === lawId);
       if (idx === -1) return;
 
@@ -1690,7 +1716,8 @@
       if ((favorites[idx].lastScrollTop ?? 0) === normalizedTop) return;
 
       favorites[idx] = { ...favorites[idx], lastScrollTop: normalizedTop };
-      await chrome.storage.local.set({ favorites });
+      favoritesCache = favorites;
+      await saveFavoritesCache();
     } catch (_) {}
   }
 
@@ -1707,8 +1734,7 @@
     if (!lawId) return;
 
     let saveEnabled = false;
-    chrome.storage.local.get(['favorites']).then((data) => {
-      const favorites = Array.isArray(data.favorites) ? data.favorites : [];
+    getFavoritesCache().then((favorites) => {
       saveEnabled = favorites.some((f) => f.lawId === lawId);
       if (!saveEnabled) return;
 
@@ -1727,8 +1753,7 @@
     if (!lawId || location.hash) return false;
 
     try {
-      const data = await chrome.storage.local.get(['favorites']);
-      const favorites = Array.isArray(data.favorites) ? data.favorites : [];
+      const favorites = await getFavoritesCache();
       const fav = favorites.find((f) => f.lawId === lawId);
       if (!fav || typeof fav.lastScrollTop !== 'number') return false;
 
@@ -2153,7 +2178,7 @@
     }
 
     function openLaw(law) {
-      window.open(`https://laws.e-gov.go.jp/law/${law.lawId}`, '_blank');
+      window.open(buildLawUrl(law.lawId), '_blank');
       closeDialog();
     }
 
@@ -2573,6 +2598,11 @@
   });
 
   async function initializeLawPageFeatures() {
+    invalidateArticleCache();
+    const articleCacheObserver = new MutationObserver(() => {
+      invalidateArticleCache();
+    });
+    articleCacheObserver.observe(document.documentElement, { childList: true, subtree: true });
     ensureShortcutGuide();
     setupFavoriteHeaderBadge();
     setupColorPinFeatures();
