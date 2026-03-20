@@ -705,6 +705,46 @@ mark.egov-ext-mark-current {
   white-space: nowrap !important;
 }
 
+.egov-ext-law-name-muted {
+  color: #8f8f8f !important;
+}
+
+.egov-ext-muted-paren {
+  color: inherit !important;
+}
+
+em.articleheading .egov-ext-muted-paren,
+.articleheading .egov-ext-muted-paren {
+  color: inherit !important;
+}
+
+body[data-egov-paren-mode="flat"] .egov-ext-muted-paren {
+  color: #8f8f8f !important;
+}
+
+body[data-egov-paren-mode="flat"] .egov-ext-muted-paren.egov-ext-muted-paren-link {
+  color: #6f97d8 !important;
+}
+
+body[data-egov-paren-mode="nested"] .egov-ext-muted-paren {
+  color: #d8d8d8 !important;
+}
+
+body[data-egov-paren-mode="nested"] .egov-ext-muted-paren.egov-ext-muted-paren-link {
+  color: #c9def4 !important;
+}
+
+body[data-egov-paren-mode] .egov-ext-muted-paren-hover {
+  color: inherit !important;
+  font-weight: 700 !important;
+}
+
+body[data-egov-paren-mode] a .egov-ext-muted-paren-hover,
+body[data-egov-paren-mode] .egov-ext-muted-paren.egov-ext-muted-paren-link.egov-ext-muted-paren-hover {
+  color: inherit !important;
+  font-weight: 700 !important;
+}
+
 .egov-ext-law-result-item.focused .egov-ext-law-result-name {
   color: #1565C0 !important;
 }

@@ -52,6 +52,10 @@
   let pinToastPinned = false;
   let pinToastTimer = null;
   let pinToastDefaultVisible = true;
+  let parenthesesMuteMode = 'off'; // 'off' | 'flat' | 'nested'
+  let parenthesesMutingInitialized = false;
+  let mutedParenGroupSeq = 0;
+  let activeMutedParenGroup = '';
   const PIN_SLOT_ORDER = ['i', 'o', 'j', 'k', 'm'];
   const PIN_SLOT_CONFIG = {
     i: { color: '#ef6b73', label: 'i' },
@@ -213,8 +217,228 @@
       .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   }
 
+  function formatLawNameHtml(name) {
+    return escapeHtml(String(name || '')).replace(
+      /（[^）]*）/g,
+      (match) => `<span class="egov-ext-law-name-muted">${match}</span>`
+    );
+  }
+
   function toFullWidth(s) {
     return String(s).replace(/[0-9]/g, c => String.fromCharCode(c.charCodeAt(0) + 0xFEE0));
+  }
+
+  function formatLawNameHtml(name) {
+    return escapeHtml(String(name || '')).replace(
+      new RegExp('\uFF08[^\uFF09]*\uFF09', 'g'),
+      (match) => `<span class="egov-ext-law-name-muted">${match}</span>`
+    );
+  }
+
+  function isWithinMutedParen(node) {
+    return !!node.parentElement?.closest('.egov-ext-muted-paren');
+  }
+
+  function getParenProcessingContainer(el) {
+    return el?.closest('.sentence, .item > .sentence, .subitem1 > .sentence, .subitem2 > .sentence, .subitem3 > .sentence, .subitem4 > .sentence, .subitem5 > .sentence, .subitem6 > .sentence, .subitem7 > .sentence, .subitem8 > .sentence, .subitem9 > .sentence, .subitem10 > .sentence, .list1 > .sentence, .list2 > .sentence, .list3 > .sentence, .list4 > .sentence, .list5 > .sentence, .list6 > .sentence, .list7 > .sentence, .list8 > .sentence, .list9 > .sentence, .list10 > .sentence, ._div_ParagraphSentence, ._div_ItemSentence, ._div_Subitem1Sentence, ._div_Subitem2Sentence, ._div_Subitem3Sentence, ._div_Subitem4Sentence, ._div_Subitem5Sentence, ._div_Subitem6Sentence, ._div_Subitem7Sentence, ._div_Subitem8Sentence, ._div_Subitem9Sentence, ._div_Subitem10Sentence, ._div_ListSentence, ._div_List1Sentence, ._div_List2Sentence, ._div_List3Sentence, ._div_List4Sentence, ._div_List5Sentence, ._div_List6Sentence, ._div_List7Sentence, ._div_List8Sentence, ._div_List9Sentence, ._div_List10Sentence');
+  }
+
+  function isWrappableBodyTextNode(node) {
+    if (!node || !node.parentElement) return false;
+    if (!node.textContent) return false;
+    if (isWithinMutedParen(node)) return false;
+    const el = node.parentElement;
+    const tag = el.tagName.toLowerCase();
+    if (['script', 'style', 'noscript', 'textarea', 'input', 'select', 'option'].includes(tag)) return false;
+    if (el.closest('em.articleheading, .articleheading')) return false;
+    if (!getParenProcessingContainer(el)) return false;
+    if (el.closest('.egov-ext-overlay, #TOC, #egov-ext-guide, #egov-jump-indicator, #egov-pin-indicator, #egov-ext-pin-toast')) return false;
+    return true;
+  }
+
+  function getMutedParenDepthClass(depth) {
+    return String(Math.min(Math.max(depth, 1), 6));
+  }
+
+  function nextMutedParenGroupId() {
+    mutedParenGroupSeq += 1;
+    return `egov-paren-${mutedParenGroupSeq}`;
+  }
+
+  function appendMutedParenSegment(parent, text, depth, inLink, groupId) {
+    if (!text) return;
+    if (depth <= 0) {
+      parent.appendChild(document.createTextNode(text));
+      return;
+    }
+    const span = document.createElement('span');
+    span.className = `egov-ext-muted-paren${inLink ? ' egov-ext-muted-paren-link' : ''}`;
+    span.dataset.depth = getMutedParenDepthClass(depth);
+    if (groupId) span.dataset.group = groupId;
+    span.textContent = text;
+    parent.appendChild(span);
+  }
+
+  function wrapFullWidthParenthesesInTextNode(node, state = { depth: 0, activeGroupId: '' }) {
+    if (!isWrappableBodyTextNode(node)) return { changed: false, state };
+
+    const text = node.textContent || '';
+    let depth = Math.max(0, state.depth || 0);
+    let activeGroupId = state.activeGroupId || '';
+    let segmentDepth = depth > 0 ? 1 : 0;
+    let segmentGroupId = activeGroupId;
+    let buffer = '';
+    let changed = false;
+    const frag = document.createDocumentFragment();
+
+    function flushBuffer() {
+      if (!buffer) return;
+      appendMutedParenSegment(frag, buffer, segmentDepth, !!node.parentElement.closest('a'), segmentGroupId);
+      buffer = '';
+    }
+
+    for (const ch of text) {
+      if (ch === '\uFF08') {
+        flushBuffer();
+        if (depth === 0) activeGroupId = nextMutedParenGroupId();
+        depth += 1;
+        segmentDepth = 1;
+        segmentGroupId = activeGroupId;
+        buffer += ch;
+        changed = true;
+        continue;
+      }
+
+      if (ch === '\uFF09') {
+        buffer += ch;
+        flushBuffer();
+        depth = Math.max(0, depth - 1);
+        segmentDepth = depth > 0 ? 1 : 0;
+        if (depth === 0) activeGroupId = '';
+        segmentGroupId = activeGroupId;
+        changed = true;
+        continue;
+      }
+
+      if (segmentDepth !== depth) {
+        flushBuffer();
+        segmentDepth = depth > 0 ? 1 : 0;
+        segmentGroupId = activeGroupId;
+      }
+      buffer += ch;
+    }
+
+    flushBuffer();
+
+    if (changed || depth > 0 || (state.depth || 0) > 0) {
+      node.parentNode.replaceChild(frag, node);
+      return { changed: true, state: { depth, activeGroupId } };
+    }
+    return { changed: false, state: { depth, activeGroupId } };
+  }
+
+  function processSentenceElement(sentence) {
+    if (!sentence) return;
+    const walker = document.createTreeWalker(sentence, NodeFilter.SHOW_TEXT, {
+      acceptNode(node) {
+        return isWrappableBodyTextNode(node) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_SKIP;
+      }
+    });
+
+    const nodes = [];
+    let current;
+    while ((current = walker.nextNode())) nodes.push(current);
+    let state = { depth: 0, activeGroupId: '' };
+    nodes.forEach((node) => {
+      const result = wrapFullWidthParenthesesInTextNode(node, state);
+      state = result.state;
+    });
+  }
+
+  function setMutedParenHoverGroup(groupId) {
+    if (activeMutedParenGroup === groupId) return;
+    if (activeMutedParenGroup) {
+      document.querySelectorAll(`.egov-ext-muted-paren-hover[data-group="${activeMutedParenGroup}"]`).forEach((el) => {
+        el.classList.remove('egov-ext-muted-paren-hover');
+      });
+    }
+    activeMutedParenGroup = groupId || '';
+    if (!activeMutedParenGroup) return;
+    document.querySelectorAll(`.egov-ext-muted-paren[data-group="${activeMutedParenGroup}"]`).forEach((el) => {
+      el.classList.add('egov-ext-muted-paren-hover');
+    });
+  }
+
+  function muteFullWidthParenthesesInBody(root = document.querySelector('#provisionview') || document.body) {
+    if (!root) return;
+    if (root.nodeType === Node.ELEMENT_NODE && getParenProcessingContainer(root)) {
+      processSentenceElement(root);
+      return;
+    }
+    root.querySelectorAll?.('.sentence, ._div_ParagraphSentence, ._div_ItemSentence, ._div_Subitem1Sentence, ._div_Subitem2Sentence, ._div_Subitem3Sentence, ._div_Subitem4Sentence, ._div_Subitem5Sentence, ._div_Subitem6Sentence, ._div_Subitem7Sentence, ._div_Subitem8Sentence, ._div_Subitem9Sentence, ._div_Subitem10Sentence, ._div_ListSentence, ._div_List1Sentence, ._div_List2Sentence, ._div_List3Sentence, ._div_List4Sentence, ._div_List5Sentence, ._div_List6Sentence, ._div_List7Sentence, ._div_List8Sentence, ._div_List9Sentence, ._div_List10Sentence').forEach((sentence) => {
+      processSentenceElement(sentence);
+    });
+  }
+
+  function setupBodyParenthesesMuting() {
+    if (parenthesesMutingInitialized) return;
+    parenthesesMutingInitialized = true;
+    muteFullWidthParenthesesInBody();
+
+    const root = document.querySelector('#provisionview') || document.body;
+    if (!root) return;
+
+    const observer = new MutationObserver((mutations) => {
+      for (const mutation of mutations) {
+        for (const node of mutation.addedNodes) {
+          if (node.nodeType === Node.TEXT_NODE) {
+            const sentence = getParenProcessingContainer(node.parentElement);
+            if (sentence) {
+              processSentenceElement(sentence);
+            }
+            continue;
+          }
+          if (node.nodeType !== Node.ELEMENT_NODE) continue;
+          if (node.closest?.('.egov-ext-muted-paren')) continue;
+          if (getParenProcessingContainer(node) === node) {
+            processSentenceElement(node);
+            continue;
+          }
+          muteFullWidthParenthesesInBody(node);
+        }
+      }
+    });
+    observer.observe(root, { childList: true, subtree: true });
+
+    root.addEventListener('mouseover', (event) => {
+      const target = event.target instanceof Element ? event.target.closest('.egov-ext-muted-paren[data-group]') : null;
+      if (!target) return;
+      setMutedParenHoverGroup(target.dataset.group || '');
+    });
+
+    root.addEventListener('mouseout', (event) => {
+      const target = event.target instanceof Element ? event.target.closest('.egov-ext-muted-paren[data-group]') : null;
+      if (!target) return;
+      const related = event.relatedTarget instanceof Element ? event.relatedTarget.closest('.egov-ext-muted-paren[data-group]') : null;
+      if (related?.dataset.group === target.dataset.group) return;
+      setMutedParenHoverGroup('');
+    });
+  }
+
+  function applyParenthesesMuteMode() {
+    const root = document.body;
+    if (!root) return;
+    if (parenthesesMuteMode === 'off') {
+      delete root.dataset.egovParenMode;
+    } else {
+      root.dataset.egovParenMode = parenthesesMuteMode;
+    }
+  }
+
+  function toggleParenthesesMute(mode) {
+    if (!parenthesesMutingInitialized) setupBodyParenthesesMuting();
+    parenthesesMuteMode = parenthesesMuteMode === mode ? 'off' : mode;
+    applyParenthesesMuteMode();
   }
 
   function getCurrentLawIdFromUrl() {
@@ -922,8 +1146,10 @@
     // ダイアログ非表示時のみ有効なキー
     if (!activeDialog) {
       const lowerKey = e.key.toLowerCase();
+      if (e.shiftKey && lowerKey === 'g') { e.preventDefault(); toggleParenthesesMute('nested'); return; }
       if (e.shiftKey && PIN_SLOT_ORDER.includes(lowerKey)) { e.preventDefault(); forceRemoveColorPinSlot(lowerKey); return; }
       if (e.shiftKey && lowerKey === 'h') { e.preventDefault(); convertKatakanaToHiragana(); return; }
+      if (e.key === 'g') { e.preventDefault(); toggleParenthesesMute('flat'); return; }
       if (e.key === 'h') { e.preventDefault(); navigateJumpHistory(-1); return; }
       if (e.key === 'l') { e.preventDefault(); navigateJumpHistory(+1); return; }
       if (e.key === 'b') { e.preventDefault(); togglePinToast(); return; }
@@ -1941,7 +2167,7 @@
         const fav = isFav(law.lawId);
         li.innerHTML =
           `<div class="egov-ext-law-result-main">` +
-            `<span class="egov-ext-law-result-name">${escapeHtml(law.lawName)}</span>` +
+            `<span class="egov-ext-law-result-name">${formatLawNameHtml(law.lawName)}</span>` +
             (law.lawNum ? `<span class="egov-ext-law-result-num">${escapeHtml(law.lawNum)}</span>` : '') +
           `</div>` +
           `<button class="egov-ext-law-result-fav${fav ? ' active' : ''}" title="${fav ? 'お気に入りから削除' : 'お気に入りに追加'}">${fav ? '★' : '☆'}</button>`;

@@ -50,7 +50,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     tooltipTimer = setTimeout(() => {
       const rect = el.getBoundingClientRect();
       tooltipEl.innerHTML =
-        (name ? `<div class="hist-tooltip-name">${escapeHtml(name)}</div>` : '') +
+        (name ? `<div class="hist-tooltip-name">${formatLawNameHtml(name)}</div>` : '') +
         (num  ? `<div class="hist-tooltip-num">${escapeHtml(num)}</div>`  : '');
       tooltipEl.style.display = 'block';
       const th = tooltipEl.offsetHeight;
@@ -516,7 +516,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const fav = isFavorite(item.lawId);
         inner =
           `<span class="hist-icon">📄</span>` +
-          `<span class="hist-text">${escapeHtml(item.lawName)}</span>` +
+          `<span class="hist-text">${formatLawNameHtml(item.lawName)}</span>` +
           `<button class="hist-fav-btn${fav ? ' hist-fav-active' : ''}" title="${fav ? 'お気に入りから削除' : 'お気に入りに追加'}">${fav ? '★' : '☆'}</button>`;
         // ツールチップ用データ属性（法令名＋法令番号）
         li.dataset.tooltipName = item.lawName || '';
@@ -678,7 +678,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     li.innerHTML =
       `<span class="hist-icon">★</span>` +
-      `<span class="hist-text">${escapeHtml(item.lawName)}</span>` +
+      `<span class="hist-text">${formatLawNameHtml(item.lawName)}</span>` +
       `<button class="hist-del-btn" title="削除 (Del)">×</button>`;
     li.dataset.tooltipName = item.lawName || '';
     li.dataset.tooltipNum  = item.lawNum  || '';
@@ -1360,7 +1360,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       li.innerHTML = `
         <div class="result-main">
           ${lawType ? `<span class="result-type">${escapeHtml(formatType(lawType))}</span>` : ''}
-          <span class="result-name">${escapeHtml(lawName)}</span>
+          <span class="result-name">${formatLawNameHtml(lawName)}</span>
           ${lawNum ? `<span class="result-num">${escapeHtml(lawNum)}</span>` : ''}
         </div>
         <button class="result-fav-btn${fav ? ' result-fav-active' : ''}"
@@ -1425,5 +1425,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     return String(str)
       .replace(/&/g, '&amp;').replace(/</g, '&lt;')
       .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
+  function formatLawNameHtml(name) {
+    return escapeHtml(String(name || '')).replace(
+      /（[^）]*）/g,
+      (match) => `<span class="law-name-muted">${match}</span>`
+    );
   }
 });

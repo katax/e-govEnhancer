@@ -431,6 +431,10 @@ body {
   line-height: 1.4;
 }
 
+.law-name-muted {
+  color: #8f8f8f;
+}
+
 .result-num {
   font-size: 11px;
   color: #999;
