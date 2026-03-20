@@ -52,6 +52,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     chrome.runtime.openOptionsPage().then(() => sendResponse({ ok: true })).catch(() => sendResponse({ ok: false }));
     return true;
   }
+  if (message?.type === 'egov-open-law-reference-tab' && message.url) {
+    chrome.tabs.create({ url: message.url, active: true })
+      .then((tab) => sendResponse({ ok: true, tabId: tab?.id }))
+      .catch(() => sendResponse({ ok: false }));
+    return true;
+  }
   if (message?.type !== 'egov-jump-color-pin' || !message.pin?.lawId) return undefined;
 
   (async () => {

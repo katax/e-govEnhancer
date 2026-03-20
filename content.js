@@ -68,6 +68,14 @@
   let mutedParenGroupSeq = 0;
   let activeMutedParenGroup = '';
   let articleElementsCache = null;
+  let lawReferenceHoverTimer = null;
+  let lawReferenceHoverAnchor = null;
+  let lawReferenceHoverPoint = null;
+  let lawReferenceShieldEl = null;
+  let lawReferenceShieldAnchor = null;
+  let lawReferencePopupEl = null;
+  let lawReferencePreviewToken = 0;
+  const lawReferencePreviewCache = new Map();
   const PIN_SLOT_ORDER = ['i', 'o', 'j', 'k', 'm'];
   const PIN_SLOT_CONFIG = {
     i: { color: '#ef6b73', label: 'i' },
@@ -439,6 +447,15 @@
   function getCurrentLawIdFromUrl() {
     const m = location.pathname.match(/\/law\/([^/?#]+)/);
     return m ? decodeURIComponent(m[1]) : '';
+  }
+
+  function getLawIdFromLawUrl(url) {
+    try {
+      const match = new URL(url, location.href).pathname.match(/^\/law\/([^/?#]+)/);
+      return match ? decodeURIComponent(match[1]) : '';
+    } catch (_) {
+      return '';
+    }
   }
 
   function getCurrentLawInfo() {
@@ -1540,6 +1557,31 @@
     }, 1200);
   }
 
+  function jumpToHashTarget(hash) {
+    const rawHash = String(hash || '');
+    if (!rawHash || rawHash === '#') return false;
+
+    const targetId = decodeURIComponent(rawHash.replace(/^#/, ''));
+    if (!targetId) return false;
+
+    const provisionRoot = document.querySelector('#provisionview') || document.body;
+    const escapedId = globalThis.CSS?.escape
+      ? CSS.escape(targetId)
+      : targetId.replace(/(["\\#.:[\],=<>+~*^$| ])/g, '\\$1');
+
+    let target = null;
+    try {
+      target = document.getElementById(targetId) || provisionRoot.querySelector(`#${escapedId}`);
+    } catch (_) {
+      target = document.getElementById(targetId);
+    }
+
+    if (!(target instanceof Element)) return false;
+    highlightAndScroll(target, 0.25);
+    history.replaceState(null, '', rawHash);
+    return true;
+  }
+
   function clearFlashElementHighlight() {
     if (activeFlashTimer) {
       clearTimeout(activeFlashTimer);
@@ -1783,6 +1825,284 @@
     } catch (_) {
       return false;
     }
+  }
+
+  function getLawReferenceAnchor(target) {
+    const baseEl =
+      target instanceof Element ? target :
+      target instanceof Node ? target.parentElement :
+      null;
+    const anchor = baseEl ? baseEl.closest('a[href]') : null;
+    if (!anchor) return null;
+
+    const provisionRoot = document.querySelector('#provisionview');
+    if (!(provisionRoot instanceof Element) || !provisionRoot.contains(anchor)) return null;
+
+    let url;
+    try {
+      url = new URL(anchor.href, location.href);
+    } catch (_) {
+      return null;
+    }
+
+    if (url.origin !== location.origin) return null;
+    if (!url.pathname.startsWith('/law/')) return null;
+    if (!url.hash) return null;
+    return anchor;
+  }
+
+  function clearLawReferenceHoverTimer() {
+    if (lawReferenceHoverTimer) {
+      clearTimeout(lawReferenceHoverTimer);
+      lawReferenceHoverTimer = null;
+    }
+    lawReferenceHoverAnchor = null;
+  }
+
+  function ensureLawReferenceShield() {
+    if (lawReferenceShieldEl) return lawReferenceShieldEl;
+    const shield = document.createElement('div');
+    shield.id = 'egov-ext-lawref-shield';
+    shield.addEventListener('mousemove', (event) => {
+      lawReferenceHoverPoint = { x: event.clientX, y: event.clientY };
+    });
+    shield.addEventListener('mouseleave', () => {
+      lawReferenceShieldAnchor = null;
+      shield.style.display = 'none';
+      clearLawReferenceHoverTimer();
+    });
+    shield.addEventListener('click', (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      event.stopImmediatePropagation();
+      if (lawReferenceShieldAnchor) openLawReferenceTarget(lawReferenceShieldAnchor);
+    });
+    document.body.appendChild(shield);
+    lawReferenceShieldEl = shield;
+    return shield;
+  }
+
+  function ensureLawReferencePopup() {
+    if (lawReferencePopupEl) return lawReferencePopupEl;
+    const popup = document.createElement('div');
+    popup.id = 'egov-ext-lawref-popup';
+    popup.innerHTML = `
+      <div class="egov-ext-lawref-popup-title"></div>
+      <div class="egov-ext-lawref-popup-body"></div>
+    `;
+    document.body.appendChild(popup);
+    lawReferencePopupEl = popup;
+    return popup;
+  }
+
+  function hideLawReferencePreview() {
+    clearLawReferenceHoverTimer();
+    if (lawReferenceShieldEl) lawReferenceShieldEl.style.display = 'none';
+    lawReferenceShieldAnchor = null;
+    if (lawReferencePopupEl) {
+      lawReferencePopupEl.classList.remove('is-visible', 'is-loading', 'is-error');
+    }
+  }
+
+  function positionLawReferenceShield(anchor) {
+    const shield = ensureLawReferenceShield();
+    const rect = anchor.getBoundingClientRect();
+    shield.style.left = `${Math.max(0, rect.left + window.scrollX)}px`;
+    shield.style.top = `${Math.max(0, rect.top + window.scrollY)}px`;
+    shield.style.width = `${Math.max(1, rect.width)}px`;
+    shield.style.height = `${Math.max(1, rect.height)}px`;
+    shield.style.display = 'block';
+    lawReferenceShieldAnchor = anchor;
+  }
+
+  function positionLawReferencePopup(point) {
+    if (!lawReferencePopupEl || !point) return;
+    const popup = lawReferencePopupEl;
+    const margin = 16;
+    const preferredLeft = point.x + 18 + window.scrollX;
+    const preferredTop = point.y + 18 + window.scrollY;
+    const maxLeft = window.scrollX + window.innerWidth - popup.offsetWidth - margin;
+    const maxTop = window.scrollY + window.innerHeight - popup.offsetHeight - margin;
+    const left = Math.max(window.scrollX + margin, Math.min(preferredLeft, maxLeft));
+    const top = Math.max(window.scrollY + margin, Math.min(preferredTop, maxTop));
+    popup.style.left = `${left}px`;
+    popup.style.top = `${top}px`;
+  }
+
+  function collapseLawReferenceText(text, maxLength = 220) {
+    const normalized = String(text || '').replace(/\s+/g, ' ').trim();
+    if (!normalized) return '';
+    return normalized.length > maxLength ? `${normalized.slice(0, maxLength - 1)}…` : normalized;
+  }
+
+  function getLawReferencePreviewRoot(target) {
+    return (
+      target.closest('.sentence, .item, .subitem1, .subitem2, .subitem3, .subitem4, .subitem5, .subitem6, .subitem7, .subitem8, .subitem9, .subitem10') ||
+      target.closest('[id*="-At_"]') ||
+      target.closest('p, div, li, td') ||
+      target
+    );
+  }
+
+  function extractLawReferencePreviewFromDocument(doc, href) {
+    let url;
+    try {
+      url = new URL(href, location.href);
+    } catch (_) {
+      return null;
+    }
+
+    const targetId = decodeURIComponent(url.hash.replace(/^#/, ''));
+    if (!targetId) return null;
+
+    const escapedId = globalThis.CSS?.escape
+      ? CSS.escape(targetId)
+      : targetId.replace(/(["\\#.:[\],=<>+~*^$| ])/g, '\\$1');
+
+    let target = null;
+    try {
+      target = doc.getElementById(targetId) || doc.querySelector(`#${escapedId}`);
+    } catch (_) {
+      target = doc.getElementById(targetId);
+    }
+    if (!(target instanceof Element)) return null;
+
+    const article = target.closest('[id*="-At_"]');
+    const heading = article?.querySelector('em.articleheading, .articleheading');
+    const previewRoot = getLawReferencePreviewRoot(target);
+    const title = collapseLawReferenceText(heading?.textContent || target.textContent || targetId, 80);
+    const body = collapseLawReferenceText(previewRoot.textContent || target.textContent, 240);
+
+    return {
+      title: title || '参照先',
+      body: body || '参照先の本文を取得できませんでした。',
+    };
+  }
+
+  async function loadLawReferencePreview(anchor) {
+    const cacheKey = anchor.href;
+    if (lawReferencePreviewCache.has(cacheKey)) return lawReferencePreviewCache.get(cacheKey);
+
+    const currentLawId = getCurrentLawIdFromUrl();
+    const targetLawId = getLawIdFromLawUrl(anchor.href);
+    let preview = null;
+
+    if (targetLawId && targetLawId === currentLawId) {
+      preview = extractLawReferencePreviewFromDocument(document, anchor.href);
+    } else {
+      try {
+        const response = await fetch(anchor.href);
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const html = await response.text();
+        const doc = new DOMParser().parseFromString(html, 'text/html');
+        preview = extractLawReferencePreviewFromDocument(doc, anchor.href);
+      } catch (_) {
+        preview = null;
+      }
+    }
+
+    const resolvedPreview = preview || {
+      title: collapseLawReferenceText(anchor.textContent, 80) || '参照先',
+      body: '参照先のプレビューを読み込めませんでした。',
+    };
+    lawReferencePreviewCache.set(cacheKey, resolvedPreview);
+    return resolvedPreview;
+  }
+
+  async function showLawReferencePreview(anchor) {
+    const popup = ensureLawReferencePopup();
+    const titleEl = popup.querySelector('.egov-ext-lawref-popup-title');
+    const bodyEl = popup.querySelector('.egov-ext-lawref-popup-body');
+    const token = ++lawReferencePreviewToken;
+
+    popup.classList.add('is-visible', 'is-loading');
+    popup.classList.remove('is-error');
+    titleEl.textContent = collapseLawReferenceText(anchor.textContent, 80) || '参照先';
+    bodyEl.textContent = '読み込み中...';
+    positionLawReferencePopup(lawReferenceHoverPoint);
+
+    const preview = await loadLawReferencePreview(anchor);
+    if (token !== lawReferencePreviewToken) return;
+
+    titleEl.textContent = preview.title;
+    bodyEl.textContent = preview.body;
+    popup.classList.remove('is-loading');
+    if (preview.body.includes('読み込めませんでした')) {
+      popup.classList.add('is-error');
+    }
+    positionLawReferencePopup(lawReferenceHoverPoint);
+  }
+
+  function openLawReferenceTarget(anchor) {
+    let url;
+    try {
+      url = new URL(anchor.href, location.href);
+    } catch (_) {
+      return;
+    }
+
+    hideLawReferencePreview();
+
+    const targetLawId = getLawIdFromLawUrl(url.href);
+    if (targetLawId && targetLawId === getCurrentLawIdFromUrl()) {
+      if (!jumpToHashTarget(url.hash)) location.hash = url.hash;
+      return;
+    }
+
+    chrome.runtime.sendMessage({
+      type: 'egov-open-law-reference-tab',
+      url: url.href,
+    }).catch(() => {
+      window.open(url.href, '_blank', 'noopener');
+    });
+  }
+
+  function activateLawReferenceAnchor(anchor, point) {
+    if (!anchor) {
+      hideLawReferencePreview();
+      return;
+    }
+
+    lawReferenceHoverPoint = point;
+    positionLawReferenceShield(anchor);
+
+    if (lawReferenceHoverAnchor === anchor && lawReferenceHoverTimer) return;
+    clearLawReferenceHoverTimer();
+    lawReferenceHoverAnchor = anchor;
+    lawReferenceHoverTimer = setTimeout(() => {
+      lawReferenceHoverTimer = null;
+      if (lawReferenceHoverAnchor !== anchor) return;
+      showLawReferencePreview(anchor).catch(() => {});
+    }, 1000);
+  }
+
+  function setupLawReferenceInteractions() {
+    document.addEventListener('mouseover', (event) => {
+      const anchor = getLawReferenceAnchor(event.target);
+      if (!anchor) return;
+      activateLawReferenceAnchor(anchor, { x: event.clientX, y: event.clientY });
+    }, true);
+
+    document.addEventListener('mousemove', (event) => {
+      if (!lawReferenceShieldAnchor) return;
+      lawReferenceHoverPoint = { x: event.clientX, y: event.clientY };
+      if (lawReferencePopupEl?.classList.contains('is-visible')) {
+        positionLawReferencePopup(lawReferenceHoverPoint);
+      }
+    }, true);
+
+    document.addEventListener('mousedown', (event) => {
+      const insidePopup = lawReferencePopupEl?.contains(event.target);
+      const insideShield = lawReferenceShieldEl?.contains(event.target);
+      if (!insidePopup && !insideShield) hideLawReferencePreview();
+    }, true);
+
+    window.addEventListener('scroll', () => {
+      hideLawReferencePreview();
+    }, { passive: true });
+    window.addEventListener('resize', () => {
+      hideLawReferencePreview();
+    });
   }
 
   // ==================
@@ -2603,6 +2923,7 @@
       invalidateArticleCache();
     });
     articleCacheObserver.observe(document.documentElement, { childList: true, subtree: true });
+    setupLawReferenceInteractions();
     ensureShortcutGuide();
     setupFavoriteHeaderBadge();
     setupColorPinFeatures();
