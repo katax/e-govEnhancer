@@ -304,6 +304,18 @@ a:hover {
   color: #666;
 }
 
+.setting-row-sub {
+  margin-left: 12px;
+  padding-left: 12px;
+  border-left: 2px solid #e0e0e0;
+  transition: opacity 0.2s;
+}
+
+.setting-row-sub.is-disabled {
+  opacity: 0.4;
+  pointer-events: none;
+}
+
 .toggle-switch {
   position: relative;
   display: inline-block;
