@@ -73,6 +73,8 @@
   let lawReferenceHoverPoint = null;
   let lawReferenceShieldEl = null;
   let lawReferenceShieldAnchor = null;
+  let lawReferenceOpenLockUntil = 0;
+  let lawRefHoverPopupEnabled = false;
   const PIN_SLOT_ORDER = ['i', 'o', 'j', 'k', 'm'];
   const PIN_SLOT_CONFIG = {
     i: { color: '#ef6b73', label: 'i' },
@@ -1888,8 +1890,9 @@
   function positionLawReferenceShield(anchor) {
     const shield = ensureLawReferenceShield();
     const rect = anchor.getBoundingClientRect();
-    shield.style.left = `${Math.max(0, rect.left + window.scrollX)}px`;
-    shield.style.top = `${Math.max(0, rect.top + window.scrollY)}px`;
+    // position: fixed なので viewport 座標をそのまま使う
+    shield.style.left = `${Math.max(0, rect.left)}px`;
+    shield.style.top = `${Math.max(0, rect.top)}px`;
     shield.style.width = `${Math.max(1, rect.width)}px`;
     shield.style.height = `${Math.max(1, rect.height)}px`;
     shield.style.display = 'block';
@@ -1925,10 +1928,20 @@
     }
 
     hideLawReferencePreview();
+    lawReferenceOpenLockUntil = Date.now() + 1500;
 
     const targetLawId = getLawIdFromLawUrl(url.href);
     if (targetLawId && targetLawId === getCurrentLawIdFromUrl()) {
-      if (!jumpToHashTarget(url.hash)) location.hash = url.hash;
+      if (!jumpToHashTarget(url.hash)) {
+        // getElementById で見つからなかった場合: SPA router に委ねる
+        // 同じ hash が既にセットされていると hashchange が発火しないので一旦リセット
+        if (location.hash === url.hash) {
+          history.replaceState(null, '', location.pathname + location.search);
+          requestAnimationFrame(() => { location.hash = url.hash; });
+        } else {
+          location.hash = url.hash;
+        }
+      }
       return;
     }
 
@@ -1952,6 +1965,10 @@
     if (lawReferenceHoverAnchor === anchor && lawReferenceHoverTimer) return;
     clearLawReferenceHoverTimer();
     lawReferenceHoverAnchor = anchor;
+
+    // ホバーポップアップが無効、またはクリック直後のロック中はタイマーを起動しない
+    if (!lawRefHoverPopupEnabled || Date.now() < lawReferenceOpenLockUntil) return;
+
     lawReferenceHoverTimer = setTimeout(() => {
       lawReferenceHoverTimer = null;
       if (lawReferenceHoverAnchor !== anchor) return;
@@ -1961,27 +1978,31 @@
 
   function setupLawReferenceInteractions() {
     document.addEventListener('mouseover', (event) => {
+      if (!event.isTrusted) return;
       const anchor = getLawReferenceAnchor(event.target);
       if (!anchor) return;
       activateLawReferenceAnchor(anchor, { x: event.clientX, y: event.clientY });
     }, true);
 
     document.addEventListener('mousemove', (event) => {
+      if (!event.isTrusted) return;
       if (!lawReferenceShieldAnchor) return;
       lawReferenceHoverPoint = { x: event.clientX, y: event.clientY };
     }, true);
 
     document.addEventListener('mousedown', (event) => {
+      if (!event.isTrusted) return;
       const insideShield = lawReferenceShieldEl?.contains(event.target);
       if (!insideShield) hideLawReferencePreview();
     }, true);
 
-    window.addEventListener('scroll', () => {
-      hideLawReferencePreview();
-    }, { passive: true });
-    window.addEventListener('resize', () => {
-      hideLawReferencePreview();
-    });
+    window.addEventListener('scroll', () => hideLawReferencePreview(), { passive: true });
+    window.addEventListener('resize', () => hideLawReferencePreview());
+
+    const scrollContainer = getScrollContainer();
+    if (scrollContainer) {
+      scrollContainer.addEventListener('scroll', () => hideLawReferencePreview(), { passive: true });
+    }
   }
 
   // ==================
@@ -2802,7 +2823,11 @@
       invalidateArticleCache();
     });
     articleCacheObserver.observe(document.documentElement, { childList: true, subtree: true });
-    setupLawReferenceInteractions();
+    const { lawRefClickEnabled, lawRefHoverPopup } = await chrome.storage.local.get(['lawRefClickEnabled', 'lawRefHoverPopup']);
+    if (lawRefClickEnabled === true) {
+      lawRefHoverPopupEnabled = lawRefHoverPopup === true;
+      setupLawReferenceInteractions();
+    }
     ensureShortcutGuide();
     setupFavoriteHeaderBadge();
     setupColorPinFeatures();

@@ -34,9 +34,29 @@
             </label>
           </div>
           <div class="setting-row">
+            <label class="setting-label" for="lawRefClickToggle">
+              <span class="setting-title">法令内リンクのポップアップ抑止</span>
+              <span class="setting-desc">法令内のリンクをクリックした際にポップアップで開かないようにする<br>※法令ページのリロード後に反映されます</span>
+            </label>
+            <label class="toggle-switch">
+              <input type="checkbox" id="lawRefClickToggle">
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+          <div class="setting-row setting-row-sub" id="lawRefHoverPopupRow">
+            <label class="setting-label" for="lawRefHoverPopupToggle">
+              <span class="setting-title">マウスオーバーでポップアップ</span>
+              <span class="setting-desc">法令内のリンクにマウスカーソルを合わた際にリンク先を表示するポップアップを開く<br>※法令ページのリロード後に反映されます</span>
+            </label>
+            <label class="toggle-switch">
+              <input type="checkbox" id="lawRefHoverPopupToggle">
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+          <div class="setting-row">
             <label class="setting-label" for="pinToastToggle">
               <span class="setting-title">ピン状態の常時表示</span>
-              <span class="setting-desc">法令ページ上でピントーストを常に表示する（デフォルト ON）</span>
+              <span class="setting-desc">法令ページ上でピントーストを常に表示する</span>
             </label>
             <label class="toggle-switch">
               <input type="checkbox" id="pinToastToggle">

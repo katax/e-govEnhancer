@@ -2,14 +2,42 @@ document.addEventListener('DOMContentLoaded', async () => {
   // スムーズスクロール設定
   const smoothToggle = document.getElementById('smoothScrollToggle');
   const pinToastToggle = document.getElementById('pinToastToggle');
-  const { scrollBehavior, pinToastDefaultVisible } = await chrome.storage.local.get(['scrollBehavior', 'pinToastDefaultVisible']);
+  const lawRefClickToggle = document.getElementById('lawRefClickToggle');
+  const lawRefHoverPopupToggle = document.getElementById('lawRefHoverPopupToggle');
+  const lawRefHoverPopupRow = document.getElementById('lawRefHoverPopupRow');
+
+  const { scrollBehavior, pinToastDefaultVisible, lawRefClickEnabled, lawRefHoverPopup } = await chrome.storage.local.get(['scrollBehavior', 'pinToastDefaultVisible', 'lawRefClickEnabled', 'lawRefHoverPopup']);
   smoothToggle.checked = (scrollBehavior === 'smooth');
   pinToastToggle.checked = (typeof pinToastDefaultVisible === 'boolean') ? pinToastDefaultVisible : true;
+  lawRefClickToggle.checked = (typeof lawRefClickEnabled === 'boolean') ? lawRefClickEnabled : false;
+  lawRefHoverPopupToggle.checked = (typeof lawRefHoverPopup === 'boolean') ? lawRefHoverPopup : true;
+
+  function updateLawRefHoverPopupRow() {
+    lawRefHoverPopupRow.classList.toggle('is-disabled', !lawRefClickToggle.checked);
+  }
+  updateLawRefHoverPopupRow();
+
+  async function reloadLawTabsIfConfirmed() {
+    const ok = window.confirm('リロード後に反映されます。すべての法令ページをリロードしますか？');
+    if (!ok) return;
+    const tabs = await chrome.tabs.query({ url: 'https://laws.e-gov.go.jp/law/*' });
+    for (const tab of tabs) chrome.tabs.reload(tab.id);
+  }
+
   smoothToggle.addEventListener('change', () => {
     chrome.storage.local.set({ scrollBehavior: smoothToggle.checked ? 'smooth' : 'instant' });
   });
   pinToastToggle.addEventListener('change', () => {
     chrome.storage.local.set({ pinToastDefaultVisible: pinToastToggle.checked });
+  });
+  lawRefClickToggle.addEventListener('change', () => {
+    chrome.storage.local.set({ lawRefClickEnabled: lawRefClickToggle.checked });
+    updateLawRefHoverPopupRow();
+    reloadLawTabsIfConfirmed();
+  });
+  lawRefHoverPopupToggle.addEventListener('change', () => {
+    chrome.storage.local.set({ lawRefHoverPopup: lawRefHoverPopupToggle.checked });
+    reloadLawTabsIfConfirmed();
   });
 
   // 現在のショートカットキーを取得して表示
