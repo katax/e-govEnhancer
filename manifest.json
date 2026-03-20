@@ -1,13 +1,13 @@
-{
+﻿{
   "manifest_version": 3,
-  "name": "e-gov法令検索 Enhancer",
+  "name": "e-Gov法令検索 Enhancer",
   "version": "1.1.0",
-  "description": "e-gov法令検索をもっと便利にします",
+  "description": "e-Gov法令検索をもっと便利にします。",
   "permissions": ["storage", "tabs"],
   "host_permissions": ["https://laws.e-gov.go.jp/*"],
   "action": {
     "default_popup": "popup.html",
-    "default_title": "e-gov法令検索Enhancer",
+    "default_title": "e-Gov法令検索 Enhancer",
     "default_icon": {
       "16": "icons/icon16.png",
       "32": "icons/icon32.png",
