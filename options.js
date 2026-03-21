@@ -9,7 +9,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const { scrollBehavior, pinToastDefaultVisible, lawRefClickEnabled, lawRefHoverPopup } = await chrome.storage.local.get(['scrollBehavior', 'pinToastDefaultVisible', 'lawRefClickEnabled', 'lawRefHoverPopup']);
   smoothToggle.checked = (scrollBehavior === 'smooth');
   pinToastToggle.checked = (typeof pinToastDefaultVisible === 'boolean') ? pinToastDefaultVisible : true;
-  lawRefClickToggle.checked = (typeof lawRefClickEnabled === 'boolean') ? lawRefClickEnabled : false;
+  lawRefClickToggle.checked = (typeof lawRefClickEnabled === 'boolean') ? lawRefClickEnabled : true;
   lawRefHoverPopupToggle.checked = (typeof lawRefHoverPopup === 'boolean') ? lawRefHoverPopup : true;
 
   function updateLawRefHoverPopupRow() {
