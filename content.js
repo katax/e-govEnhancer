@@ -1575,6 +1575,15 @@
       target = document.getElementById(targetId);
     }
 
+    // 短縮形ID（例: "Mp-At_5-Pr_1"）で見つからない場合、フルパスID（例: "Mp-Pa_1-Ch_2-Se_3-At_5-Pr_1"）を末尾一致で検索
+    // 民法のように「編-章-節」構造がある法令ではIDに構造パスが付くが、リンクは短縮形を使う
+    if (!(target instanceof Element) && targetId.startsWith('Mp-')) {
+      const suffix = targetId.slice(2); // "Mp-At_5-Pr_1" → "-At_5-Pr_1"
+      try {
+        target = provisionRoot.querySelector(`[id$="${suffix}"]`);
+      } catch (_) {}
+    }
+
     if (!(target instanceof Element)) return false;
     highlightAndScroll(target, 0.25);
     history.replaceState(null, '', rawHash);
