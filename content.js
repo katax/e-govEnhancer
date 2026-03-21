@@ -2828,8 +2828,8 @@
     });
     articleCacheObserver.observe(document.documentElement, { childList: true, subtree: true });
     const { lawRefClickEnabled, lawRefHoverPopup } = await chrome.storage.local.get(['lawRefClickEnabled', 'lawRefHoverPopup']);
-    if (lawRefClickEnabled === true) {
-      lawRefHoverPopupEnabled = lawRefHoverPopup === true;
+    if (lawRefClickEnabled !== false) {
+      lawRefHoverPopupEnabled = lawRefHoverPopup !== false;
       setupLawReferenceInteractions();
     }
     ensureShortcutGuide();
