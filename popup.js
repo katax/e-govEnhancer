@@ -1,4 +1,16 @@
 document.addEventListener('DOMContentLoaded', async () => {
+  function syncPopupHeight() {
+    const screenHeight = window.screen?.availHeight || window.screen?.height;
+    if (!screenHeight) return;
+    // Chrome extension popups have a practical max height around 600px.
+    // Keep a little headroom so the browser itself does not add a scrollbar.
+    const popupHeight = Math.max(240, Math.min(Math.floor(screenHeight * 0.8), 580));
+    document.documentElement.style.setProperty('--popup-height', `${popupHeight}px`);
+  }
+
+  syncPopupHeight();
+  window.addEventListener('resize', syncPopupHeight);
+
   const shared = globalThis.EgovShared;
   const {
     buildLawUrl,
@@ -12,14 +24,17 @@ document.addEventListener('DOMContentLoaded', async () => {
   const resultsEl     = document.getElementById('searchResults');
   const histPanelEl   = document.getElementById('historyPanel');
   const histListEl    = document.getElementById('historyList');
-  const histTitleEl   = document.getElementById('histPanelTitle');
-  const histHintEl    = document.getElementById('histPanelHint');
+  const histTitleEl   = { textContent: '' };
+  const histHintEl    = { textContent: '' };
   const searchHintEl  = document.getElementById('searchHint');
-  const histLeftBtn   = document.getElementById('histNavLeft');
-  const histRightBtn  = document.getElementById('histNavRight');
+  const histLeftBtn   = { style: {}, disabled: false, title: '', addEventListener() {} };
+  const histRightBtn  = { style: {}, disabled: false, title: '', addEventListener() {} };
   const favFolderBtn  = document.getElementById('favFolderBtn');
   const mode0NavLeft  = document.getElementById('mode0NavLeft');
   const mode0NavRight = document.getElementById('mode0NavRight');
+  const modeLeftLabel = document.getElementById('modeLeftLabel');
+  const modeCurrentLabel = document.getElementById('modeCurrentLabel');
+  const modeRightLabel = document.getElementById('modeRightLabel');
 
   let debounceTimer      = null;
   let isComposing        = false;
@@ -74,6 +89,38 @@ document.addEventListener('DOMContentLoaded', async () => {
     tooltipEl.style.display = 'none';
   }
 
+  function getModeMeta(mode) {
+    const labels = {
+      search: '検索履歴',
+      law: '法令履歴',
+      favorites: 'お気に入り',
+    };
+
+    if (mode === 'law') {
+      return { current: labels.law, left: null, right: labels.search };
+    }
+    if (mode === 'favorites') {
+      return { current: labels.favorites, left: labels.search, right: null };
+    }
+    return { current: labels.search, left: labels.law, right: labels.favorites };
+  }
+
+  function syncModeHint(mode) {
+    const meta = getModeMeta(mode);
+
+    modeCurrentLabel.textContent = meta.current;
+
+    modeLeftLabel.textContent = meta.left || '';
+    modeLeftLabel.hidden = !meta.left;
+    mode0NavLeft.hidden = !meta.left;
+    mode0NavLeft.title = meta.left ? `${meta.left}へ` : '';
+
+    modeRightLabel.textContent = meta.right || '';
+    modeRightLabel.hidden = !meta.right;
+    mode0NavRight.hidden = !meta.right;
+    mode0NavRight.title = meta.right ? `${meta.right}へ` : '';
+  }
+
   function showToast(message) {
     clearTimeout(toastTimer);
     toastEl.textContent = message;
@@ -119,7 +166,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       hideHistoryPanel();
       return true;
     }
-    if (historyMode === 'favorites' && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
+    if (historyMode === 'favorites' && e.key === 'ArrowLeft') {
       e.preventDefault();
       hideHistoryPanel();
       return true;
@@ -185,6 +232,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   // 起動時：履歴を読み込んで検索履歴を表示
   // ================================================
   await loadHistories();
+  syncModeHint('search');
   searchInput.focus();
   showEmptyState();
   setupFavoritesDnD();
@@ -315,7 +363,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       // Mode2: ◀ は非表示なので何もしない
       return;
     }
-    if (e.key === 'ArrowRight') {
+    if (e.key === 'ArrowRight' && historyMode === 'law') {
       if (historyMode === 'law')            hideHistoryPanel(); // Mode2 → Mode0（閉じる）
       else if (historyMode === 'favorites') hideHistoryPanel(); // Mode3 → Mode0（閉じる）
       return;
@@ -375,21 +423,20 @@ document.addEventListener('DOMContentLoaded', async () => {
   // 履歴パネル 表示・切替
   // ================================================
   function showHistoryPanel(mode) {
+    hideTooltip();
     historyMode    = mode;
     histFocusedIdx = -1;
+    syncModeHint(mode);
 
     // タイトル
-    histTitleEl.textContent = { law: '開いた法令', favorites: 'お気に入り' }[mode] || '';
 
     // ◀ ボタン（Mode3 のみ表示）
-    const showLeft = mode === 'favorites';
-    histLeftBtn.style.visibility = showLeft ? 'visible' : 'hidden';
-    histLeftBtn.disabled         = !showLeft;
     histLeftBtn.title = mode === 'favorites' ? '閉じる' : '';
 
     // ▶ ボタン（Mode2 / Mode3 で表示）
-    const showRight = mode === 'law' || mode === 'favorites';
+    const showRight = mode === 'law';
     histRightBtn.style.visibility = showRight ? 'visible' : 'hidden';
+    histRightBtn.style.display    = showRight ? '' : 'none';
     histRightBtn.disabled         = !showRight;
     histRightBtn.title = mode === 'law' ? '閉じる' : mode === 'favorites' ? '閉じる' : '';
 
@@ -401,7 +448,10 @@ document.addEventListener('DOMContentLoaded', async () => {
       law:       '▶ 閉じる ｜ ↑↓ 選択 ｜ Shift+Enter ★ ｜ Enter 開く ｜ Del 削除',
       favorites: '◀ 閉じる ｜ ↑↓ 選択 ｜ Enter 開く ｜ Del 削除 ｜ D&D 並替/移動',
     };
-    histHintEl.textContent = hints[mode] || '';
+    histHintEl.textContent = ({
+      law: '↑↓ 選択 ｜ Shift+Enter お気に入り ｜ Enter 開く ｜ Del 削除',
+      favorites: '↑↓ 選択 ｜ Enter 開く ｜ Del 削除',
+    })[mode] || '';
 
     // リスト描画
     histListEl.innerHTML = '';
@@ -413,7 +463,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     histPanelEl.style.display  = 'flex';
-    searchHintEl.style.display = 'none';
+    searchHintEl.style.display = '';
     resultsEl.style.display    = 'none';
     searchInput.readOnly       = true;
     searchForm.classList.add('search-form-inactive');
@@ -421,8 +471,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   function hideHistoryPanel() {
+    hideTooltip();
     historyMode    = null;
     histFocusedIdx = -1;
+    syncModeHint('search');
     document.body.style.cursor = '';
     histPanelEl.style.display  = 'none';
     searchHintEl.style.display = '';
@@ -434,6 +486,45 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('folderDelConfirm')?.remove();
     searchInput.focus();
     // 入力が空欄なら検索履歴をインライン表示
+    if (!searchInput.value.trim()) showEmptyState();
+  }
+
+  function showHistoryPanel(mode) {
+    hideTooltip();
+    historyMode = mode;
+    histFocusedIdx = -1;
+    syncModeHint(mode);
+    favFolderBtn.style.display = mode === 'favorites' ? '' : 'none';
+    histListEl.innerHTML = '';
+
+    if (mode === 'favorites') {
+      renderFavoritesPanel();
+    } else {
+      renderHistList(mode);
+    }
+
+    histPanelEl.style.display = 'flex';
+    searchHintEl.style.display = '';
+    resultsEl.style.display = 'none';
+    searchInput.readOnly = true;
+    searchForm.classList.add('search-form-inactive');
+    searchInput.focus();
+  }
+
+  function hideHistoryPanel() {
+    hideTooltip();
+    historyMode = null;
+    histFocusedIdx = -1;
+    syncModeHint('search');
+    document.body.style.cursor = '';
+    histPanelEl.style.display = 'none';
+    searchHintEl.style.display = '';
+    resultsEl.style.display = '';
+    searchInput.readOnly = false;
+    searchForm.classList.remove('search-form-inactive');
+    favFolderBtn.style.display = 'none';
+    document.getElementById('folderDelConfirm')?.remove();
+    searchInput.focus();
     if (!searchInput.value.trim()) showEmptyState();
   }
 
@@ -1040,7 +1131,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         `フォルダ「${escapeHtml(folderName)}」を削除します。<br>フォルダ内の法令をどうしますか？` +
       `</div>` +
       `<div class="folder-del-confirm-btns">` +
-        `<button class="fdc-root">ルートに戻す</button>` +
+        `<button class="fdc-root">未分類に移動</button>` +
         `<button class="fdc-del">お気に入りから削除</button>` +
         `<button class="fdc-cancel">キャンセル</button>` +
       `</div>`;
@@ -1130,6 +1221,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   function selectHistItem(arrayIdx) {
     if (arrayIdx < 0) return;
+    hideTooltip();
     if (historyMode === 'search') {
       const query = queryHistory[arrayIdx];
       if (!query) return;
@@ -1152,8 +1244,18 @@ document.addEventListener('DOMContentLoaded', async () => {
   histRightBtn.addEventListener('click', () => { if (historyMode !== null) hideHistoryPanel(); });
 
   // Mode0 の ◀ ▶ ボタンクリック（searchHint 内）
-  mode0NavLeft.addEventListener('click',  () => { if (historyMode === null) showHistoryPanel('law'); });
-  mode0NavRight.addEventListener('click', () => { if (historyMode === null) showHistoryPanel('favorites'); });
+  mode0NavLeft.addEventListener('click', () => {
+    if (historyMode === null) showHistoryPanel('law');
+    else if (historyMode === 'favorites') hideHistoryPanel();
+  });
+  mode0NavRight.addEventListener('click', () => {
+    if (historyMode === null) showHistoryPanel('favorites');
+    else if (historyMode === 'law') hideHistoryPanel();
+  });
+
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) hideTooltip();
+  });
 
   // フォーム送信
   searchForm.addEventListener('submit', (e) => {

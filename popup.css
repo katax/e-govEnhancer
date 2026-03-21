@@ -8,8 +8,16 @@ body {
   font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Sans', 'Yu Gothic UI', sans-serif;
   background: #fff;
   width: 340px;
+  min-height: 240px;
+  height: var(--popup-height, auto);
   color: #333;
   position: relative;
+}
+
+.popup-container {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
 }
 
 .popup-toast {
@@ -138,20 +146,11 @@ body {
    ================================================ */
 .history-panel {
   border-bottom: 1px solid #f0f0f0;
-  max-height: 320px;
+  flex: 1;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   overflow: hidden;
-}
-
-.history-panel-nav {
-  display: flex;
-  align-items: center;
-  padding: 5px 8px;
-  background: #fafafa;
-  border-bottom: 1px solid #f0f0f0;
-  gap: 4px;
-  flex-shrink: 0;
 }
 
 .hist-nav-btn {
@@ -181,15 +180,6 @@ body {
 .hist-nav-btn[style*="hidden"] {
   opacity: 0.3;
   cursor: default;
-}
-
-.history-panel-title {
-  flex: 1;
-  text-align: center;
-  font-size: 12px;
-  font-weight: 700;
-  color: #1565C0;
-  letter-spacing: 0.3px;
 }
 
 .history-list {
@@ -321,7 +311,8 @@ body {
 
 /* 検索結果エリア */
 .search-results {
-  max-height: 320px;
+  flex: 1;
+  min-height: 0;
   overflow-y: auto;
   border-bottom: 1px solid #f0f0f0;
 }
@@ -453,29 +444,69 @@ body {
 /* 通常モード用ガイドヒント */
 .search-hint {
   font-size: 11px;
-  color: #bbb;
+  color: #1565C0;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 2px 8px 4px;
+  padding: 5px 8px;
   gap: 4px;
+  background: #fafafa;
+  border-top: 1px solid #f0f0f0;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.mode-slot {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.mode-slot-left {
+  justify-content: flex-start;
+}
+
+.mode-slot-right {
+  justify-content: flex-end;
 }
 
 .search-hint-text {
-  flex: 1;
   text-align: center;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  flex: 0 0 auto;
+  padding: 0 6px;
+}
+
+.mode-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mode-label-current {
+  font-size: 14px;
+  color: #1565C0;
+  font-weight: 700;
+}
+
+.mode-label-target {
+  font-size: 11px;
+  color: #222;
+  font-weight: 500;
 }
 
 /* Mode0 の ◀▶ ナビゲーションボタン */
 .mode0-nav-btn {
   background: none;
-  border: 1px solid #e0e0e0;
-  border-radius: 4px;
-  width: 26px;
-  height: 20px;
-  font-size: 10px;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+  width: 28px;
+  height: 24px;
+  font-size: 11px;
   cursor: pointer;
-  color: #aaa;
+  color: #555;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -489,15 +520,12 @@ body {
   border-color: #aac4f0;
 }
 
-/* 履歴パネル内ガイドヒント */
-.hist-panel-hint {
-  font-size: 11px;
-  color: #aaa;
-  padding: 3px 12px 5px;
-  border-bottom: 1px solid #f0f0f0;
-  line-height: 1.4;
+.mode0-nav-btn[hidden],
+.mode-label[hidden] {
+  display: none !important;
 }
 
+/* 履歴パネル内ガイドヒント */
 /* 結果なし・エラー */
 .no-results {
   padding: 14px 16px;
