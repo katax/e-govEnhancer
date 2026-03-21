@@ -1855,7 +1855,6 @@
 
     if (url.origin !== location.origin) return null;
     if (!url.pathname.startsWith('/law/')) return null;
-    if (!url.hash) return null;
     return anchor;
   }
 
