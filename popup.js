@@ -40,6 +40,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   let isComposing        = false;
   let currentResults     = [];
   let focusedResultIndex = -1;
+  let mainHoverEnabled   = true;
 
   // 履歴・お気に入りデータ
   let queryHistory     = [];   // 検索クエリ履歴（文字列）
@@ -91,7 +92,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   function getModeMeta(mode) {
     const labels = {
-      search: '検索履歴',
+      search: '検索',
       law: '法令履歴',
       favorites: 'お気に入り',
     };
@@ -211,9 +212,13 @@ document.addEventListener('DOMContentLoaded', async () => {
   // カーソルを一時的に非表示（描画直後のちらつき防止）
   // ※ render系関数で重複していたコードを統一
   function hideCursorBriefly() {
-    document.body.style.cursor = 'none';
+    mainHoverEnabled = false;
+    document.documentElement.classList.add('keyboard-nav-hide-cursor');
+    document.body.classList.add('keyboard-nav-hide-cursor');
     document.addEventListener('mousemove', () => {
-      document.body.style.cursor = '';
+      mainHoverEnabled = true;
+      document.documentElement.classList.remove('keyboard-nav-hide-cursor');
+      document.body.classList.remove('keyboard-nav-hide-cursor');
     }, { once: true, passive: true });
   }
 
@@ -576,7 +581,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         searchInput.focus();
       });
       li.addEventListener('mouseenter', () => {
-        if (!isHoverReady()) return;
+        if (!isHoverReady() || !mainHoverEnabled) return;
         const items = resultsEl.querySelectorAll('.result-item');
         items.forEach((el, j) => el.classList.toggle('result-item-focused', j === i));
         focusedResultIndex = i;
@@ -655,7 +660,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       });
 
       li.addEventListener('mouseenter', () => {
-        if (isHoverReady()) {
+        if (isHoverReady() && mainHoverEnabled) {
           highlightHistItem(i);
           if (mode === 'law') showTooltip(li, li.dataset.tooltipName, li.dataset.tooltipNum);
         }
@@ -799,7 +804,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     li.addEventListener('mouseenter', () => {
-      if (isHoverReady()) {
+      if (isHoverReady() && mainHoverEnabled) {
         highlightHistItem(visualIdx);
         showTooltip(li, li.dataset.tooltipName, li.dataset.tooltipNum);
       }
@@ -1173,11 +1178,27 @@ document.addEventListener('DOMContentLoaded', async () => {
   // ================================================
   // 履歴ハイライト・フォーカス移動
   // ================================================
+  function ensureFavoriteFolderHeaderVisible(itemEl) {
+    if (historyMode !== 'favorites' || !itemEl) return;
+
+    const folderId = itemEl.dataset.folderId ?? '';
+    const header = [...histListEl.querySelectorAll('.fav-folder-header')]
+      .find((el) => (el.dataset.folderId ?? '') === folderId);
+    if (!header) return;
+
+    const listRect = histListEl.getBoundingClientRect();
+    const headerRect = header.getBoundingClientRect();
+    if (headerRect.top < listRect.top) {
+      histListEl.scrollTop -= (listRect.top - headerRect.top) + 4;
+    }
+  }
+
   function highlightHistItem(idx) {
     const items = histListEl.querySelectorAll('.history-item');
     items.forEach((el, i) => el.classList.toggle('history-item-focused', i === idx));
     if (idx >= 0 && items[idx]) {
       items[idx].scrollIntoView({ block: 'nearest' });
+      ensureFavoriteFolderHeaderVisible(items[idx]);
       // キーボードフォーカス時もツールチップ表示
       const el = items[idx];
       if (el.dataset.tooltipName || el.dataset.tooltipNum) {
@@ -1191,6 +1212,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   function moveHistFocus(dir, len) {
     if (len === 0) return;
+    hideCursorBriefly();
     const next = (histFocusedIdx + dir + len) % len;
     highlightHistItem(next);
   }
@@ -1294,6 +1316,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   function moveFocus(direction) {
     const items = resultsEl.querySelectorAll('.result-item');
     if (items.length === 0) return;
+    hideCursorBriefly();
     if (focusedResultIndex >= 0 && items[focusedResultIndex])
       items[focusedResultIndex].classList.remove('result-item-focused');
     let next = focusedResultIndex + direction;
@@ -1439,8 +1462,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     // カーソル非表示 → マウス移動で復元 + ホバー有効化
     // カーソル非表示 + マウス移動でホバー有効化（描画直後の誤検知防止）
     hideCursorBriefly();
-    let hoverEnabled = false;
-    document.addEventListener('mousemove', () => { hoverEnabled = true; }, { once: true, passive: true });
 
     sortedLaws.forEach((law, i) => {
       const { lawId, lawName, lawNum, lawType } = getLawFields(law);
@@ -1465,7 +1486,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       });
       li.addEventListener('click', () => openResult(law));
       li.addEventListener('mouseenter', () => {
-        if (!hoverEnabled) return;
+        if (!mainHoverEnabled) return;
         const items = resultsEl.querySelectorAll('.result-item');
         if (focusedResultIndex >= 0 && items[focusedResultIndex])
           items[focusedResultIndex].classList.remove('result-item-focused');
