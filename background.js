@@ -2,8 +2,11 @@ chrome.runtime.onStartup?.addListener(() => {
   chrome.storage.session.setAccessLevel({ accessLevel: 'TRUSTED_AND_UNTRUSTED_CONTEXTS' }).catch(() => {});
 });
 
-chrome.runtime.onInstalled?.addListener(() => {
+chrome.runtime.onInstalled?.addListener((details) => {
   chrome.storage.session.setAccessLevel({ accessLevel: 'TRUSTED_AND_UNTRUSTED_CONTEXTS' }).catch(() => {});
+  if (details?.reason === 'install') {
+    chrome.runtime.openOptionsPage().catch(() => {});
+  }
 });
 
 chrome.storage.session.setAccessLevel({ accessLevel: 'TRUSTED_AND_UNTRUSTED_CONTEXTS' }).catch(() => {});
