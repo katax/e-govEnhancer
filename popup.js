@@ -232,10 +232,19 @@ document.addEventListener('DOMContentLoaded', async () => {
   // 起動時：履歴を読み込んで検索履歴を表示
   // ================================================
   await loadHistories();
+  const { requestedPopupMode = '' } = await chrome.storage.session.get('requestedPopupMode').catch(() => ({ requestedPopupMode: '' }));
+  const initialMode = requestedPopupMode === 'law' || requestedPopupMode === 'favorites'
+    ? requestedPopupMode
+    : null;
+  chrome.storage.session.remove('requestedPopupMode').catch(() => {});
   syncModeHint('search');
-  searchInput.focus();
-  showEmptyState();
   setupFavoritesDnD();
+  if (initialMode) {
+    showHistoryPanel(initialMode);
+  } else {
+    searchInput.focus();
+    showEmptyState();
+  }
   document.addEventListener('keydown', (e) => {
     if (handleModeArrowNavigation(e)) e.stopPropagation();
   }, true);

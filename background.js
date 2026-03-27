@@ -21,6 +21,23 @@ function getLawIdFromUrl(url) {
   }
 }
 
+async function openActionPopup(mode = '') {
+  await chrome.storage.session.set({ requestedPopupMode: mode || '' }).catch(() => {});
+
+  if (typeof chrome.action?.openPopup !== 'function') {
+    await chrome.storage.session.remove('requestedPopupMode').catch(() => {});
+    return false;
+  }
+
+  try {
+    await chrome.action.openPopup();
+    return true;
+  } catch (_) {
+    await chrome.storage.session.remove('requestedPopupMode').catch(() => {});
+    return false;
+  }
+}
+
 function sendJumpWhenReady(tabId, pin) {
   let done = false;
 
@@ -81,4 +98,14 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   })().catch(() => sendResponse({ ok: false }));
 
   return true;
+});
+
+chrome.commands.onCommand.addListener((command) => {
+  if (command === 'open_favorites_popup') {
+    openActionPopup('favorites').catch(() => {});
+    return;
+  }
+  if (command === 'open_history_popup') {
+    openActionPopup('law').catch(() => {});
+  }
 });
