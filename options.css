@@ -119,6 +119,15 @@ body {
   line-height: 1.7;
 }
 
+.shortcut-summary-list {
+  margin: 8px 0 0 20px;
+  color: #444;
+}
+
+.shortcut-summary-list li {
+  line-height: 1.7;
+}
+
 kbd {
   display: inline-block;
   background: #f1f3f4;

@@ -371,6 +371,13 @@
     });
   }
 
+  function getMutedParenGroupAtPoint(clientX, clientY) {
+    if (lawReferenceShieldEl) lawReferenceShieldEl.style.pointerEvents = 'none';
+    const el = document.elementFromPoint(clientX, clientY);
+    if (lawReferenceShieldEl) lawReferenceShieldEl.style.pointerEvents = 'auto';
+    return el instanceof Element ? (el.closest('.egov-ext-muted-paren[data-group]')?.dataset.group || '') : '';
+  }
+
   function muteFullWidthParenthesesInBody(root = document.querySelector('#provisionview') || document.body) {
     if (!root) return;
     if (root.nodeType === Node.ELEMENT_NODE && getParenProcessingContainer(root)) {
@@ -1872,11 +1879,13 @@
     shield.id = 'egov-ext-lawref-shield';
     shield.addEventListener('mousemove', (event) => {
       lawReferenceHoverPoint = { x: event.clientX, y: event.clientY };
+      setMutedParenHoverGroup(getMutedParenGroupAtPoint(event.clientX, event.clientY));
     });
     shield.addEventListener('mouseleave', () => {
       lawReferenceShieldAnchor = null;
       shield.style.display = 'none';
       clearLawReferenceHoverTimer();
+      setMutedParenHoverGroup('');
     });
     shield.addEventListener('click', (event) => {
       event.preventDefault();
@@ -2738,9 +2747,9 @@
               <td>条文番号の漢数字/アラビア数字の切り替え<br>
                 <span class="egov-ext-guide-sub">号タイトルは丸数字（①②③）</span></td></tr>
           <tr><td><kbd>g</kbd></td>
-              <td>本文中の括弧書きをフラットに薄く表示 / 元に戻す</td></tr>
+              <td>本文中の括弧書きを薄く表示 / 元に戻す</td></tr>
           <tr><td><kbd>Shift</kbd>+<kbd>G</kbd></td>
-              <td>本文中の入れ子括弧まで含めて薄く表示 / 元に戻す</td></tr>
+              <td>本文中の括弧書きをさらに薄く表示 / 元に戻す</td></tr>
           <tr><td><kbd>Shift</kbd>+<kbd>H</kbd></td>
               <td>カタカナをひらがなに変換</td></tr>
           <tr><td><kbd>Alt</kbd>+<kbd>O</kbd></td>

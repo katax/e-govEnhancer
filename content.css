@@ -719,19 +719,19 @@ em.articleheading .egov-ext-muted-paren,
 }
 
 body[data-egov-paren-mode="flat"] .egov-ext-muted-paren {
-  color: #8f8f8f !important;
-}
-
-body[data-egov-paren-mode="flat"] .egov-ext-muted-paren.egov-ext-muted-paren-link {
-  color: #6f97d8 !important;
-}
-
-body[data-egov-paren-mode="nested"] .egov-ext-muted-paren {
   color: #d8d8d8 !important;
 }
 
-body[data-egov-paren-mode="nested"] .egov-ext-muted-paren.egov-ext-muted-paren-link {
+body[data-egov-paren-mode="flat"] .egov-ext-muted-paren.egov-ext-muted-paren-link {
   color: #c9def4 !important;
+}
+
+body[data-egov-paren-mode="nested"] .egov-ext-muted-paren {
+  color: #ececec !important;
+}
+
+body[data-egov-paren-mode="nested"] .egov-ext-muted-paren.egov-ext-muted-paren-link {
+  color: #e8f2fb !important;
 }
 
 body[data-egov-paren-mode] .egov-ext-muted-paren-hover {
