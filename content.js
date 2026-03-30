@@ -2115,7 +2115,10 @@
   // ==================
   function getAllArticles() {
     if (articleElementsCache) return articleElementsCache;
-    articleElementsCache = [...document.querySelectorAll('[id*="-At_"]')]
+    // Use element-type-qualified selectors to avoid scanning all 4000+ [id*="-At_"] elements
+    // (which includes _div_ArticleTitle etc.). section.Article = new rendering,
+    // article.article = old rendering. offsetParent filters out display:none revision history.
+    articleElementsCache = [...document.querySelectorAll('section[id*="-At_"], article[id*="-At_"]')]
       .filter(el => /\-At_[\d_]+$/.test(el.id) && el.offsetParent !== null);
     return articleElementsCache;
   }
@@ -3307,6 +3310,9 @@
     await restoreFavoriteScrollOnLoad();
     moveToFirstArticleOnLoad();
     setupFavoriteScrollPersistence();
+    // Pre-warm the article cache while the browser is idle so the first n/p keypress
+    // doesn't pay the scan cost (~9ms with optimized selector, ~275ms without).
+    (window.requestIdleCallback || setTimeout)(getAllArticles);
   }
 
   if (document.readyState === 'loading') {
