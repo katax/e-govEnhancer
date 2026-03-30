@@ -74,6 +74,10 @@
   background: linear-gradient(135deg, #24506a, #2f6a8b) !important;
 }
 
+.egov-ext-article-link-mode .egov-ext-dialog {
+  width: 504px !important;
+}
+
 /* 検索モードのフォーカスカラー */
 .egov-ext-search-mode .egov-ext-input:focus {
   border-color: #2d8c6e !important;
@@ -291,6 +295,21 @@
   word-break: break-word !important;
   max-height: 160px !important;
   overflow-y: auto !important;
+}
+
+#egov-article-link-preview-url {
+  min-height: calc(12px * 1.55 + 20px) !important;
+  max-height: calc(12px * 1.55 + 20px) !important;
+  white-space: nowrap !important;
+  text-overflow: ellipsis !important;
+  overflow-x: hidden !important;
+  overflow-y: hidden !important;
+}
+
+#egov-article-link-preview-shift {
+  min-height: calc(12px * 1.55 * 2 + 28px) !important;
+  max-height: calc(12px * 1.55 * 2 + 28px) !important;
+  overflow-y: hidden !important;
 }
 
 #egov-article-link-preview-ctrl {
