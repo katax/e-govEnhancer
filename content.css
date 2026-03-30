@@ -70,6 +70,10 @@
   background: linear-gradient(135deg, #1e4438, #2d5e4e) !important;
 }
 
+.egov-ext-article-link-mode .egov-ext-dialog-header {
+  background: linear-gradient(135deg, #24506a, #2f6a8b) !important;
+}
+
 /* 検索モードのフォーカスカラー */
 .egov-ext-search-mode .egov-ext-input:focus {
   border-color: #2d8c6e !important;
@@ -249,6 +253,92 @@
 .egov-ext-input-wrap .egov-ext-input {
   width: 100% !important;
   box-sizing: border-box !important;
+}
+
+.egov-ext-input-readonly {
+  color: #4a5560 !important;
+  background: #f4f8fb !important;
+}
+
+.egov-ext-article-link-panel {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 12px !important;
+  outline: none !important;
+}
+
+.egov-ext-article-link-section {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 6px !important;
+}
+
+.egov-ext-article-link-heading {
+  font-size: 13px !important;
+  font-weight: 700 !important;
+  color: #284657 !important;
+}
+
+.egov-ext-article-link-preview-box {
+  padding: 10px 12px !important;
+  border: 1px solid #d7e1e8 !important;
+  border-radius: 10px !important;
+  background: #f8fbfd !important;
+  color: #26343d !important;
+  font-size: 12px !important;
+  line-height: 1.55 !important;
+  white-space: pre-wrap !important;
+  word-break: break-word !important;
+  max-height: 160px !important;
+  overflow-y: auto !important;
+}
+
+.egov-ext-article-link-guide {
+  color: #4d5d67 !important;
+  font-size: 12px !important;
+  line-height: 1.55 !important;
+  white-space: pre-wrap !important;
+}
+
+.egov-ext-article-link-guide kbd {
+  display: inline-block !important;
+  background: #f1f3f4 !important;
+  border: 1px solid #dadce0 !important;
+  border-radius: 3px !important;
+  padding: 1px 5px !important;
+  font-size: 11px !important;
+  font-family: monospace !important;
+}
+
+.egov-ext-article-link-divider {
+  width: 100% !important;
+  height: 1px !important;
+  margin: 0 !important;
+  border: none !important;
+  background: linear-gradient(90deg, rgba(90, 130, 150, 0), rgba(90, 130, 150, 0.35), rgba(90, 130, 150, 0)) !important;
+}
+
+.egov-ext-provision-selected {
+  position: relative !important;
+  isolation: isolate !important;
+}
+
+.egov-ext-provision-selected > * {
+  position: relative !important;
+  z-index: 1 !important;
+}
+
+.egov-ext-provision-selected::before {
+  content: '' !important;
+  position: absolute !important;
+  left: -18px !important;
+  right: -4px !important;
+  top: -4px !important;
+  bottom: -4px !important;
+  border: 3px solid #d94141 !important;
+  border-radius: 4px !important;
+  pointer-events: none !important;
+  z-index: 0 !important;
 }
 
 /* 履歴ドロップダウン */

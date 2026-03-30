@@ -75,6 +75,8 @@
   let lawReferenceShieldAnchor = null;
   let lawReferenceOpenLockUntil = 0;
   let lawRefHoverPopupEnabled = false;
+  let articleLinkCopyLastSelection = '';
+  let activeProvisionSelectionEl = null;
   const PIN_SLOT_ORDER = ['i', 'o', 'j', 'k', 'm'];
   const PIN_SLOT_CONFIG = {
     i: { color: '#ef6b73', label: 'i' },
@@ -229,6 +231,35 @@
   function closeDialog() {
     if (activeDialog) { activeDialog.remove(); activeDialog = null; }
     clearHighlights();
+  }
+
+  async function copyTextToClipboard(text) {
+    const value = String(text || '');
+    if (!value) return false;
+
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(value);
+        return true;
+      }
+    } catch (_) {}
+
+    try {
+      const textarea = document.createElement('textarea');
+      textarea.value = value;
+      textarea.setAttribute('readonly', '');
+      textarea.style.position = 'fixed';
+      textarea.style.opacity = '0';
+      textarea.style.pointerEvents = 'none';
+      document.body.appendChild(textarea);
+      textarea.focus();
+      textarea.select();
+      const copied = document.execCommand('copy');
+      textarea.remove();
+      return copied;
+    } catch (_) {
+      return false;
+    }
   }
 
   function escapeRegex(str) { return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
@@ -1179,6 +1210,7 @@
       if (e.key === 'p') { e.preventDefault(); navigateArticle(-1); return; }
       if (e.key === 'f') { e.preventDefault(); showFavoriteDialog(); return; }
       if (e.key === 'c') { e.preventDefault(); toggleNumberMode(); return; }
+      if (e.key === 'a') { e.preventDefault(); showArticleLinkCopyDialog(); return; }
     }
 
     e.preventDefault();
@@ -1220,6 +1252,372 @@
     const nextFavorite = !isFavorite;
     await setCurrentLawFavorite(nextFavorite);
     showPinIndicator(nextFavorite ? 'お気に入りに追加しました' : 'お気に入りから外しました');
+  }
+
+  function getArticleLinkLabel(articleEl, index) {
+    const parsed = parseProvisionPath(articleEl?.id || '');
+    if (parsed) return formatProvisionNumber(parsed);
+    return `条文 ${index + 1}`;
+  }
+
+  function buildArticleLinkUrl(articleEl) {
+    const lawId = getCurrentLawIdFromUrl();
+    if (!lawId || !articleEl?.id) return '';
+    return `${buildLawUrl(lawId)}#${encodeURIComponent(articleEl.id)}`;
+  }
+
+  function parseProvisionPath(id) {
+    const rawId = String(id || '');
+    const articleMatch = rawId.match(/-At_([\d_]+)/);
+    const article = articleMatch?.[1] || '';
+    if (!article) return null;
+
+    // Only look for paragraph/item markers in the suffix after the article marker,
+    // so that structural prefixes like "-Pa_1" (Part/編) are not mistaken for paragraphs.
+    const suffix = rawId.slice((articleMatch.index ?? 0) + articleMatch[0].length);
+    const paragraph = suffix.match(/^-(?:Co|Pa|Pr)_(\d+)/)?.[1] || '';
+    const item = suffix.match(/-(?:It|Sg)_(\d+)/)?.[1] || '';
+    return { article, paragraph, item };
+  }
+
+  function isArticleLevelProvision(el, parts) {
+    if (!parts?.article) return false;
+    if (!parts.paragraph) return true;
+    if (parts.item) return false;
+    if (parts.paragraph !== '1') return false;
+    return !!el?.querySelector?.('em.articleheading, .articleheading');
+  }
+
+  function formatProvisionNumber(parts, el = null) {
+    if (!parts?.article) return '';
+    let text = `第${String(parts.article).replace(/_/g, 'の')}条`;
+    if (parts.paragraph && !isArticleLevelProvision(el, parts)) text += `第${parts.paragraph}項`;
+    if (parts.item) text += `第${parts.item}号`;
+    return text;
+  }
+
+  function normalizeProvisionText(text) {
+    return String(text || '')
+      .replace(/\s+/g, ' ')
+      .replace(/[ \u3000]+/g, ' ')
+      .trim();
+  }
+
+  function extractProvisionText(el, parts = null) {
+    if (!(el instanceof Element)) return '';
+
+    const clone = el.cloneNode(true);
+    clone.querySelectorAll('br').forEach((br) => br.replaceWith('\n'));
+
+    return String(clone.textContent || '')
+      .replace(/\r\n/g, '\n')
+      .replace(/\r/g, '\n');
+  }
+
+  function buildArticleBodyText(articleEl) {
+    if (!(articleEl instanceof Element)) return '';
+
+    const blocks = [];
+    const contentRoot = articleEl.querySelector('.articlecontent') || articleEl;
+    for (const child of Array.from(contentRoot.children)) {
+      if (!(child instanceof Element)) continue;
+
+      // Heading — old rendering: em.articleheading / new rendering: ._div_ArticleCaption
+      if (child.matches('em.articleheading, .articleheading, ._div_ArticleCaption')) {
+        const heading = normalizeProvisionText(child.textContent || '');
+        if (heading) blocks.push(heading);
+        continue;
+      }
+
+      // New rendering paragraphs: ._div_ArticleTitle = 第1項, ._div_ParagraphSentence = 第2項以降.
+      // textContent already contains 　 between number and text as a text node, so trim() suffices.
+      if (child.matches('._div_ArticleTitle, ._div_ParagraphSentence')) {
+        const line = (child.textContent || '').trim();
+        if (line) blocks.push(line);
+        continue;
+      }
+
+      // Old rendering paragraphs. [id*="-Pr_"] is intentionally omitted here to avoid
+      // false matches on new-rendering ._div_ArticleTitle whose ID also contains "-Pr_".
+      if (child.matches('.paragraph, [id*="-Pa_"], [id*="-Co_"]')) {
+        // Preserve 　 in the title: normalizeProvisionText collapses \u3000 into a regular
+        // space and trim() then removes it, losing the separator between number and text.
+        const title = (child.querySelector('.paragraphtitle, .itemtitle, .listtitle')?.textContent || '')
+          .replace(/[\r\n\t]+/g, '');
+        const sentenceParts = [...child.querySelectorAll('.sentence, .itemsentence, .listsentence')]
+          .map((node) => normalizeProvisionText(node.textContent || ''))
+          .filter(Boolean);
+        const line = [title, ...sentenceParts].join('');
+        if (line) blocks.push(line);
+      }
+    }
+
+    return blocks.join('\n').trim();
+  }
+
+  function normalizeProvisionMultilineText(text) {
+    const normalized = String(text || '')
+      .replace(/\r\n/g, '\n')
+      .replace(/\r/g, '\n')
+      .replace(/[ \t\u3000]+\n/g, '\n')
+      .replace(/\n[ \t\u3000]+/g, '\n')
+      .replace(/[ \t\u3000]+\n/g, '\n')
+      .replace(/\n{3,}/g, '\n\n')
+      .trim();
+
+    return joinProvisionLeadLine(
+      normalized.replace(/^(（[^）]+）)(第[0-9０-９一二三四五六七八九十百千〇零]+条(?:の[0-9０-９一二三四五六七八九十百千〇零]+)*)/, '$1\n$2')
+    );
+  }
+
+  function joinProvisionLeadLine(text) {
+    const normalized = String(text || '').trim();
+    const lines = normalized.split('\n');
+    if (lines.length >= 2) {
+      const first = lines[0].trim();
+      let secondIndex = 1;
+      while (secondIndex < lines.length && !lines[secondIndex].trim()) secondIndex += 1;
+      if (/^(?:第)?[0-9０-９一二三四五六七八九十百千〇零]+(?:条(?:の[0-9０-９一二三四五六七八九十百千〇零]+)*)?$/.test(first) && secondIndex < lines.length) {
+        const merged = `${first}　${lines[secondIndex].trim()}`;
+        const nextLines = [merged, ...lines.slice(secondIndex + 1)];
+        return nextLines.join('\n').trim();
+      }
+    }
+
+    return normalized;
+  }
+
+  function getProvisionPreviewText(el, numberLabel) {
+    const fullText = normalizeProvisionText(el?.textContent || '');
+    const combined = !fullText
+      ? numberLabel
+      : (fullText.startsWith(numberLabel) ? fullText : `${numberLabel} ${fullText}`);
+    return combined.length > 120 ? `${combined.slice(0, 120)}…` : combined;
+  }
+
+  function setProvisionSelectionHighlight(el) {
+    if (activeProvisionSelectionEl && activeProvisionSelectionEl !== el) {
+      activeProvisionSelectionEl.classList.remove('egov-ext-provision-selected');
+    }
+    activeProvisionSelectionEl = el instanceof Element ? el : null;
+    activeProvisionSelectionEl?.classList.add('egov-ext-provision-selected');
+  }
+
+  function collectProvisionLinkTargets() {
+    const selectors = [
+      '[id*="-At_"]',
+      '[id*="-Pr_"]',
+      '[id*="-Pa_"]',
+      '[id*="-Co_"]',
+      '[id*="-It_"]',
+      '[id*="-Sg_"]',
+    ];
+    const pattern = /-At_[\d_]+(?:-(?:Co|Pa|Pr)_\d+)?(?:-(?:It|Sg)_\d+)?$/;
+    const seen = new Set();
+    return [...document.querySelectorAll(selectors.join(','))]
+      .filter((el) => el?.id && pattern.test(el.id))
+      .filter((el) => {
+        if (seen.has(el.id)) return false;
+        seen.add(el.id);
+        return true;
+      })
+      .sort((a, b) => {
+        const pos = a.compareDocumentPosition(b);
+        if (pos & Node.DOCUMENT_POSITION_FOLLOWING) return -1;
+        if (pos & Node.DOCUMENT_POSITION_PRECEDING) return 1;
+        return 0;
+      });
+  }
+
+  function getProvisionLinkCopyItems() {
+    return collectProvisionLinkTargets()
+      .map((el, index) => {
+        const parts = parseProvisionPath(el.id);
+        if (!parts) return null;
+        const numberLabel = formatProvisionNumber(parts, el) || getArticleLinkLabel(el, index);
+        const bodyText = parts.article && !parts.paragraph && !parts.item
+          ? buildArticleBodyText(el)
+          : normalizeProvisionMultilineText(extractProvisionText(el, parts));
+        return {
+          articleEl: el,
+          id: el.id,
+          numberLabel,
+          previewText: getProvisionPreviewText(el, numberLabel),
+          bodyText,
+          url: buildArticleLinkUrl(el),
+        };
+      })
+      .filter((item) => item?.url);
+  }
+
+  function getLawNameForCopy() {
+    return getCurrentLawName()
+      .replace(/\s*（[^）]*第[^）]*号）\s*$/, '')
+      .trim();
+  }
+
+  function getProvisionAtViewport25pct(items) {
+    if (!Array.isArray(items) || items.length === 0) return null;
+    const container = getScrollContainer();
+    const containerRect = container ? container.getBoundingClientRect() : null;
+    const anchorTop = container ? container.clientHeight * 0.25 : window.innerHeight * 0.25;
+    let current = items[0];
+
+    for (const item of items) {
+      const rect = item.articleEl.getBoundingClientRect();
+      const top = containerRect ? rect.top - containerRect.top : rect.top;
+      if (top <= anchorTop + 1) current = item;
+      else break;
+    }
+    return current;
+  }
+
+  function buildProvisionCopyPayload(item, mode) {
+    if (mode === 'url') return item.url;
+    if (mode === 'text-url') return `${joinProvisionLeadLine(item.bodyText)}\n${item.url}`;
+    if (mode === 'law-number-url') return `${getLawNameForCopy()} ${item.numberLabel}\n${item.url}`;
+    return item.url;
+  }
+
+  async function showArticleLinkCopyDialog() {
+    const ready = await waitForArticles();
+    if (!ready) {
+      showPinIndicator('条文の読み込み完了後にもう一度試してください');
+      return;
+    }
+
+    const items = getProvisionLinkCopyItems();
+    if (items.length === 0) {
+      showPinIndicator('コピーできる条文リンクが見つかりません');
+      return;
+    }
+
+    const currentItem = getProvisionAtViewport25pct(items);
+    let selectedIndex = items.findIndex((item) => item === currentItem);
+    if (selectedIndex < 0 && articleLinkCopyLastSelection) {
+      selectedIndex = items.findIndex((item) => item.id === articleLinkCopyLastSelection);
+    }
+    selectedIndex = Math.max(0, selectedIndex);
+
+    const dialog = createDialog(`
+      <div class="egov-ext-dialog-header">
+        <div class="egov-ext-dialog-title">
+          <span class="egov-ext-title-icon">🔗</span> 条文リンクコピー
+        </div>
+        <button class="egov-ext-close" aria-label="閉じる">×</button>
+      </div>
+      <div class="egov-ext-dialog-body">
+        <div class="egov-ext-article-link-panel" id="egov-article-link-panel" tabindex="0">
+          <div class="egov-ext-article-link-section">
+            <div class="egov-ext-article-link-heading">Enterでコピーされる内容</div>
+            <div class="egov-ext-article-link-preview-box" id="egov-article-link-preview-url"></div>
+          </div>
+          <div class="egov-ext-article-link-section">
+            <div class="egov-ext-article-link-heading">Shift+Enterでコピーされる内容</div>
+            <div class="egov-ext-article-link-preview-box" id="egov-article-link-preview-shift"></div>
+          </div>
+          <div class="egov-ext-article-link-section">
+            <div class="egov-ext-article-link-heading">Ctrl+Enterでコピーされる内容</div>
+            <div class="egov-ext-article-link-preview-box" id="egov-article-link-preview-ctrl"></div>
+          </div>
+          <hr class="egov-ext-article-link-divider">
+          <div class="egov-ext-article-link-section">
+            <div class="egov-ext-article-link-heading">操作ガイド</div>
+            <div class="egov-ext-article-link-guide"><kbd>↑</kbd><kbd>↓</kbd> で選択｜<kbd>Esc</kbd>でキャンセル</div>
+          </div>
+        </div>
+      </div>
+    `, 'egov-ext-article-link-mode');
+
+    const panel = dialog.querySelector('#egov-article-link-panel');
+    const urlPreviewEl = dialog.querySelector('#egov-article-link-preview-url');
+    const shiftPreviewEl = dialog.querySelector('#egov-article-link-preview-shift');
+    const ctrlPreviewEl = dialog.querySelector('#egov-article-link-preview-ctrl');
+
+    function refocusPanel() {
+      try { panel.focus({ preventScroll: true }); }
+      catch (_) { panel.focus(); }
+    }
+
+    function renderPreviews(item) {
+      urlPreviewEl.textContent = buildProvisionCopyPayload(item, 'url');
+      shiftPreviewEl.textContent = buildProvisionCopyPayload(item, 'law-number-url');
+      ctrlPreviewEl.textContent = buildProvisionCopyPayload(item, 'text-url');
+    }
+
+    function updateSelection(nextIndex, scrollArticle = false) {
+      selectedIndex = Math.max(0, Math.min(items.length - 1, nextIndex));
+      const selected = items[selectedIndex];
+      articleLinkCopyLastSelection = selected.id;
+      renderPreviews(selected);
+
+      if (scrollArticle) {
+        clearHighlights();
+        setProvisionSelectionHighlight(selected.articleEl);
+        scrollToElement25pct(selected.articleEl);
+      } else {
+        setProvisionSelectionHighlight(selected.articleEl);
+      }
+    }
+
+    async function copySelection(mode) {
+      const selected = items[selectedIndex];
+      const copied = await copyTextToClipboard(buildProvisionCopyPayload(selected, mode));
+      if (copied) {
+        showPinIndicator('条文リンクをコピーしました', selected.articleEl);
+        closeDialog();
+      } else {
+        showPinIndicator('クリップボードへのコピーに失敗しました', selected.articleEl);
+      }
+    }
+
+    function moveSelection(delta) {
+      const nextIndex = (selectedIndex + delta + items.length) % items.length;
+      updateSelection(nextIndex, true);
+    }
+
+    panel.addEventListener('keydown', async (e) => {
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        moveSelection(+1);
+        return;
+      }
+      if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        moveSelection(-1);
+        return;
+      }
+      if (e.key === 'Home') {
+        e.preventDefault();
+        updateSelection(0, true);
+        return;
+      }
+      if (e.key === 'End') {
+        e.preventDefault();
+        updateSelection(items.length - 1, true);
+        return;
+      }
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        if (e.ctrlKey) {
+          await copySelection('text-url');
+          return;
+        }
+        if (e.shiftKey) {
+          await copySelection('law-number-url');
+          return;
+        }
+        await copySelection('url');
+        return;
+      }
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        closeDialog();
+      }
+    });
+
+    updateSelection(selectedIndex, true);
+    refocusPanel();
   }
 
   // ==================
@@ -2323,6 +2721,10 @@
 
   function clearHighlights() {
     clearFlashElementHighlight();
+    if (activeProvisionSelectionEl) {
+      activeProvisionSelectionEl.classList.remove('egov-ext-provision-selected');
+      activeProvisionSelectionEl = null;
+    }
     if (CSS.highlights) {
       CSS.highlights.delete('egov-search');
       CSS.highlights.delete('egov-search-current');
@@ -2778,6 +3180,7 @@
     if (sRow) {
       sRow.insertAdjacentHTML('beforebegin', `
         <tr><td><kbd>f</kbd></td><td>お気に入りに追加 / 解除</td></tr>
+        <tr><td><kbd>a</kbd></td><td>条文リンクコピー<br><span class="egov-ext-guide-sub">Enter=URL / Ctrl+Enter=条項+URL / Shift+Enter=法令名+条文番号+URL</span></td></tr>
       `);
     }
 
