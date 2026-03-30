@@ -1474,7 +1474,7 @@
 
   function buildProvisionCopyPayload(item, mode) {
     if (mode === 'url') return item.url;
-    if (mode === 'text-url') return `${joinProvisionLeadLine(item.bodyText)}\n${item.url}`;
+    if (mode === 'text-url') return `${getLawNameForCopy()} ${item.numberLabel}\n${joinProvisionLeadLine(item.bodyText)}\n${item.url}`;
     if (mode === 'law-number-url') return `${getLawNameForCopy()} ${item.numberLabel}\n${item.url}`;
     return item.url;
   }
