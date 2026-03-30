@@ -1322,16 +1322,26 @@
     for (const child of Array.from(contentRoot.children)) {
       if (!(child instanceof Element)) continue;
 
-      if (child.matches('em.articleheading, .articleheading')) {
+      // Heading — old rendering: em.articleheading / new rendering: ._div_ArticleCaption
+      if (child.matches('em.articleheading, .articleheading, ._div_ArticleCaption')) {
         const heading = normalizeProvisionText(child.textContent || '');
         if (heading) blocks.push(heading);
         continue;
       }
 
-      if (child.matches('.paragraph, [id*="-Pr_"], [id*="-Pa_"], [id*="-Co_"]')) {
-        // Use raw textContent for the title to preserve the 　 separator (e.g. "第三条の二　").
-        // normalizeProvisionText would collapse \u3000 (full-width space) into a regular space
-        // and then trim() would remove it, losing the separator between number and text.
+      // New rendering paragraphs: ._div_ArticleTitle = 第1項, ._div_ParagraphSentence = 第2項以降.
+      // textContent already contains 　 between number and text as a text node, so trim() suffices.
+      if (child.matches('._div_ArticleTitle, ._div_ParagraphSentence')) {
+        const line = (child.textContent || '').trim();
+        if (line) blocks.push(line);
+        continue;
+      }
+
+      // Old rendering paragraphs. [id*="-Pr_"] is intentionally omitted here to avoid
+      // false matches on new-rendering ._div_ArticleTitle whose ID also contains "-Pr_".
+      if (child.matches('.paragraph, [id*="-Pa_"], [id*="-Co_"]')) {
+        // Preserve 　 in the title: normalizeProvisionText collapses \u3000 into a regular
+        // space and trim() then removes it, losing the separator between number and text.
         const title = (child.querySelector('.paragraphtitle, .itemtitle, .listtitle')?.textContent || '')
           .replace(/[\r\n\t]+/g, '');
         const sentenceParts = [...child.querySelectorAll('.sentence, .itemsentence, .listsentence')]
