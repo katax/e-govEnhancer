@@ -67,6 +67,7 @@
   let parenthesesMutingInitialized = false;
   let mutedParenGroupSeq = 0;
   let activeMutedParenGroup = '';
+  const mutedParenGroupElements = new Map();
   let articleElementsCache = null;
   let lawReferenceHoverTimer = null;
   let lawReferenceHoverAnchor = null;
@@ -309,6 +310,11 @@
     span.dataset.depth = getMutedParenDepthClass(depth);
     if (groupId) span.dataset.group = groupId;
     span.textContent = text;
+    if (groupId) {
+      const elements = mutedParenGroupElements.get(groupId);
+      if (elements) elements.push(span);
+      else mutedParenGroupElements.set(groupId, [span]);
+    }
     parent.appendChild(span);
   }
 
@@ -388,16 +394,28 @@
     });
   }
 
+  function getMutedParenGroupElements(groupId) {
+    if (!groupId) return [];
+    const elements = mutedParenGroupElements.get(groupId);
+    if (!elements?.length) return [];
+    const connected = elements.filter((el) => el?.isConnected);
+    if (connected.length !== elements.length) {
+      if (connected.length > 0) mutedParenGroupElements.set(groupId, connected);
+      else mutedParenGroupElements.delete(groupId);
+    }
+    return connected;
+  }
+
   function setMutedParenHoverGroup(groupId) {
     if (activeMutedParenGroup === groupId) return;
     if (activeMutedParenGroup) {
-      document.querySelectorAll(`.egov-ext-muted-paren-hover[data-group="${activeMutedParenGroup}"]`).forEach((el) => {
+      getMutedParenGroupElements(activeMutedParenGroup).forEach((el) => {
         el.classList.remove('egov-ext-muted-paren-hover');
       });
     }
     activeMutedParenGroup = groupId || '';
     if (!activeMutedParenGroup) return;
-    document.querySelectorAll(`.egov-ext-muted-paren[data-group="${activeMutedParenGroup}"]`).forEach((el) => {
+    getMutedParenGroupElements(activeMutedParenGroup).forEach((el) => {
       el.classList.add('egov-ext-muted-paren-hover');
     });
   }
@@ -719,12 +737,13 @@
     if (getAllArticles().length > 0) return true;
 
     return new Promise((resolve) => {
+      const root = document.querySelector('#provisionview') || document.documentElement;
       const observer = new MutationObserver(() => {
         if (getAllArticles().length === 0) return;
         observer.disconnect();
         resolve(true);
       });
-      observer.observe(document.documentElement, { childList: true, subtree: true });
+      observer.observe(root, { childList: true, subtree: true });
       setTimeout(() => {
         observer.disconnect();
         resolve(getAllArticles().length > 0);
@@ -1127,17 +1146,22 @@
 
   // APIレスポンスから法令フィールドを取り出す
   // ページ上部25%の位置に要素をスクロール表示する
-  function scrollToElement25pct(el) {
+  function scrollToElementAtRatio(el, ratio = 0.25) {
     const container = getScrollContainer();
     const rect = el.getBoundingClientRect();
+    const targetRatio = Math.max(0, Math.min(1, ratio));
     if (container) {
       const cRect  = container.getBoundingClientRect();
       const absTop = rect.top - cRect.top + container.scrollTop;
-      container.scrollTo({ top: Math.max(0, absTop - container.clientHeight * 0.25), behavior: scrollBehavior });
+      container.scrollTo({ top: Math.max(0, absTop - container.clientHeight * targetRatio), behavior: scrollBehavior });
     } else {
       const absTop = rect.top + window.scrollY;
-      window.scrollTo({ top: Math.max(0, absTop - window.innerHeight * 0.25), behavior: scrollBehavior });
+      window.scrollTo({ top: Math.max(0, absTop - window.innerHeight * targetRatio), behavior: scrollBehavior });
     }
+  }
+
+  function scrollToElement25pct(el) {
+    scrollToElementAtRatio(el, 0.25);
   }
 
   // ==================
@@ -1192,6 +1216,7 @@
 
     if (e.ctrlKey || e.altKey || e.metaKey) return;
     if (e.key.length > 1) return;
+    if (activeDialog && e.target instanceof Element && e.target.closest('#egov-article-link-panel') && (e.key === 'n' || e.key === 'p')) return;
 
     // ダイアログ非表示時のみ有効なキー
     if (!activeDialog) {
@@ -1403,6 +1428,16 @@
     activeProvisionSelectionEl?.classList.add('egov-ext-provision-selected');
   }
 
+  function getProvisionBodyText(item) {
+    if (!item) return '';
+    if (typeof item.bodyText === 'string') return item.bodyText;
+    const bodyText = item.parts?.article && !item.parts.paragraph && !item.parts.item
+      ? buildArticleBodyText(item.articleEl)
+      : normalizeProvisionMultilineText(extractProvisionText(item.articleEl, item.parts));
+    item.bodyText = bodyText;
+    return bodyText;
+  }
+
   function collectProvisionLinkTargets() {
     const selectors = [
       '[id*="-At_"]',
@@ -1420,12 +1455,6 @@
         if (seen.has(el.id)) return false;
         seen.add(el.id);
         return true;
-      })
-      .sort((a, b) => {
-        const pos = a.compareDocumentPosition(b);
-        if (pos & Node.DOCUMENT_POSITION_FOLLOWING) return -1;
-        if (pos & Node.DOCUMENT_POSITION_PRECEDING) return 1;
-        return 0;
       });
   }
 
@@ -1435,15 +1464,11 @@
         const parts = parseProvisionPath(el.id);
         if (!parts) return null;
         const numberLabel = formatProvisionNumber(parts, el) || getArticleLinkLabel(el, index);
-        const bodyText = parts.article && !parts.paragraph && !parts.item
-          ? buildArticleBodyText(el)
-          : normalizeProvisionMultilineText(extractProvisionText(el, parts));
         return {
           articleEl: el,
           id: el.id,
+          parts,
           numberLabel,
-          previewText: getProvisionPreviewText(el, numberLabel),
-          bodyText,
           url: buildArticleLinkUrl(el),
         };
       })
@@ -1474,7 +1499,7 @@
 
   function buildProvisionCopyPayload(item, mode) {
     if (mode === 'url') return item.url;
-    if (mode === 'text-url') return `${joinProvisionLeadLine(item.bodyText)}\n${item.url}`;
+    if (mode === 'text-url') return `${getLawNameForCopy()} ${item.numberLabel}\n${joinProvisionLeadLine(getProvisionBodyText(item))}\n${item.url}`;
     if (mode === 'law-number-url') return `${getLawNameForCopy()} ${item.numberLabel}\n${item.url}`;
     return item.url;
   }
@@ -1523,7 +1548,7 @@
           <hr class="egov-ext-article-link-divider">
           <div class="egov-ext-article-link-section">
             <div class="egov-ext-article-link-heading">操作ガイド</div>
-            <div class="egov-ext-article-link-guide"><kbd>↑</kbd><kbd>↓</kbd> で選択｜<kbd>Esc</kbd>でキャンセル</div>
+            <div class="egov-ext-article-link-guide"><kbd>↑</kbd><kbd>↓</kbd> / <kbd>p</kbd><kbd>n</kbd> で選択｜<kbd>Esc</kbd>でキャンセル</div>
           </div>
         </div>
       </div>
@@ -1554,7 +1579,7 @@
       if (scrollArticle) {
         clearHighlights();
         setProvisionSelectionHighlight(selected.articleEl);
-        scrollToElement25pct(selected.articleEl);
+        scrollToElementAtRatio(selected.articleEl, 0.6);
       } else {
         setProvisionSelectionHighlight(selected.articleEl);
       }
@@ -1577,12 +1602,12 @@
     }
 
     panel.addEventListener('keydown', async (e) => {
-      if (e.key === 'ArrowDown') {
+      if (e.key === 'ArrowDown' || e.key === 'n') {
         e.preventDefault();
         moveSelection(+1);
         return;
       }
-      if (e.key === 'ArrowUp') {
+      if (e.key === 'ArrowUp' || e.key === 'p') {
         e.preventDefault();
         moveSelection(-1);
         return;
@@ -1909,6 +1934,7 @@
   }
 
   function highlightAndScroll(el, viewportRatio = 0.5) {
+    clearHighlights();
     const container = getScrollContainer();
     const targetRatio = Math.max(0, Math.min(1, viewportRatio));
 
@@ -1922,7 +1948,9 @@
       window.scrollTo({ top: Math.max(0, top), behavior: scrollBehavior });
     }
 
-    flashElementHighlight(el);
+    requestAnimationFrame(() => {
+      flashElementHighlight(el);
+    });
   }
 
   function flashElementHighlight(el) {
@@ -2030,6 +2058,24 @@
     articleElementsCache = null;
   }
 
+  function hasArticleElementInSubtree(node) {
+    if (!(node instanceof Element)) return false;
+    if (node.id && /\-At_[\d_]+$/.test(node.id)) return true;
+    return !!node.querySelector?.('[id*="-At_"]');
+  }
+
+  function shouldInvalidateArticleCache(mutations) {
+    for (const mutation of mutations) {
+      for (const node of mutation.addedNodes) {
+        if (hasArticleElementInSubtree(node)) return true;
+      }
+      for (const node of mutation.removedNodes) {
+        if (hasArticleElementInSubtree(node)) return true;
+      }
+    }
+    return false;
+  }
+
   async function getFavoritesCache() {
     if (Array.isArray(favoritesCache)) return favoritesCache;
     if (!favoritesCachePromise) {
@@ -2070,13 +2116,7 @@
   function getAllArticles() {
     if (articleElementsCache) return articleElementsCache;
     articleElementsCache = [...document.querySelectorAll('[id*="-At_"]')]
-      .filter(el => /\-At_[\d_]+$/.test(el.id))
-      .sort((a, b) => {
-        const pos = a.compareDocumentPosition(b);
-        if (pos & Node.DOCUMENT_POSITION_FOLLOWING) return -1;
-        if (pos & Node.DOCUMENT_POSITION_PRECEDING) return  1;
-        return 0;
-      });
+      .filter(el => /\-At_[\d_]+$/.test(el.id) && el.offsetParent !== null);
     return articleElementsCache;
   }
 
@@ -2093,10 +2133,17 @@
       return containerRect ? rect.top - containerRect.top : rect.top;
     }
 
+    let low = 0;
+    let high = articles.length - 1;
     let currentIdx = -1;
-    for (let i = 0; i < articles.length; i++) {
-      if (getViewportTop(articles[i]) <= anchorTop + 1) currentIdx = i;
-      else break;
+    while (low <= high) {
+      const mid = Math.floor((low + high) / 2);
+      if (getViewportTop(articles[mid]) <= anchorTop + 1) {
+        currentIdx = mid;
+        low = mid + 1;
+      } else {
+        high = mid - 1;
+      }
     }
 
     const targetIdx = direction > 0 ? currentIdx + 1 : currentIdx - 1;
@@ -3243,10 +3290,12 @@
 
   async function initializeLawPageFeatures() {
     invalidateArticleCache();
-    const articleCacheObserver = new MutationObserver(() => {
+    const articleRoot = document.querySelector('#provisionview') || document.documentElement;
+    const articleCacheObserver = new MutationObserver((mutations) => {
+      if (!shouldInvalidateArticleCache(mutations)) return;
       invalidateArticleCache();
     });
-    articleCacheObserver.observe(document.documentElement, { childList: true, subtree: true });
+    articleCacheObserver.observe(articleRoot, { childList: true, subtree: true });
     const { lawRefClickEnabled, lawRefHoverPopup } = await chrome.storage.local.get(['lawRefClickEnabled', 'lawRefHoverPopup']);
     if (lawRefClickEnabled !== false) {
       lawRefHoverPopupEnabled = lawRefHoverPopup !== false;
