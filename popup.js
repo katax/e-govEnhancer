@@ -57,6 +57,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // ツールチップ
   let tooltipTimer = null;
+  const TOOLTIP_DELAY_MS = 2000;
   const tooltipEl = document.createElement('div');
   tooltipEl.className = 'hist-item-tooltip';
   tooltipEl.style.display = 'none';
@@ -82,7 +83,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (top + th > window.innerHeight - 4) top = rect.top - th - 4;
       tooltipEl.style.top  = Math.max(2, top) + 'px';
       tooltipEl.style.left = Math.max(2, Math.min(rect.left, window.innerWidth - 260)) + 'px';
-    }, 500);
+    }, TOOLTIP_DELAY_MS);
   }
 
   function hideTooltip() {

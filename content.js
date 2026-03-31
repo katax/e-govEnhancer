@@ -2449,6 +2449,23 @@
       activateLawReferenceAnchor(anchor, { x: event.clientX, y: event.clientY });
     }, true);
 
+    document.addEventListener('mouseout', (event) => {
+      if (!event.isTrusted) return;
+      if (!lawReferenceHoverAnchor) return;
+
+      const fromAnchor = getLawReferenceAnchor(event.target);
+      if (!fromAnchor || fromAnchor !== lawReferenceHoverAnchor) return;
+
+      const nextTarget = event.relatedTarget;
+      if (nextTarget instanceof Node) {
+        const nextAnchor = getLawReferenceAnchor(nextTarget);
+        if (nextAnchor && nextAnchor === lawReferenceHoverAnchor) return;
+        if (lawReferenceShieldEl?.contains(nextTarget)) return;
+      }
+
+      hideLawReferencePreview();
+    }, true);
+
     document.addEventListener('mousemove', (event) => {
       if (!event.isTrusted) return;
       if (!lawReferenceShieldAnchor) return;
@@ -3301,7 +3318,7 @@
     articleCacheObserver.observe(articleRoot, { childList: true, subtree: true });
     const { lawRefClickEnabled, lawRefHoverPopup } = await chrome.storage.local.get(['lawRefClickEnabled', 'lawRefHoverPopup']);
     if (lawRefClickEnabled !== false) {
-      lawRefHoverPopupEnabled = lawRefHoverPopup !== false;
+      lawRefHoverPopupEnabled = lawRefHoverPopup === true;
       setupLawReferenceInteractions();
     }
     ensureShortcutGuide();
