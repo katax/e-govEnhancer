@@ -143,6 +143,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     return tag === 'input' || tag === 'textarea' || tag === 'select' || el.isContentEditable;
   }
 
+  function canSwitchModeFromSearch() {
+    if (historyMode !== null) return true;
+
+    const query = searchInput.value.trim();
+    if (query.length === 0) return true;
+
+    return focusedResultIndex >= 0;
+  }
+
   function handleModeArrowNavigation(e) {
     if (!isMainModeArrowKey(e)) return false;
 
@@ -150,6 +159,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (isEditableForModeSwitch(activeEl) && activeEl !== searchInput) return false;
 
     if (historyMode === null) {
+      if (!canSwitchModeFromSearch()) return false;
+
       if (e.key === 'ArrowLeft') {
         e.preventDefault();
         showHistoryPanel('law');
@@ -315,24 +326,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         const items = resultsEl.querySelectorAll('.result-item');
         items.forEach((el, i) => el.classList.toggle('result-item-focused', i === nextIdx));
         focusedResultIndex = nextIdx;
-      }
-      return;
-    }
-
-    if (e.key === 'ArrowLeft' && !e.shiftKey && !e.ctrlKey && !e.altKey && !e.metaKey) {
-      // カーソルが先頭 → Mode2（開いた法令）
-      if (searchInput.selectionStart === 0 && searchInput.selectionEnd === 0) {
-        e.preventDefault();
-        showHistoryPanel('law');
-      }
-      return;
-    }
-    if (e.key === 'ArrowRight' && !e.shiftKey && !e.ctrlKey && !e.altKey && !e.metaKey) {
-      // カーソルが末尾 → Mode3（お気に入り）
-      const len = searchInput.value.length;
-      if (searchInput.selectionStart === len && searchInput.selectionEnd === len) {
-        e.preventDefault();
-        showHistoryPanel('favorites');
       }
       return;
     }
