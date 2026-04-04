@@ -4,6 +4,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   const lawRefClickToggle = document.getElementById('lawRefClickToggle');
   const lawRefHoverPopupToggle = document.getElementById('lawRefHoverPopupToggle');
   const lawRefHoverPopupRow = document.getElementById('lawRefHoverPopupRow');
+  const lawRefOtherLawPopupToggle = document.getElementById('lawRefOtherLawPopupToggle');
+  const lawRefOtherLawPopupRow = document.getElementById('lawRefOtherLawPopupRow');
   const exportFavoritesBtn = document.getElementById('exportFavoritesBtn');
   const importFavoritesBtn = document.getElementById('importFavoritesBtn');
   const importFavoritesInput = document.getElementById('importFavoritesInput');
@@ -19,20 +21,24 @@ document.addEventListener('DOMContentLoaded', async () => {
     pinToastDefaultVisible,
     lawRefClickEnabled,
     lawRefHoverPopup,
+    lawRefOtherLawPopup,
   } = await chrome.storage.local.get([
     'scrollBehavior',
     'pinToastDefaultVisible',
     'lawRefClickEnabled',
     'lawRefHoverPopup',
+    'lawRefOtherLawPopup',
   ]);
 
   smoothToggle.checked = (scrollBehavior === 'smooth');
   pinToastToggle.checked = (typeof pinToastDefaultVisible === 'boolean') ? pinToastDefaultVisible : true;
   lawRefClickToggle.checked = (typeof lawRefClickEnabled === 'boolean') ? lawRefClickEnabled : true;
   lawRefHoverPopupToggle.checked = (typeof lawRefHoverPopup === 'boolean') ? lawRefHoverPopup : false;
+  lawRefOtherLawPopupToggle.checked = (typeof lawRefOtherLawPopup === 'boolean') ? lawRefOtherLawPopup : true;
 
   function updateLawRefHoverPopupRow() {
     lawRefHoverPopupRow.classList.toggle('is-disabled', !lawRefClickToggle.checked);
+    lawRefOtherLawPopupRow.classList.toggle('is-disabled', !lawRefClickToggle.checked);
   }
 
   function setTransferStatus(message, tone = 'info') {
@@ -297,6 +303,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   lawRefHoverPopupToggle.addEventListener('change', () => {
     chrome.storage.local.set({ lawRefHoverPopup: lawRefHoverPopupToggle.checked });
+    reloadLawTabsIfConfirmed();
+  });
+
+  lawRefOtherLawPopupToggle.addEventListener('change', () => {
+    chrome.storage.local.set({ lawRefOtherLawPopup: lawRefOtherLawPopupToggle.checked });
     reloadLawTabsIfConfirmed();
   });
 

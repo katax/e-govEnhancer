@@ -1,7 +1,7 @@
 ﻿{
   "manifest_version": 3,
   "name": "e-Gov法令検索 Enhancer",
-  "version": "1.3.4",
+  "version": "1.3.5",
   "description": "e-Gov法令検索をもっと便利にします。",
   "permissions": ["storage", "tabs"],
   "host_permissions": ["https://laws.e-gov.go.jp/*"],

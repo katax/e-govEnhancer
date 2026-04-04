@@ -76,6 +76,7 @@
   let lawReferenceShieldAnchor = null;
   let lawReferenceOpenLockUntil = 0;
   let lawRefHoverPopupEnabled = false;
+  let lawRefOtherLawPopupEnabled = true;
   let articleLinkCopyLastSelection = '';
   let activeProvisionSelectionEl = null;
   const PIN_SLOT_ORDER = ['i', 'o', 'j', 'k', 'm'];
@@ -110,6 +111,9 @@
         pinToastPinned = false;
         hidePinToast(true);
       }
+    }
+    if (area === 'local' && changes.lawRefOtherLawPopup) {
+      lawRefOtherLawPopupEnabled = changes.lawRefOtherLawPopup.newValue !== false;
     }
     if (area === 'session' && changes.colorPins) {
       refreshColorPinHighlights();
@@ -2441,11 +2445,20 @@
     }, 1000);
   }
 
+  function isAnchorDifferentLaw(anchor) {
+    const targetLawId = getLawIdFromLawUrl(anchor.href);
+    return !!(targetLawId && targetLawId !== getCurrentLawIdFromUrl());
+  }
+
   function setupLawReferenceInteractions() {
     document.addEventListener('mouseover', (event) => {
       if (!event.isTrusted) return;
       const anchor = getLawReferenceAnchor(event.target);
       if (!anchor) return;
+      if (lawRefOtherLawPopupEnabled && isAnchorDifferentLaw(anchor)) {
+        hideLawReferencePreview();
+        return;
+      }
       activateLawReferenceAnchor(anchor, { x: event.clientX, y: event.clientY });
     }, true);
 
@@ -3316,9 +3329,10 @@
       invalidateArticleCache();
     });
     articleCacheObserver.observe(articleRoot, { childList: true, subtree: true });
-    const { lawRefClickEnabled, lawRefHoverPopup } = await chrome.storage.local.get(['lawRefClickEnabled', 'lawRefHoverPopup']);
+    const { lawRefClickEnabled, lawRefHoverPopup, lawRefOtherLawPopup } = await chrome.storage.local.get(['lawRefClickEnabled', 'lawRefHoverPopup', 'lawRefOtherLawPopup']);
     if (lawRefClickEnabled !== false) {
       lawRefHoverPopupEnabled = lawRefHoverPopup === true;
+      lawRefOtherLawPopupEnabled = lawRefOtherLawPopup !== false;
       setupLawReferenceInteractions();
     }
     ensureShortcutGuide();
