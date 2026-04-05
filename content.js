@@ -136,16 +136,19 @@
 
   function pushJumpHistory(num) {
     if (!num) return;
-    if (articleJumpCursor >= 0 && articleJumpCursor < articleJumpHistory.length - 1) {
-      articleJumpHistory.splice(articleJumpCursor + 1);
+    // カーソル位置の条文と同じなら何もしない
+    if (articleJumpCursor >= 0 && articleJumpHistory[articleJumpCursor] === num) return;
+
+    // カーソルの直後に挿入（先の履歴は維持）
+    const insertAt = articleJumpCursor + 1;
+    articleJumpHistory.splice(insertAt, 0, num);
+    articleJumpCursor = insertAt;
+
+    // 上限200件（先頭から削除してカーソルを補正）
+    if (articleJumpHistory.length > 200) {
+      articleJumpHistory.shift();
+      articleJumpCursor = Math.max(0, articleJumpCursor - 1);
     }
-    if (articleJumpHistory[articleJumpHistory.length - 1] === num) {
-      articleJumpCursor = articleJumpHistory.length - 1;
-      return;
-    }
-    articleJumpHistory.push(num);
-    if (articleJumpHistory.length > 50) articleJumpHistory.shift();
-    articleJumpCursor = articleJumpHistory.length - 1;
   }
 
   function navigateJumpHistory(dir) {
@@ -2024,6 +2027,16 @@
     if (!(target instanceof Element)) return false;
     highlightAndScroll(target, 0.25);
     history.replaceState(null, '', rawHash);
+
+    // 条文ジャンプ履歴に追加（ポップアップ経由でないスクロール移動のみ）
+    const jumpParts = parseProvisionPath(target.id);
+    if (jumpParts?.article) {
+      let jumpKey = jumpParts.article;
+      if (jumpParts.paragraph) jumpKey += '.' + jumpParts.paragraph;
+      if (jumpParts.item) jumpKey += '.' + jumpParts.item;
+      pushJumpHistory(jumpKey);
+    }
+
     return true;
   }
 
