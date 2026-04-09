@@ -157,6 +157,13 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const activeEl = document.activeElement;
     if (isEditableForModeSwitch(activeEl) && activeEl !== searchInput) return false;
+    if (activeEl === searchInput) {
+      const start = searchInput.selectionStart ?? 0;
+      const end = searchInput.selectionEnd ?? start;
+      if (start !== end) return false;
+      if (e.key === 'ArrowLeft' && start !== 0) return false;
+      if (e.key === 'ArrowRight' && end !== searchInput.value.length) return false;
+    }
 
     if (historyMode === null) {
       if (!canSwitchModeFromSearch()) return false;
@@ -305,7 +312,24 @@ document.addEventListener('DOMContentLoaded', async () => {
   // ================================================
   searchInput.addEventListener('keydown', (e) => {
     // 履歴パネル表示中はパネル内操作に委譲
-    if (historyMode !== null) { handleHistoryKeydown(e); return; }
+    if (historyMode !== null) {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        hideHistoryPanel();
+        return;
+      }
+      if (e.key === 'Enter' && !isComposing) {
+        e.preventDefault();
+        const query = searchInput.value.trim();
+        if (query) doSearch(query);
+        return;
+      }
+      if (!searchInput.value.trim() && ['ArrowUp', 'ArrowDown', 'Delete', 'Backspace'].includes(e.key)) {
+        handleHistoryKeydown(e);
+        return;
+      }
+      return;
+    }
     if (handleModeArrowNavigation(e)) return;
 
     if (e.key === 'ArrowDown') {
@@ -473,8 +497,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     histPanelEl.style.display  = 'flex';
     searchHintEl.style.display = '';
     resultsEl.style.display    = 'none';
-    searchInput.readOnly       = true;
-    searchForm.classList.add('search-form-inactive');
     searchInput.focus();
   }
 
@@ -487,8 +509,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     histPanelEl.style.display  = 'none';
     searchHintEl.style.display = '';
     resultsEl.style.display    = '';
-    searchInput.readOnly       = false;
-    searchForm.classList.remove('search-form-inactive');
     favFolderBtn.style.display = 'none';
     // 確認ダイアログが残っていたら除去
     document.getElementById('folderDelConfirm')?.remove();
@@ -514,8 +534,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     histPanelEl.style.display = 'flex';
     searchHintEl.style.display = '';
     resultsEl.style.display = 'none';
-    searchInput.readOnly = true;
-    searchForm.classList.add('search-form-inactive');
     searchInput.focus();
   }
 
@@ -528,8 +546,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     histPanelEl.style.display = 'none';
     searchHintEl.style.display = '';
     resultsEl.style.display = '';
-    searchInput.readOnly = false;
-    searchForm.classList.remove('search-form-inactive');
     favFolderBtn.style.display = 'none';
     document.getElementById('folderDelConfirm')?.remove();
     searchInput.focus();
@@ -1285,6 +1301,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   // フォーム送信
   searchForm.addEventListener('submit', (e) => {
     e.preventDefault();
+    const query = searchInput.value.trim();
+    if (query) {
+      doSearch(query);
+      return;
+    }
     if (focusedResultIndex >= 0 && currentResults[focusedResultIndex])
       openResult(currentResults[focusedResultIndex]);
   });
@@ -1346,6 +1367,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   // API検索
   // ================================================
   async function doSearch(query) {
+    if (historyMode !== null) hideHistoryPanel();
     isEmptyState       = false;
     focusedResultIndex = -1;
     showLoading(true);
