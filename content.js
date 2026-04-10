@@ -90,10 +90,8 @@
 
   // スクロール速度（'instant' | 'smooth'、デフォ: instant）
   let scrollBehavior = 'instant';
-  chrome.storage.local.get(['scrollBehavior'], (data) => {
+  chrome.storage.local.get(['scrollBehavior', 'pinToastDefaultVisible'], (data) => {
     if (data.scrollBehavior === 'smooth') scrollBehavior = 'smooth';
-  });
-  chrome.storage.local.get(['pinToastDefaultVisible'], (data) => {
     if (typeof data.pinToastDefaultVisible === 'boolean') pinToastDefaultVisible = data.pinToastDefaultVisible;
   });
   chrome.storage.onChanged.addListener((changes, area) => {
@@ -149,6 +147,14 @@
       articleJumpHistory.shift();
       articleJumpCursor = Math.max(0, articleJumpCursor - 1);
     }
+  }
+
+  function buildJumpHistoryKey(parts) {
+    if (!parts?.article) return '';
+    let jumpKey = parts.article;
+    if (parts.paragraph) jumpKey += '.' + parts.paragraph;
+    if (parts.item) jumpKey += '.' + parts.item;
+    return jumpKey;
   }
 
   function navigateJumpHistory(dir) {
@@ -622,7 +628,7 @@
     const badge = ensureFavoriteHeaderBadge();
     if (!badge) return;
 
-    const favorites = await getFavoritesList();
+    const favorites = await getFavoritesCache();
     updateFavoriteHeaderBadgeState(badge, favorites.some((f) => f.lawId === lawId));
   }
 
@@ -1223,7 +1229,10 @@
 
     if (e.ctrlKey || e.altKey || e.metaKey) return;
     if (e.key.length > 1) return;
-    if (activeDialog && e.target instanceof Element && e.target.closest('#egov-article-link-panel') && (e.key === 'n' || e.key === 'p')) return;
+    if (activeDialog && e.target instanceof Element && (
+      (e.target.closest('#egov-article-link-panel') && (e.key === 'n' || e.key === 'p')) ||
+      (e.target.closest('#egov-law-toc-panel') && ['n', 'p', 'd', 'u'].includes(e.key))
+    )) return;
 
     // ダイアログ非表示時のみ有効なキー
     if (!activeDialog) {
@@ -1231,6 +1240,7 @@
       if (e.shiftKey && lowerKey === 'g') { e.preventDefault(); toggleParenthesesMute('nested'); return; }
       if (e.shiftKey && PIN_SLOT_ORDER.includes(lowerKey)) { e.preventDefault(); forceRemoveColorPinSlot(lowerKey); return; }
       if (e.shiftKey && lowerKey === 'h') { e.preventDefault(); convertKatakanaToHiragana(); return; }
+      if (e.shiftKey && lowerKey === 't') { e.preventDefault(); showLawTocDialog({ initialFocus: 'natural' }); return; }
       if (e.key === 'g') { e.preventDefault(); toggleParenthesesMute('flat'); return; }
       if (e.key === 'h') { e.preventDefault(); navigateJumpHistory(-1); return; }
       if (e.key === 'l') { e.preventDefault(); navigateJumpHistory(+1); return; }
@@ -1243,8 +1253,11 @@
       if (e.key === 'f') { e.preventDefault(); showFavoriteDialog(); return; }
       if (e.key === 'c') { e.preventDefault(); toggleNumberMode(); return; }
       if (e.key === 'a') { e.preventDefault(); showArticleLinkCopyDialog(); return; }
+      if (e.key === 't') { e.preventDefault(); showLawTocDialog(); return; }
     }
 
+    const wasTocDialog = !!(activeDialog && activeDialog.classList.contains('egov-ext-toc-mode'));
+    const lowerKey = e.key.toLowerCase();
     e.preventDefault();
     closeDialog();
 
@@ -1254,6 +1267,9 @@
       showSearchDialog();
     } else if (e.key === 'r') {
       showLawSearchDialog();
+    } else if (lowerKey === 't') {
+      if (wasTocDialog) return;
+      showLawTocDialog({ initialFocus: e.shiftKey ? 'natural' : 'top' });
     }
   }, true);
 
@@ -1310,6 +1326,49 @@
     const paragraph = suffix.match(/^-(?:Co|Pa|Pr)_(\d+)/)?.[1] || '';
     const item = suffix.match(/-(?:It|Sg)_(\d+)/)?.[1] || '';
     return { article, paragraph, item };
+  }
+
+  function getProvisionJumpKeyFromNode(node) {
+    const provisionRoot = document.querySelector('#provisionview');
+    let el = node instanceof Element ? node : node?.parentElement;
+
+    while (el && el instanceof Element && el !== provisionRoot) {
+      const parts = parseProvisionPath(el.id || '');
+      if (parts?.article) return buildJumpHistoryKey(parts);
+      el = el.parentElement;
+    }
+
+    if (provisionRoot instanceof Element) {
+      const parts = parseProvisionPath(provisionRoot.id || '');
+      if (parts?.article) return buildJumpHistoryKey(parts);
+    }
+
+    return '';
+  }
+
+  function getJumpHistoryKeyFromTargetElement(target, provisionRoot = null) {
+    if (!(target instanceof Element)) return '';
+
+    const directParts = parseProvisionPath(target.id || '');
+    if (directParts?.article) return buildJumpHistoryKey(directParts);
+
+    const nestedArticle = target.querySelector('section[id*="-At_"], article[id*="-At_"]');
+    if (nestedArticle instanceof Element) {
+      const articleParts = parseProvisionPath(nestedArticle.id || '');
+      return articleParts?.article ? buildJumpHistoryKey(articleParts) : '';
+    }
+
+    const articles = getAllArticles();
+    const firstFollowingArticle = articles.find((article) => {
+      if (!(article instanceof Element)) return false;
+      if (article === target) return false;
+      const relation = target.compareDocumentPosition(article);
+      return !!(relation & Node.DOCUMENT_POSITION_FOLLOWING);
+    });
+    if (!(firstFollowingArticle instanceof Element)) return '';
+
+    const articleParts = parseProvisionPath(firstFollowingArticle.id || '');
+    return articleParts?.article ? buildJumpHistoryKey(articleParts) : '';
   }
 
   function isArticleLevelProvision(el, parts) {
@@ -1996,7 +2055,7 @@
     }, 1200);
   }
 
-  function jumpToHashTarget(hash) {
+  function jumpToHashTarget(hash, options = {}) {
     const rawHash = String(hash || '');
     if (!rawHash || rawHash === '#') return false;
 
@@ -2029,13 +2088,9 @@
     history.replaceState(null, '', rawHash);
 
     // 条文ジャンプ履歴に追加（ポップアップ経由でないスクロール移動のみ）
-    const jumpParts = parseProvisionPath(target.id);
-    if (jumpParts?.article) {
-      let jumpKey = jumpParts.article;
-      if (jumpParts.paragraph) jumpKey += '.' + jumpParts.paragraph;
-      if (jumpParts.item) jumpKey += '.' + jumpParts.item;
-      pushJumpHistory(jumpKey);
-    }
+    if (options.sourceJumpKey) pushJumpHistory(options.sourceJumpKey);
+    const jumpKey = getJumpHistoryKeyFromTargetElement(target, provisionRoot);
+    if (jumpKey) pushJumpHistory(jumpKey);
 
     return true;
   }
@@ -2330,6 +2385,223 @@
     return anchor;
   }
 
+  function getLawTocElement() {
+    const toc = document.querySelector('#TOC');
+    if (!(toc instanceof Element)) return null;
+    if (!toc.querySelector('a[href], li, ol, ul')) return null;
+    return toc;
+  }
+
+  function cloneLawTocForDialog(tocEl) {
+    const clone = tocEl.cloneNode(true);
+    clone.removeAttribute('id');
+    clone.removeAttribute('aria-hidden');
+    clone.querySelectorAll('[id]').forEach((el) => el.removeAttribute('id'));
+    clone.querySelectorAll('[aria-hidden]').forEach((el) => el.removeAttribute('aria-hidden'));
+    return clone;
+  }
+
+  function getHashTargetElement(hash) {
+    const rawHash = String(hash || '');
+    if (!rawHash || rawHash === '#') return null;
+
+    const targetId = decodeURIComponent(rawHash.replace(/^#/, ''));
+    if (!targetId) return null;
+
+    const provisionRoot = document.querySelector('#provisionview') || document.body;
+    const escapedId = globalThis.CSS?.escape
+      ? CSS.escape(targetId)
+      : targetId.replace(/(["\\#.:[\],=<>+~*^$| ])/g, '\\$1');
+
+    let target = null;
+    try {
+      target = document.getElementById(targetId) || provisionRoot.querySelector(`#${escapedId}`);
+    } catch (_) {
+      target = document.getElementById(targetId);
+    }
+
+    if (!(target instanceof Element) && targetId.startsWith('Mp-')) {
+      const suffix = targetId.slice(2);
+      try {
+        target = provisionRoot.querySelector(`[id$="${suffix}"]`);
+      } catch (_) {}
+    }
+
+    return target instanceof Element ? target : null;
+  }
+
+  function getNaturalTocFocusIndex(tocAnchors) {
+    if (!Array.isArray(tocAnchors) || tocAnchors.length === 0) return -1;
+
+    const currentArticle = getArticleAtViewport25pct();
+    if (!(currentArticle instanceof Element)) return 0;
+    const currentTop = getArticleAbsoluteTop(currentArticle);
+
+    let bestIdx = -1;
+    let bestTop = -Infinity;
+    let fallbackIdx = -1;
+    let fallbackTop = Infinity;
+
+    tocAnchors.forEach((anchor, idx) => {
+      let url;
+      try {
+        url = new URL(anchor.href, location.href);
+      } catch (_) {
+        return;
+      }
+      if (!url.hash || url.origin !== location.origin || url.pathname !== location.pathname || url.search !== location.search) return;
+      const target = getHashTargetElement(url.hash);
+      if (!(target instanceof Element)) return;
+
+      const top = getArticleAbsoluteTop(target);
+      if (top <= currentTop + 1 && top > bestTop) {
+        bestTop = top;
+        bestIdx = idx;
+      }
+      if (top >= currentTop - 1 && top < fallbackTop) {
+        fallbackTop = top;
+        fallbackIdx = idx;
+      }
+    });
+
+    if (bestIdx >= 0) return bestIdx;
+    if (fallbackIdx >= 0) return fallbackIdx;
+    return 0;
+  }
+
+  function showLawTocDialog(options = {}) {
+    const tocEl = getLawTocElement();
+    if (!tocEl) return;
+
+    const dialog = createDialog(`
+      <div class="egov-ext-dialog-header">
+        <div class="egov-ext-dialog-title">
+          <span class="egov-ext-title-icon">≡</span> 目次
+        </div>
+        <button class="egov-ext-close" aria-label="閉じる">×</button>
+      </div>
+      <div class="egov-ext-dialog-body">
+        <div class="egov-ext-toc-panel" id="egov-law-toc-panel"></div>
+        <p class="egov-ext-hint">
+          <kbd>↑</kbd><kbd>↓</kbd> / <kbd>n</kbd><kbd>p</kbd> で項目移動 ・ <kbd>d</kbd><kbd>u</kbd> でページ移動 ・ <kbd>Enter</kbd> で選択
+        </p>
+      </div>
+    `, 'egov-ext-toc-mode');
+
+    const panel = dialog.querySelector('#egov-law-toc-panel');
+    if (!(panel instanceof Element)) return;
+
+    const tocClone = cloneLawTocForDialog(tocEl);
+    panel.appendChild(tocClone);
+
+    const tocAnchors = Array.from(panel.querySelectorAll('a[href]'));
+    let focusedIdx = -1;
+
+    function setFocusedTocItem(nextIdx, scrollBlock = 'nearest') {
+      tocAnchors.forEach((anchor, idx) => {
+        anchor.classList.toggle('egov-ext-toc-link-focused', idx === nextIdx);
+      });
+      focusedIdx = nextIdx;
+      if (focusedIdx >= 0 && tocAnchors[focusedIdx]) {
+        tocAnchors[focusedIdx].scrollIntoView({ block: scrollBlock });
+      }
+    }
+
+    function moveFocusedTocItem(direction) {
+      if (tocAnchors.length === 0) return;
+      const nextIdx = focusedIdx < 0
+        ? (direction > 0 ? 0 : tocAnchors.length - 1)
+        : (focusedIdx + direction + tocAnchors.length) % tocAnchors.length;
+      setFocusedTocItem(nextIdx);
+    }
+
+    function pageMoveFocusedTocItem(direction) {
+      if (tocAnchors.length === 0) return;
+      const currentAnchor = tocAnchors[Math.max(0, focusedIdx)];
+      if (!(currentAnchor instanceof Element)) {
+        setFocusedTocItem(direction > 0 ? 0 : tocAnchors.length - 1);
+        return;
+      }
+
+      const panelRect = panel.getBoundingClientRect();
+      const pageDelta = panel.clientHeight * 0.8 * direction;
+      const maxScrollTop = Math.max(0, panel.scrollHeight - panel.clientHeight);
+      const targetScrollTop = Math.max(0, Math.min(maxScrollTop, panel.scrollTop + pageDelta));
+      const currentY = currentAnchor.getBoundingClientRect().top - panelRect.top + panel.scrollTop;
+      const targetY = currentY + pageDelta;
+
+      let nextIdx = focusedIdx;
+      let nearestDiff = Infinity;
+      for (let i = 0; i < tocAnchors.length; i++) {
+        const anchor = tocAnchors[i];
+        const anchorY = anchor.getBoundingClientRect().top - panelRect.top + panel.scrollTop;
+        const diff = Math.abs(anchorY - targetY);
+        if (diff < nearestDiff) {
+          nearestDiff = diff;
+          nextIdx = i;
+        }
+      }
+
+      panel.scrollTo({ top: targetScrollTop, behavior: scrollBehavior });
+      setFocusedTocItem(Math.max(0, Math.min(tocAnchors.length - 1, nextIdx)));
+    }
+
+    if (tocAnchors.length > 0) {
+      const initialIdx = options.initialFocus === 'natural'
+        ? getNaturalTocFocusIndex(tocAnchors)
+        : 0;
+      setFocusedTocItem(Math.max(0, initialIdx), options.initialFocus === 'natural' ? 'center' : 'nearest');
+    }
+
+    panel.addEventListener('click', (event) => {
+      const anchor = event.target instanceof Element ? event.target.closest('a[href]') : null;
+      if (!anchor) return;
+      event.preventDefault();
+      openLawReferenceTarget(anchor);
+      closeDialog();
+    });
+
+    panel.addEventListener('mousemove', (event) => {
+      const anchor = event.target instanceof Element ? event.target.closest('a[href]') : null;
+      if (!anchor) return;
+      const idx = tocAnchors.indexOf(anchor);
+      if (idx >= 0 && idx !== focusedIdx) setFocusedTocItem(idx);
+    });
+
+    panel.addEventListener('keydown', (event) => {
+      if (event.key === 'ArrowDown' || event.key === 'n') {
+        event.preventDefault();
+        moveFocusedTocItem(+1);
+        return;
+      }
+      if (event.key === 'ArrowUp' || event.key === 'p') {
+        event.preventDefault();
+        moveFocusedTocItem(-1);
+        return;
+      }
+      if (event.key === 'Enter') {
+        const anchor = tocAnchors[focusedIdx];
+        if (!anchor) return;
+        event.preventDefault();
+        openLawReferenceTarget(anchor);
+        closeDialog();
+        return;
+      }
+      if (event.key === 'd') {
+        event.preventDefault();
+        pageMoveFocusedTocItem(+1);
+        return;
+      }
+      if (event.key === 'u') {
+        event.preventDefault();
+        pageMoveFocusedTocItem(-1);
+      }
+    });
+
+    panel.tabIndex = 0;
+    panel.focus();
+  }
+
   function clearLawReferenceHoverTimer() {
     if (lawReferenceHoverTimer) {
       clearTimeout(lawReferenceHoverTimer);
@@ -2413,8 +2685,16 @@
     lawReferenceOpenLockUntil = Date.now() + 1500;
 
     const targetLawId = getLawIdFromLawUrl(url.href);
-    if (targetLawId && targetLawId === getCurrentLawIdFromUrl()) {
-      if (!jumpToHashTarget(url.hash)) {
+    const isSamePageHashLink =
+      !!url.hash &&
+      url.origin === location.origin &&
+      url.pathname === location.pathname &&
+      url.search === location.search;
+    if (isSamePageHashLink || (targetLawId && targetLawId === getCurrentLawIdFromUrl())) {
+      const sourceJumpKey =
+        getProvisionJumpKeyFromNode(anchor) ||
+        buildJumpHistoryKey(parseProvisionPath(getArticleAtViewport25pct()?.id || ''));
+      if (!jumpToHashTarget(url.hash, { sourceJumpKey })) {
         // getElementById で見つからなかった場合: SPA router に委ねる
         // 同じ hash が既にセットされていると hashchange が発火しないので一旦リセット
         if (location.hash === url.hash) {
@@ -3277,6 +3557,14 @@
       `);
     }
 
+    const tGuideRow = [...guideTable.querySelectorAll('tr')].find((tr) => tr.querySelector('td')?.textContent.trim() === 's');
+    if (tGuideRow) {
+      tGuideRow.insertAdjacentHTML('beforebegin', `
+        <tr><td><kbd>t</kbd></td><td>目次ダイアログを開く</td></tr>
+        <tr><td><kbd>Shift</kbd>+<kbd>T</kbd></td><td>現在位置に合わせて目次ダイアログを開く</td></tr>
+      `);
+    }
+
     document.body.appendChild(guide);
 
     // ガイドボタンクリックで有効/無効トグル
@@ -3305,12 +3593,10 @@
 
   function setupColorPinFeatures() {
     refreshColorPinHighlights();
-    chrome.storage.local.get(['pinToastDefaultVisible'], (data) => {
-      pinToastDefaultVisible = typeof data.pinToastDefaultVisible === 'boolean' ? data.pinToastDefaultVisible : true;
-      pinToastPinned = pinToastDefaultVisible;
-      if (pinToastPinned) showPinToast(false);
-      else hidePinToast(true);
-    });
+    // pinToastDefaultVisible は起動時に既に読み込み済み
+    pinToastPinned = pinToastDefaultVisible;
+    if (pinToastPinned) showPinToast(false);
+    else hidePinToast(true);
     if (getAllArticles().length > 0) return;
 
     const observer = new MutationObserver(() => {
@@ -3342,21 +3628,20 @@
       invalidateArticleCache();
     });
     articleCacheObserver.observe(articleRoot, { childList: true, subtree: true });
-    const { lawRefClickEnabled, lawRefHoverPopup, lawRefOtherLawPopup } = await chrome.storage.local.get(['lawRefClickEnabled', 'lawRefHoverPopup', 'lawRefOtherLawPopup']);
-    if (lawRefClickEnabled !== false) {
-      lawRefHoverPopupEnabled = lawRefHoverPopup === true;
-      lawRefOtherLawPopupEnabled = lawRefOtherLawPopup !== false;
-      setupLawReferenceInteractions();
-    }
+    // 法令参照設定の読み込みを非同期にし、他の初期化をブロックしない
+    chrome.storage.local.get(['lawRefClickEnabled', 'lawRefHoverPopup', 'lawRefOtherLawPopup'], ({ lawRefClickEnabled, lawRefHoverPopup, lawRefOtherLawPopup }) => {
+      if (lawRefClickEnabled !== false) {
+        lawRefHoverPopupEnabled = lawRefHoverPopup === true;
+        lawRefOtherLawPopupEnabled = lawRefOtherLawPopup !== false;
+        setupLawReferenceInteractions();
+      }
+    });
     ensureShortcutGuide();
     setupFavoriteHeaderBadge();
     setupColorPinFeatures();
     await restoreFavoriteScrollOnLoad();
     moveToFirstArticleOnLoad();
     setupFavoriteScrollPersistence();
-    // Pre-warm the article cache while the browser is idle so the first n/p keypress
-    // doesn't pay the scan cost (~9ms with optimized selector, ~275ms without).
-    (window.requestIdleCallback || setTimeout)(getAllArticles);
   }
 
   if (document.readyState === 'loading') {

@@ -78,6 +78,17 @@
   width: 504px !important;
 }
 
+.egov-ext-toc-mode .egov-ext-dialog-header {
+  background: linear-gradient(135deg, #4d4f39, #6a6d4a) !important;
+}
+
+.egov-ext-toc-mode .egov-ext-dialog {
+  width: 430px !important;
+  max-height: calc(100vh - 32px) !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
 /* 検索モードのフォーカスカラー */
 .egov-ext-search-mode .egov-ext-input:focus {
   border-color: #2d8c6e !important;
@@ -121,6 +132,64 @@
   flex-direction: column !important;
   gap: 10px !important;
   overflow: visible !important;
+}
+
+.egov-ext-toc-mode .egov-ext-dialog-body {
+  min-height: 0 !important;
+  overflow: hidden !important;
+  flex: 1 !important;
+}
+
+.egov-ext-toc-panel {
+  flex: 1 !important;
+  min-height: 0 !important;
+  max-height: min(72vh, 900px) !important;
+  overflow-y: auto !important;
+  border: 1px solid #d9dfcf !important;
+  border-radius: 10px !important;
+  background: #fbfcf7 !important;
+  padding: 12px 14px !important;
+  line-height: 1.6 !important;
+  color: #243126 !important;
+}
+
+.egov-ext-toc-panel:focus {
+  outline: none !important;
+  box-shadow: 0 0 0 3px rgba(106, 109, 74, 0.14) !important;
+}
+
+.egov-ext-toc-panel ol,
+.egov-ext-toc-panel ul {
+  margin: 0 !important;
+  padding-left: 1.25em !important;
+}
+
+.egov-ext-toc-panel li + li {
+  margin-top: 6px !important;
+}
+
+.egov-ext-toc-panel a {
+  display: inline-block !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+  border-radius: 6px !important;
+  padding: 2px 6px !important;
+  color: #1d5d88 !important;
+  text-decoration: none !important;
+}
+
+.egov-ext-toc-panel a:hover {
+  text-decoration: underline !important;
+}
+
+.egov-ext-toc-link-focused {
+  background: #e6efe0 !important;
+  color: #184766 !important;
+  text-decoration: none !important;
+}
+
+.egov-ext-toc-panel :is(span, p, div, li) {
+  color: inherit !important;
 }
 
 /* 条文ジャンプ: 入力行 */
