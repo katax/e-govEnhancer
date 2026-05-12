@@ -286,8 +286,22 @@
     return !!node.parentElement?.closest('.egov-ext-muted-paren');
   }
 
+  function isParenProcessingContainer(el) {
+    if (!(el instanceof Element)) return false;
+    if (el.classList.contains('sentence')) return true;
+    return [...el.classList].some((className) => (
+      /^_div_.*Sentence$/.test(className) ||
+      className === '_div_ArticleTitle'
+    ));
+  }
+
   function getParenProcessingContainer(el) {
-    return el?.closest('.sentence, .item > .sentence, .subitem1 > .sentence, .subitem2 > .sentence, .subitem3 > .sentence, .subitem4 > .sentence, .subitem5 > .sentence, .subitem6 > .sentence, .subitem7 > .sentence, .subitem8 > .sentence, .subitem9 > .sentence, .subitem10 > .sentence, .list1 > .sentence, .list2 > .sentence, .list3 > .sentence, .list4 > .sentence, .list5 > .sentence, .list6 > .sentence, .list7 > .sentence, .list8 > .sentence, .list9 > .sentence, .list10 > .sentence, ._div_ParagraphSentence, ._div_ItemSentence, ._div_Subitem1Sentence, ._div_Subitem2Sentence, ._div_Subitem3Sentence, ._div_Subitem4Sentence, ._div_Subitem5Sentence, ._div_Subitem6Sentence, ._div_Subitem7Sentence, ._div_Subitem8Sentence, ._div_Subitem9Sentence, ._div_Subitem10Sentence, ._div_ListSentence, ._div_List1Sentence, ._div_List2Sentence, ._div_List3Sentence, ._div_List4Sentence, ._div_List5Sentence, ._div_List6Sentence, ._div_List7Sentence, ._div_List8Sentence, ._div_List9Sentence, ._div_List10Sentence');
+    let current = el instanceof Element ? el : null;
+    while (current) {
+      if (isParenProcessingContainer(current)) return current;
+      current = current.parentElement;
+    }
+    return null;
   }
 
   function isWrappableBodyTextNode(node) {
@@ -442,12 +456,13 @@
 
   function muteFullWidthParenthesesInBody(root = document.querySelector('#provisionview') || document.body) {
     if (!root) return;
-    if (root.nodeType === Node.ELEMENT_NODE && getParenProcessingContainer(root)) {
-      processSentenceElement(root);
+    const container = root.nodeType === Node.ELEMENT_NODE ? getParenProcessingContainer(root) : null;
+    if (container) {
+      processSentenceElement(container);
       return;
     }
-    root.querySelectorAll?.('.sentence, ._div_ParagraphSentence, ._div_ItemSentence, ._div_Subitem1Sentence, ._div_Subitem2Sentence, ._div_Subitem3Sentence, ._div_Subitem4Sentence, ._div_Subitem5Sentence, ._div_Subitem6Sentence, ._div_Subitem7Sentence, ._div_Subitem8Sentence, ._div_Subitem9Sentence, ._div_Subitem10Sentence, ._div_ListSentence, ._div_List1Sentence, ._div_List2Sentence, ._div_List3Sentence, ._div_List4Sentence, ._div_List5Sentence, ._div_List6Sentence, ._div_List7Sentence, ._div_List8Sentence, ._div_List9Sentence, ._div_List10Sentence').forEach((sentence) => {
-      processSentenceElement(sentence);
+    root.querySelectorAll?.('.sentence, [class*="Sentence"], ._div_ArticleTitle').forEach((sentence) => {
+      if (isParenProcessingContainer(sentence)) processSentenceElement(sentence);
     });
   }
 
@@ -471,8 +486,9 @@
           }
           if (node.nodeType !== Node.ELEMENT_NODE) continue;
           if (node.closest?.('.egov-ext-muted-paren')) continue;
-          if (getParenProcessingContainer(node) === node) {
-            processSentenceElement(node);
+          const sentence = getParenProcessingContainer(node);
+          if (sentence) {
+            processSentenceElement(sentence);
             continue;
           }
           muteFullWidthParenthesesInBody(node);

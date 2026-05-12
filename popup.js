@@ -272,11 +272,26 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.addEventListener('keydown', (e) => {
     if (handleModeArrowNavigation(e)) e.stopPropagation();
   }, true);
+  document.addEventListener('keydown', (e) => {
+    const activeEl = document.activeElement;
+    if (activeEl === searchInput) return;
+    if (isEditableForModeSwitch(activeEl)) return;
+    if (historyMode !== null) {
+      if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Delete', 'Backspace', 'Enter', 'Escape'].includes(e.key)) {
+        handleHistoryKeydown(e);
+      }
+      return;
+    }
+    handleMainListKeydown(e);
+  });
 
   // ================================================
   // IME変換確定後に検索
   // ================================================
-  searchInput.addEventListener('compositionstart', () => { isComposing = true; });
+  searchInput.addEventListener('compositionstart', () => {
+    isComposing = true;
+    if (historyMode !== null) hideHistoryPanel();
+  });
   searchInput.addEventListener('compositionend', () => {
     isComposing = false;
     clearTimeout(debounceTimer);
@@ -288,6 +303,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   // 通常入力（IME非使用時・400msデバウンス）
   // ================================================
   searchInput.addEventListener('input', () => {
+    if (historyMode !== null && searchInput.value.length > 0) {
+      hideHistoryPanel();
+    }
     if (isComposing) return;
     clearTimeout(debounceTimer);
     const query = searchInput.value.trim();
@@ -315,67 +333,20 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (historyMode !== null) {
       if (e.key === 'Escape') {
         e.preventDefault();
+        e.stopPropagation();
         hideHistoryPanel();
         return;
       }
-      if (e.key === 'Enter' && !isComposing) {
-        e.preventDefault();
-        const query = searchInput.value.trim();
-        if (query) doSearch(query);
-        return;
-      }
-      if (!searchInput.value.trim() && ['ArrowUp', 'ArrowDown', 'Delete', 'Backspace'].includes(e.key)) {
+      if (!isComposing && ['Enter', 'ArrowUp', 'ArrowDown'].includes(e.key)) {
+        e.stopPropagation();
         handleHistoryKeydown(e);
         return;
       }
       return;
     }
-    if (handleModeArrowNavigation(e)) return;
-
-    if (e.key === 'ArrowDown') {
-      e.preventDefault(); moveFocus(+1); return;
-    }
-    if (e.key === 'ArrowUp') {
-      e.preventDefault(); moveFocus(-1); return;
-    }
-
-    // 空欄・履歴表示中: Del でフォーカス中の履歴アイテムを削除
-    if (isEmptyState && e.key === 'Delete' && focusedResultIndex >= 0) {
-      e.preventDefault();
-      queryHistory.splice(focusedResultIndex, 1);
-      chrome.storage.local.set({ queryHistory }).catch(() => {});
-      const nextIdx = Math.min(focusedResultIndex, queryHistory.length - 1);
-      showEmptyState();
-      if (nextIdx >= 0) {
-        const items = resultsEl.querySelectorAll('.result-item');
-        items.forEach((el, i) => el.classList.toggle('result-item-focused', i === nextIdx));
-        focusedResultIndex = nextIdx;
-      }
+    if (handleMainListKeydown(e)) {
+      e.stopPropagation();
       return;
-    }
-
-    if (e.key === 'Enter' && !isComposing) {
-      e.preventDefault();
-      if (isEmptyState && focusedResultIndex >= 0 && queryHistory[focusedResultIndex]) {
-        // 検索履歴から選択してそのまま検索
-        const query = queryHistory[focusedResultIndex];
-        isEmptyState = false;
-        searchInput.value = query;
-        doSearch(query);
-      } else if (e.shiftKey) {
-        // Shift+Enter：注目中の検索結果をお気に入りトグル
-        if (focusedResultIndex >= 0 && currentResults[focusedResultIndex]) {
-          toggleFavorite(currentResults[focusedResultIndex]);
-          updateFavBtnAt(focusedResultIndex);
-        }
-      } else {
-        if (focusedResultIndex >= 0 && currentResults[focusedResultIndex]) {
-          openResult(currentResults[focusedResultIndex]);
-        } else {
-          const query = searchInput.value.trim();
-          if (query) doSearch(query);
-        }
-      }
     }
   });
 
@@ -400,7 +371,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       else if (historyMode === 'favorites') hideHistoryPanel(); // Mode3 → Mode0（閉じる）
       return;
     }
-    if (e.key === 'Delete' || e.key === 'Backspace') {
+    if (e.key === 'Delete' && e.ctrlKey) {
       deleteHistItem(getFocusedArrayIdx()); return;
     }
     if (e.key === 'Enter') {
@@ -426,6 +397,86 @@ document.addEventListener('DOMContentLoaded', async () => {
       selectHistItem(getFocusedArrayIdx()); return;
     }
     if (e.key === 'Escape') { hideHistoryPanel(); return; }
+  }
+
+  function clearMainListFocus() {
+    resultsEl.querySelectorAll('.result-item').forEach((el) => {
+      el.classList.remove('result-item-focused');
+    });
+    focusedResultIndex = -1;
+  }
+
+  function clearHistoryListFocus() {
+    histListEl.querySelectorAll('.history-item').forEach((el) => {
+      el.classList.remove('history-item-focused');
+    });
+    histFocusedIdx = -1;
+    hideTooltip();
+  }
+
+  function blurSearchInputForListSelection() {
+    if (document.activeElement === searchInput) searchInput.blur();
+  }
+
+  function focusSearchInputFromList(kind) {
+    if (kind === 'history') clearHistoryListFocus();
+    else clearMainListFocus();
+    searchInput.focus();
+  }
+
+  function handleMainListKeydown(e) {
+    if (handleModeArrowNavigation(e)) return true;
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      moveFocus(+1);
+      return true;
+    }
+    if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      moveFocus(-1);
+      return true;
+    }
+
+    if (isEmptyState && e.key === 'Delete' && e.ctrlKey && focusedResultIndex >= 0) {
+      e.preventDefault();
+      queryHistory.splice(focusedResultIndex, 1);
+      chrome.storage.local.set({ queryHistory }).catch(() => {});
+      const nextIdx = Math.min(focusedResultIndex, queryHistory.length - 1);
+      showEmptyState();
+      if (nextIdx >= 0) {
+        const items = resultsEl.querySelectorAll('.result-item');
+        items.forEach((el, i) => el.classList.toggle('result-item-focused', i === nextIdx));
+        focusedResultIndex = nextIdx;
+        blurSearchInputForListSelection();
+      }
+      return true;
+    }
+
+    if (e.key === 'Enter' && !isComposing) {
+      e.preventDefault();
+      if (isEmptyState && focusedResultIndex >= 0 && queryHistory[focusedResultIndex]) {
+        const query = queryHistory[focusedResultIndex];
+        isEmptyState = false;
+        searchInput.value = query;
+        doSearch(query);
+      } else if (e.shiftKey) {
+        if (focusedResultIndex >= 0 && currentResults[focusedResultIndex]) {
+          toggleFavorite(currentResults[focusedResultIndex]);
+          updateFavBtnAt(focusedResultIndex);
+        }
+      } else {
+        if (focusedResultIndex >= 0 && currentResults[focusedResultIndex]) {
+          openResult(currentResults[focusedResultIndex]);
+        } else {
+          const query = searchInput.value.trim();
+          if (query) doSearch(query);
+        }
+      }
+      return true;
+    }
+
+    return false;
   }
 
   // ================================================
@@ -477,12 +528,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // ガイドヒント
     const hints = {
-      law:       '▶ 閉じる ｜ ↑↓ 選択 ｜ Shift+Enter ★ ｜ Enter 開く ｜ Del 削除',
-      favorites: '◀ 閉じる ｜ ↑↓ 選択 ｜ Enter 開く ｜ Del 削除 ｜ D&D 並替/移動',
+      law:       '▶ 閉じる ｜ ↑↓ 選択 ｜ Shift+Enter ★ ｜ Enter 開く ｜ Ctrl+Del 削除',
+      favorites: '◀ 閉じる ｜ ↑↓ 選択 ｜ Enter 開く ｜ Ctrl+Del 削除 ｜ D&D 並替/移動',
     };
     histHintEl.textContent = ({
-      law: '↑↓ 選択 ｜ Shift+Enter お気に入り ｜ Enter 開く ｜ Del 削除',
-      favorites: '↑↓ 選択 ｜ Enter 開く ｜ Del 削除',
+      law: '↑↓ 選択 ｜ Shift+Enter お気に入り ｜ Enter 開く ｜ Ctrl+Del 削除',
+      favorites: '↑↓ 選択 ｜ Enter 開く ｜ Ctrl+Del 削除',
     })[mode] || '';
 
     // リスト描画
@@ -568,7 +619,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const label = document.createElement('div');
     label.className   = 'results-label';
-    label.textContent = `検索履歴 ${queryHistory.length}件 ｜ ↑↓ 選択 ｜ Enter 検索 ｜ Del 削除`;
+    label.textContent = `検索履歴 ${queryHistory.length}件 ｜ ↑↓ 選択 ｜ Enter 検索 ｜ Ctrl+Del 削除`;
     resultsEl.appendChild(label);
 
     const list = document.createElement('ul');
@@ -581,7 +632,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       li.innerHTML =
         `<span class="hist-icon">🔍</span>` +
         `<span class="hist-text">${escapeHtml(query)}</span>` +
-        `<button class="hist-del-btn" title="削除 (Del)">×</button>`;
+        `<button class="hist-del-btn" title="削除 (Ctrl+Del)">×</button>`;
 
       li.querySelector('.hist-del-btn').addEventListener('click', (ev) => {
         ev.stopPropagation();
@@ -595,6 +646,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const items = resultsEl.querySelectorAll('.result-item');
         items.forEach((el, j) => el.classList.toggle('result-item-focused', j === i));
         focusedResultIndex = i;
+        blurSearchInputForListSelection();
       });
       li.addEventListener('click', (ev) => {
         if (ev.target instanceof Element && ev.target.closest('.hist-del-btn')) return;
@@ -645,7 +697,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         li.dataset.tooltipName = item.lawName || '';
         li.dataset.tooltipNum  = item.lawNum  || '';
       }
-      inner += `<button class="hist-del-btn" title="削除 (Del)">×</button>`;
+      inner += `<button class="hist-del-btn" title="削除 (Ctrl+Del)">×</button>`;
       li.innerHTML = inner;
 
       // ★ ボタン（Mode2 のみ）
@@ -802,7 +854,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     li.innerHTML =
       `<span class="hist-icon">★</span>` +
       `<span class="hist-text">${formatLawNameHtml(item.lawName)}</span>` +
-      `<button class="hist-del-btn" title="削除 (Del)">×</button>`;
+      `<button class="hist-del-btn" title="削除 (Ctrl+Del)">×</button>`;
     li.dataset.tooltipName = item.lawName || '';
     li.dataset.tooltipNum  = item.lawNum  || '';
 
@@ -1207,6 +1259,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const items = histListEl.querySelectorAll('.history-item');
     items.forEach((el, i) => el.classList.toggle('history-item-focused', i === idx));
     if (idx >= 0 && items[idx]) {
+      blurSearchInputForListSelection();
       items[idx].scrollIntoView({ block: 'nearest' });
       ensureFavoriteFolderHeaderVisible(items[idx]);
       // キーボードフォーカス時もツールチップ表示
@@ -1223,6 +1276,14 @@ document.addEventListener('DOMContentLoaded', async () => {
   function moveHistFocus(dir, len) {
     if (len === 0) return;
     hideCursorBriefly();
+    if (histFocusedIdx === 0 && dir < 0) {
+      focusSearchInputFromList('history');
+      return;
+    }
+    if (histFocusedIdx === len - 1 && dir > 0) {
+      focusSearchInputFromList('history');
+      return;
+    }
     const next = (histFocusedIdx + dir + len) % len;
     highlightHistItem(next);
   }
@@ -1332,6 +1393,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     const items = resultsEl.querySelectorAll('.result-item');
     if (items.length === 0) return;
     hideCursorBriefly();
+    if (focusedResultIndex === 0 && direction < 0) {
+      focusSearchInputFromList('main');
+      return;
+    }
+    if (focusedResultIndex === items.length - 1 && direction > 0) {
+      focusSearchInputFromList('main');
+      return;
+    }
     if (focusedResultIndex >= 0 && items[focusedResultIndex])
       items[focusedResultIndex].classList.remove('result-item-focused');
     let next = focusedResultIndex + direction;
@@ -1340,6 +1409,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     focusedResultIndex = next;
     items[focusedResultIndex].classList.add('result-item-focused');
     items[focusedResultIndex].scrollIntoView({ block: 'nearest' });
+    blurSearchInputForListSelection();
   }
 
   function openResult(law) {
@@ -1508,6 +1578,7 @@ document.addEventListener('DOMContentLoaded', async () => {
           items[focusedResultIndex].classList.remove('result-item-focused');
         focusedResultIndex = i;
         li.classList.add('result-item-focused');
+        blurSearchInputForListSelection();
       });
       list.appendChild(li);
     });
