@@ -63,16 +63,16 @@ body.keyboard-nav-hide-cursor * {
   color: white;
 }
 
-.popup-logo {
-  width: 22px;
-  height: 22px;
-  border-radius: 4px;
-}
-
 .popup-title {
   font-size: 14px;
   font-weight: 700;
   letter-spacing: 0.3px;
+}
+
+.popup-title-badge {
+  margin-left: 6px;
+  font-size: 12px;
+  font-weight: 700;
 }
 
 /* 検索フォーム */

@@ -39,10 +39,10 @@
     const info = law?.law_info || {};
     const rev = law?.current_revision_info || law?.revision_info || {};
     return {
-      lawId: info.law_id || '',
-      lawName: rev.law_title || rev.abbrev || '(名称不明)',
-      lawNum: info.law_num || '',
-      lawType: info.law_type || rev.law_type || '',
+      lawId: info.law_id || law?.law_id || law?.lawId || '',
+      lawName: rev.law_title || rev.abbrev || law?.law_title || law?.law_name || law?.lawName || '(名称不明)',
+      lawNum: info.law_num || law?.law_num || law?.lawNum || '',
+      lawType: info.law_type || rev.law_type || law?.law_type || law?.lawType || '',
     };
   }
 

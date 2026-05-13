@@ -121,6 +121,14 @@
   window.addEventListener('resize', () => { if (pinToastVisible) schedulePinToastRender(); });
   window.addEventListener('scroll', () => { if (pinToastVisible) schedulePinToastRender(); }, { passive: true });
 
+  function runWhenIdle(callback, timeout = 1500) {
+    if (typeof requestIdleCallback === 'function') {
+      requestIdleCallback(callback, { timeout });
+      return;
+    }
+    setTimeout(callback, Math.min(timeout, 250));
+  }
+
   // ==================
   // 履歴ユーティリティ
   // ==================
@@ -638,6 +646,89 @@
     return badge;
   }
 
+  function ensureLightweightViewerButton() {
+    const host = ensureHeaderControlHost();
+    if (!host) return null;
+
+    let button = document.getElementById('egov-ext-lightweight-viewer-button');
+    if (button) return button;
+
+    button = document.createElement('button');
+    button.id = 'egov-ext-lightweight-viewer-button';
+    button.type = 'button';
+    button.className = 'egov-ext-lightweight-viewer-button';
+    button.textContent = 'Lite';
+    button.title = 'Liteモードで開く';
+    button.setAttribute('aria-label', button.title);
+    button.addEventListener('click', async (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (!e.isTrusted) return;
+      const lawId = getCurrentLawIdFromUrl();
+      if (!lawId) {
+        showPinIndicator('\u6cd5\u4ee4ID\u3092\u53d6\u5f97\u3067\u304d\u307e\u305b\u3093\u3067\u3057\u305f');
+        return;
+      }
+      if (openLightweightViewerDirectly(lawId)) return;
+      try {
+        const response = await chrome.runtime.sendMessage({
+          type: 'egov-open-lightweight-viewer',
+          lawId,
+          lawName: getCurrentLawName(),
+          sourceUrl: location.href,
+        });
+        if (!response?.ok && !openLightweightViewerDirectly(lawId)) {
+          showPinIndicator('\u8efd\u91cf\u30d3\u30e5\u30fc\u30a2\u3092\u958b\u3051\u307e\u305b\u3093\u3067\u3057\u305f');
+        }
+      } catch (_) {
+        if (!openLightweightViewerDirectly(lawId)) showPinIndicator('\u8efd\u91cf\u30d3\u30e5\u30fc\u30a2\u3092\u958b\u3051\u307e\u305b\u3093\u3067\u3057\u305f');
+      }
+    });
+
+    const favorite = document.getElementById('egov-ext-favorite-header-badge');
+    if (favorite?.parentElement === host) favorite.insertAdjacentElement('afterend', button);
+    else host.appendChild(button);
+    return button;
+  }
+
+  function getLightweightViewerUrl(lawId = getCurrentLawIdFromUrl()) {
+    if (!lawId) return '';
+    const params = new URLSearchParams();
+    params.set('lawId', lawId);
+    params.set('lawName', getCurrentLawName());
+    params.set('sourceUrl', location.href);
+    return chrome.runtime.getURL(`viewer.html?${params.toString()}`);
+  }
+
+  function openLightweightViewerDirectly(lawId = getCurrentLawIdFromUrl()) {
+    const url = getLightweightViewerUrl(lawId);
+    if (!url) return false;
+    location.assign(url);
+    return true;
+  }
+
+  async function openLightweightViewerFromPage() {
+    const lawId = getCurrentLawIdFromUrl();
+    if (!lawId) {
+      showPinIndicator('\u6cd5\u4ee4ID\u3092\u53d6\u5f97\u3067\u304d\u307e\u305b\u3093\u3067\u3057\u305f');
+      return;
+    }
+    if (openLightweightViewerDirectly(lawId)) return;
+    try {
+      const response = await chrome.runtime.sendMessage({
+        type: 'egov-open-lightweight-viewer',
+        lawId,
+        lawName: getCurrentLawName(),
+        sourceUrl: location.href,
+      });
+      if (!response?.ok && !openLightweightViewerDirectly(lawId)) {
+        showPinIndicator('\u8efd\u91cf\u30d3\u30e5\u30fc\u30a2\u3092\u958b\u3051\u307e\u305b\u3093\u3067\u3057\u305f');
+      }
+    } catch (_) {
+      if (!openLightweightViewerDirectly(lawId)) showPinIndicator('\u8efd\u91cf\u30d3\u30e5\u30fc\u30a2\u3092\u958b\u3051\u307e\u305b\u3093\u3067\u3057\u305f');
+    }
+  }
+
   async function refreshFavoriteHeaderBadge() {
     const lawId = getCurrentLawIdFromUrl();
     if (!lawId) return;
@@ -650,12 +741,14 @@
 
   function setupFavoriteHeaderBadge() {
     if (ensureFavoriteHeaderBadge()) {
+      ensureLightweightViewerButton();
       refreshFavoriteHeaderBadge();
       return;
     }
 
     const observer = new MutationObserver(() => {
       if (!ensureFavoriteHeaderBadge()) return;
+      ensureLightweightViewerButton();
       observer.disconnect();
       refreshFavoriteHeaderBadge();
     });
@@ -1209,7 +1302,11 @@
       chrome.runtime.sendMessage({ type: 'egov-open-options-page' }).catch(() => {});
       return;
     }
-
+    if (e.altKey && !e.ctrlKey && !e.metaKey && (e.key === 'l' || e.key === 'L') && !activeDialog && !isInputActive()) {
+      e.preventDefault();
+      openLightweightViewerFromPage();
+      return;
+    }
     if (guideTooltipPinned) {
       hideShortcutGuideTooltip();
       e.preventDefault();
@@ -2154,6 +2251,7 @@
 
   function shouldInvalidateArticleCache(mutations) {
     for (const mutation of mutations) {
+      if (mutation.target instanceof Element && mutation.target.id === 'provisionview') return true;
       for (const node of mutation.addedNodes) {
         if (hasArticleElementInSubtree(node)) return true;
       }
@@ -3545,6 +3643,8 @@
               <td>カタカナをひらがなに変換</td></tr>
           <tr><td><kbd>Alt</kbd>+<kbd>O</kbd></td>
               <td>オプション画面を開く</td></tr>
+          <tr><td><kbd>Alt</kbd>+<kbd>L</kbd></td>
+              <td>Liteモードに変更</td></tr>
           <tr><td><kbd>Alt</kbd>+<kbd>P</kbd></td>
               <td>ショートカット有効/無効の切り替え<br>
                 <span class="egov-ext-guide-sub">青=有効 / 灰=無効。このボタンクリックでも切り替え可</span></td></tr>
@@ -3608,10 +3708,10 @@
   }
 
   function setupColorPinFeatures() {
-    refreshColorPinHighlights();
+    runWhenIdle(() => refreshColorPinHighlights(), 1200);
     // pinToastDefaultVisible は起動時に既に読み込み済み
     pinToastPinned = pinToastDefaultVisible;
-    if (pinToastPinned) showPinToast(false);
+    if (pinToastPinned) runWhenIdle(() => showPinToast(false), 1200);
     else hidePinToast(true);
     if (getAllArticles().length > 0) return;
 
@@ -3639,25 +3739,38 @@
   async function initializeLawPageFeatures() {
     invalidateArticleCache();
     const articleRoot = document.querySelector('#provisionview') || document.documentElement;
+    let articleCacheInvalidationScheduled = false;
     const articleCacheObserver = new MutationObserver((mutations) => {
-      if (!shouldInvalidateArticleCache(mutations)) return;
-      invalidateArticleCache();
+      if (articleCacheInvalidationScheduled || !shouldInvalidateArticleCache(mutations)) return;
+      articleCacheInvalidationScheduled = true;
+      requestAnimationFrame(() => {
+        articleCacheInvalidationScheduled = false;
+        invalidateArticleCache();
+      });
     });
     articleCacheObserver.observe(articleRoot, { childList: true, subtree: true });
     // 法令参照設定の読み込みを非同期にし、他の初期化をブロックしない
-    chrome.storage.local.get(['lawRefClickEnabled', 'lawRefHoverPopup', 'lawRefOtherLawPopup'], ({ lawRefClickEnabled, lawRefHoverPopup, lawRefOtherLawPopup }) => {
-      if (lawRefClickEnabled !== false) {
-        lawRefHoverPopupEnabled = lawRefHoverPopup === true;
-        lawRefOtherLawPopupEnabled = lawRefOtherLawPopup !== false;
-        setupLawReferenceInteractions();
-      }
-    });
-    ensureShortcutGuide();
-    setupFavoriteHeaderBadge();
-    setupColorPinFeatures();
-    await restoreFavoriteScrollOnLoad();
-    moveToFirstArticleOnLoad();
-    setupFavoriteScrollPersistence();
+    runWhenIdle(() => {
+      chrome.storage.local.get(['lawRefClickEnabled', 'lawRefHoverPopup', 'lawRefOtherLawPopup'], ({ lawRefClickEnabled, lawRefHoverPopup, lawRefOtherLawPopup }) => {
+        if (lawRefClickEnabled !== false) {
+          lawRefHoverPopupEnabled = lawRefHoverPopup === true;
+          lawRefOtherLawPopupEnabled = lawRefOtherLawPopup !== false;
+          setupLawReferenceInteractions();
+        }
+      });
+    }, 1800);
+    runWhenIdle(ensureShortcutGuide, 900);
+    runWhenIdle(setupFavoriteHeaderBadge, 1200);
+    runWhenIdle(setupColorPinFeatures, 1600);
+    restoreFavoriteScrollOnLoad()
+      .then((restored) => {
+        if (!restored) moveToFirstArticleOnLoad();
+        runWhenIdle(setupFavoriteScrollPersistence, 1800);
+      })
+      .catch(() => {
+        moveToFirstArticleOnLoad();
+        runWhenIdle(setupFavoriteScrollPersistence, 1800);
+      });
   }
 
   if (document.readyState === 'loading') {

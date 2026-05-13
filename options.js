@@ -1,5 +1,6 @@
 document.addEventListener('DOMContentLoaded', async () => {
   const smoothToggle = document.getElementById('smoothScrollToggle');
+  const liteModeDefaultToggle = document.getElementById('liteModeDefaultToggle');
   const pinToastToggle = document.getElementById('pinToastToggle');
   const lawRefClickToggle = document.getElementById('lawRefClickToggle');
   const lawRefHoverPopupToggle = document.getElementById('lawRefHoverPopupToggle');
@@ -16,25 +17,36 @@ document.addEventListener('DOMContentLoaded', async () => {
   const FAVORITES_EXPORT_VERSION = 1;
   const FAVORITES_MAX = 50;
 
-  const {
-    scrollBehavior,
-    pinToastDefaultVisible,
-    lawRefClickEnabled,
-    lawRefHoverPopup,
-    lawRefOtherLawPopup,
-  } = await chrome.storage.local.get([
+  smoothToggle.checked = false;
+  liteModeDefaultToggle.checked = false;
+  pinToastToggle.checked = true;
+  lawRefClickToggle.checked = true;
+  lawRefHoverPopupToggle.checked = false;
+  lawRefOtherLawPopupToggle.checked = true;
+
+  chrome.storage.local.get([
     'scrollBehavior',
+    'liteModeDefault',
     'pinToastDefaultVisible',
     'lawRefClickEnabled',
     'lawRefHoverPopup',
     'lawRefOtherLawPopup',
-  ]);
-
-  smoothToggle.checked = (scrollBehavior === 'smooth');
-  pinToastToggle.checked = (typeof pinToastDefaultVisible === 'boolean') ? pinToastDefaultVisible : true;
-  lawRefClickToggle.checked = (typeof lawRefClickEnabled === 'boolean') ? lawRefClickEnabled : true;
-  lawRefHoverPopupToggle.checked = (typeof lawRefHoverPopup === 'boolean') ? lawRefHoverPopup : false;
-  lawRefOtherLawPopupToggle.checked = (typeof lawRefOtherLawPopup === 'boolean') ? lawRefOtherLawPopup : true;
+  ]).then(({
+    scrollBehavior,
+    liteModeDefault,
+    pinToastDefaultVisible,
+    lawRefClickEnabled,
+    lawRefHoverPopup,
+    lawRefOtherLawPopup,
+  }) => {
+    smoothToggle.checked = (scrollBehavior === 'smooth');
+    liteModeDefaultToggle.checked = (typeof liteModeDefault === 'boolean') ? liteModeDefault : false;
+    pinToastToggle.checked = (typeof pinToastDefaultVisible === 'boolean') ? pinToastDefaultVisible : true;
+    lawRefClickToggle.checked = (typeof lawRefClickEnabled === 'boolean') ? lawRefClickEnabled : true;
+    lawRefHoverPopupToggle.checked = (typeof lawRefHoverPopup === 'boolean') ? lawRefHoverPopup : false;
+    lawRefOtherLawPopupToggle.checked = (typeof lawRefOtherLawPopup === 'boolean') ? lawRefOtherLawPopup : true;
+    updateLawRefHoverPopupRow();
+  }).catch(() => {});
 
   function updateLawRefHoverPopupRow() {
     lawRefHoverPopupRow.classList.toggle('is-disabled', !lawRefClickToggle.checked);
@@ -289,6 +301,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   smoothToggle.addEventListener('change', () => {
     chrome.storage.local.set({ scrollBehavior: smoothToggle.checked ? 'smooth' : 'instant' });
+  });
+
+  liteModeDefaultToggle.addEventListener('change', () => {
+    chrome.storage.local.set({ liteModeDefault: liteModeDefaultToggle.checked });
   });
 
   pinToastToggle.addEventListener('change', () => {

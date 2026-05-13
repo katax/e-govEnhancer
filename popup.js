@@ -29,6 +29,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const searchHintEl  = document.getElementById('searchHint');
   const histLeftBtn   = { style: {}, disabled: false, title: '', addEventListener() {} };
   const histRightBtn  = { style: {}, disabled: false, title: '', addEventListener() {} };
+  const liteModeTitleBadge = document.getElementById('liteModeTitleBadge');
   const favFolderBtn  = document.getElementById('favFolderBtn');
   const mode0NavLeft  = document.getElementById('mode0NavLeft');
   const mode0NavRight = document.getElementById('mode0NavRight');
@@ -41,6 +42,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   let currentResults     = [];
   let focusedResultIndex = -1;
   let mainHoverEnabled   = true;
+  let liteModeDefault    = false;
+  let ctrlPressed        = false;
 
   // 履歴・お気に入りデータ
   let queryHistory     = [];   // 検索クエリ履歴（文字列）
@@ -67,6 +70,59 @@ document.addEventListener('DOMContentLoaded', async () => {
   toastEl.className = 'popup-toast';
   toastEl.setAttribute('aria-live', 'polite');
   document.body.appendChild(toastEl);
+
+  function buildLiteViewerUrl(law) {
+    const fields = getLawFields(law);
+    const lawId = fields.lawId || law?.lawId || '';
+    const lawName = fields.lawName || law?.lawName || '';
+    if (!lawId) return '';
+    const params = new URLSearchParams();
+    params.set('lawId', lawId);
+    params.set('lawName', lawName || '');
+    params.set('sourceUrl', buildLawUrl(lawId));
+    return chrome.runtime.getURL(`viewer.html?${params.toString()}`);
+  }
+
+  function updateLiteModeTitleBadge() {
+    if (!liteModeTitleBadge) return;
+    liteModeTitleBadge.hidden = !shouldOpenLite(ctrlPressed);
+  }
+
+  function setCtrlPressed(value) {
+    const next = value === true;
+    if (ctrlPressed === next) return;
+    ctrlPressed = next;
+    updateLiteModeTitleBadge();
+  }
+
+  chrome.storage.local.get(['liteModeDefault'])
+    .then(({ liteModeDefault: stored }) => {
+      liteModeDefault = stored === true;
+      updateLiteModeTitleBadge();
+    })
+    .catch(() => {});
+  chrome.storage.onChanged.addListener((changes, area) => {
+    if (area === 'local' && changes.liteModeDefault) {
+      liteModeDefault = changes.liteModeDefault.newValue === true;
+      updateLiteModeTitleBadge();
+    }
+  });
+
+  function shouldOpenLite(forceAlternate = false) {
+    return forceAlternate ? !liteModeDefault : liteModeDefault;
+  }
+
+  function openLaw(law, { alternate = false } = {}) {
+    const { lawId, lawName, lawNum, lawType } = getLawFields(law);
+    if (!lawId) return false;
+    pushOpenedLaw({ lawId, lawName, lawNum, lawType });
+    const useLite = shouldOpenLite(alternate);
+    const url = useLite ? buildLiteViewerUrl(law) : buildLawUrl(lawId);
+    if (!url) return false;
+    chrome.tabs.create({ url });
+    window.close();
+    return true;
+  }
 
   function showTooltip(el, name, num) {
     clearTimeout(tooltipTimer);
@@ -252,23 +308,33 @@ document.addEventListener('DOMContentLoaded', async () => {
   // フォルダ折りたたみ状態 { folderId: true/false }
   let folderCollapsed = {};
 
-  // ================================================
-  // 起動時：履歴を読み込んで検索履歴を表示
-  // ================================================
-  await loadHistories();
-  const { requestedPopupMode = '' } = await chrome.storage.session.get('requestedPopupMode').catch(() => ({ requestedPopupMode: '' }));
-  const initialMode = requestedPopupMode === 'law' || requestedPopupMode === 'favorites'
-    ? requestedPopupMode
-    : null;
-  chrome.storage.session.remove('requestedPopupMode').catch(() => {});
   syncModeHint('search');
   setupFavoritesDnD();
-  if (initialMode) {
-    showHistoryPanel(initialMode);
-  } else {
-    searchInput.focus();
-    showEmptyState();
-  }
+  searchInput.focus();
+  showEmptyState();
+
+  // 初回表示をブロックしない。履歴とコマンド指定モードは描画後に反映する。
+  loadHistories()
+    .then(async () => {
+      const { requestedPopupMode = '' } = await chrome.storage.session.get('requestedPopupMode').catch(() => ({ requestedPopupMode: '' }));
+      const initialMode = requestedPopupMode === 'law' || requestedPopupMode === 'favorites'
+        ? requestedPopupMode
+        : null;
+      chrome.storage.session.remove('requestedPopupMode').catch(() => {});
+      if (initialMode) {
+        showHistoryPanel(initialMode);
+      } else if (historyMode === null && !searchInput.value.trim()) {
+        showEmptyState();
+      }
+    })
+    .catch(() => {});
+  document.addEventListener('keydown', (e) => {
+    setCtrlPressed(e.ctrlKey || e.key === 'Control');
+  }, true);
+  document.addEventListener('keyup', (e) => {
+    setCtrlPressed(e.ctrlKey && e.key !== 'Control');
+  }, true);
+  window.addEventListener('blur', () => setCtrlPressed(false));
   document.addEventListener('keydown', (e) => {
     if (handleModeArrowNavigation(e)) e.stopPropagation();
   }, true);
@@ -394,7 +460,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
         return;
       }
-      selectHistItem(getFocusedArrayIdx()); return;
+      selectHistItem(getFocusedArrayIdx(), { alternate: e.ctrlKey }); return;
     }
     if (e.key === 'Escape') { hideHistoryPanel(); return; }
   }
@@ -460,6 +526,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         isEmptyState = false;
         searchInput.value = query;
         doSearch(query);
+      } else if (e.ctrlKey) {
+        if (focusedResultIndex >= 0 && currentResults[focusedResultIndex]) {
+          openResult(currentResults[focusedResultIndex], { alternate: true });
+        }
       } else if (e.shiftKey) {
         if (focusedResultIndex >= 0 && currentResults[focusedResultIndex]) {
           toggleFavorite(currentResults[focusedResultIndex]);
@@ -1321,7 +1391,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   }
 
-  function selectHistItem(arrayIdx) {
+  function selectHistItem(arrayIdx, { alternate = false } = {}) {
     if (arrayIdx < 0) return;
     hideTooltip();
     if (historyMode === 'search') {
@@ -1333,11 +1403,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     } else {
       const law = getHistArray(historyMode)[arrayIdx];
       if (!law) return;
-      hideHistoryPanel();
       // お気に入り・法令履歴どちらから開いた場合も「開いた法令履歴」に追加
-      if (historyMode !== 'law') pushOpenedLaw(law);
-      chrome.tabs.create({ url: buildLawUrl(law.lawId) });
-      window.close();
+      if (!openLaw(law, { alternate })) {
+        showToast('法令を開けませんでした');
+      }
     }
   }
 
@@ -1412,11 +1481,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     blurSearchInputForListSelection();
   }
 
-  function openResult(law) {
-    const { lawId, lawName, lawNum, lawType } = getLawFields(law);
-    pushOpenedLaw({ lawId, lawName, lawNum, lawType });
-    chrome.tabs.create({ url: buildLawUrl(lawId) });
-    window.close();
+  function openResult(law, options = {}) {
+    openLaw(law, options);
   }
 
   // ★ ボタン表示を最新状態に更新
@@ -1461,12 +1527,14 @@ document.addEventListener('DOMContentLoaded', async () => {
   async function loadHistories() {
     try {
       const data = await chrome.storage.local.get([
-        'queryHistory', 'openedLawHistory', 'favorites', 'favFolders',
+        'queryHistory', 'openedLawHistory', 'favorites', 'favFolders', 'liteModeDefault',
       ]);
       if (Array.isArray(data.queryHistory))     queryHistory     = data.queryHistory;
       if (Array.isArray(data.openedLawHistory)) openedLawHistory = data.openedLawHistory;
       if (Array.isArray(data.favorites))        favorites        = data.favorites;
       if (Array.isArray(data.favFolders))       favFolders       = data.favFolders;
+      liteModeDefault = data.liteModeDefault === true;
+      updateLiteModeTitleBadge();
       if (data.folderCollapsed && typeof data.folderCollapsed === 'object') folderCollapsed = data.folderCollapsed;
     } catch (_) {}
   }

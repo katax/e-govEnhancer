@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>法令ビューア</title>
+  <link rel="stylesheet" href="viewer.css">
+</head>
+<body>
+  <header class="viewer-header">
+    <div class="viewer-title-block">
+      <h1 id="law-title">Loading...</h1>
+      <p id="law-meta" class="viewer-meta"></p>
+    </div>
+    <div class="viewer-actions">
+      <label class="viewer-control">
+        <select id="revision-select" disabled>
+          <option>読込中</option>
+        </select>
+      </label>
+      <label class="viewer-control">
+        <span>文字</span>
+        <select id="font-size-select">
+          <option value="1">1</option>
+          <option value="2" selected>2</option>
+          <option value="3">3</option>
+          <option value="4">4</option>
+          <option value="5">5</option>
+        </select>
+      </label>
+      <label class="viewer-control">
+        <span>幅</span>
+        <select id="content-width-select">
+          <option value="full" selected>広</option>
+          <option value="medium">中</option>
+          <option value="narrow">狭</option>
+        </select>
+      </label>
+      <button id="normal-mode-button" type="button">通常モード</button>
+      <button id="compare-mode-button" type="button">&#x4E26;&#x3079;&#x3066;&#x8868;&#x793A;</button>
+      <button id="favorite-button" type="button" aria-label="お気に入り">☆</button>
+      <button id="shortcut-button" type="button" aria-label="ショートカット">?</button>
+    </div>
+  </header>
+  <main class="viewer-shell">
+    <section id="left-pane" class="lite-pane lite-pane-left is-focused" tabindex="-1">
+      <article id="law-content" class="law-content" aria-live="polite"></article>
+    </section>
+    <aside id="right-pane" class="lite-pane lite-pane-right" tabindex="-1" aria-label="&#x4E26;&#x3079;&#x3066;&#x8868;&#x793A;"></aside>
+  </main>
+  <script src="viewer.js"></script>
+</body>
+</html>

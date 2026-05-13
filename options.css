@@ -30,13 +30,6 @@ body {
   color: white;
 }
 
-.options-logo {
-  width: 48px;
-  height: 48px;
-  border-radius: 10px;
-  background: rgba(255,255,255,0.2);
-}
-
 .options-header h1 {
   font-size: 22px;
   font-weight: 700;
@@ -294,6 +287,10 @@ a:hover {
   justify-content: space-between;
   gap: 16px;
   padding: 4px 0;
+}
+
+.setting-row:has(+ .setting-row-sub#lawRefOtherLawPopupRow) {
+  display: none;
 }
 
 .setting-label {

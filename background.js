@@ -9,8 +9,6 @@ chrome.runtime.onInstalled?.addListener((details) => {
   }
 });
 
-chrome.storage.session.setAccessLevel({ accessLevel: 'TRUSTED_AND_UNTRUSTED_CONTEXTS' }).catch(() => {});
-
 function getLawUrl(lawId) {
   return `https://laws.e-gov.go.jp/law/${encodeURIComponent(lawId)}`;
 }
@@ -22,6 +20,14 @@ function getLawIdFromUrl(url) {
   } catch (_) {
     return '';
   }
+}
+
+function getViewerUrl({ lawId, lawName = '', sourceUrl = '' }) {
+  const params = new URLSearchParams();
+  params.set('lawId', lawId);
+  if (lawName) params.set('lawName', lawName);
+  if (sourceUrl) params.set('sourceUrl', sourceUrl);
+  return chrome.runtime.getURL(`viewer.html?${params.toString()}`);
 }
 
 async function openActionPopup(mode = '') {
@@ -74,6 +80,20 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
   if (message?.type === 'egov-open-law-reference-tab' && message.url) {
     chrome.tabs.create({ url: message.url, active: true })
+      .then((tab) => sendResponse({ ok: true, tabId: tab?.id }))
+      .catch(() => sendResponse({ ok: false }));
+    return true;
+  }
+  if (message?.type === 'egov-open-lightweight-viewer' && message.lawId) {
+    const url = getViewerUrl({
+      lawId: message.lawId,
+      lawName: message.lawName || '',
+      sourceUrl: message.sourceUrl || sender?.tab?.url || '',
+    });
+    const openPromise = sender?.tab?.id
+      ? chrome.tabs.update(sender.tab.id, { url, active: true })
+      : chrome.tabs.create({ url, active: true });
+    openPromise
       .then((tab) => sendResponse({ ok: true, tabId: tab?.id }))
       .catch(() => sendResponse({ ok: false }));
     return true;

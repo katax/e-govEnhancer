@@ -9,7 +9,6 @@
 <body>
   <div class="options-container">
     <header class="options-header">
-      <img src="icons/icon48.png" alt="" class="options-logo">
       <div>
         <h1>e-Gov法令検索 Enhancer</h1>
         <p class="options-subtitle">設定と使い方ガイド</p>
@@ -41,6 +40,28 @@
             </label>
             <label class="toggle-switch">
               <input type="checkbox" id="lawRefClickToggle">
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+
+          <div class="setting-row">
+            <label class="setting-label" for="liteModeDefaultToggle">
+              <span class="setting-title">Liteモードをデフォルトで開く</span>
+              <span class="setting-desc">ポップアップの検索結果・履歴・お気に入りから法令を開くとき、通常画面ではなくLiteモードを開きます。Ctrl+Enterでは設定と逆のモードで開きます。</span>
+            </label>
+            <label class="toggle-switch">
+              <input type="checkbox" id="liteModeDefaultToggle">
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+
+          <div class="setting-row">
+            <label class="setting-label" for="lawRefClickToggle">
+              <span class="setting-title">法令リンクのポップアップ抑止</span>
+              <span class="setting-desc">本文中の法令リンクをクリックしたとき、ポップアップ表示をせずにスクロール移動します。</span>
+            </label>
+            <label class="toggle-switch">
+              <input type="checkbox" id="unusedDuplicateLawRefClickToggle">
               <span class="toggle-slider"></span>
             </label>
           </div>
@@ -198,7 +219,7 @@
             <a href="https://laws.e-gov.go.jp/" target="_blank" rel="noopener">e-Gov 法令検索</a>
             をより便利に使うための補助ツールです。
           </p>
-          <p class="version-info">バージョン 1.4.2</p>
+          <p class="version-info">バージョン 2.0.0</p>
         </div>
       </section>
     </main>
