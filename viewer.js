@@ -58,6 +58,7 @@
   let compareMode = false;
   let focusedPane = 'left';
   let compareResults = [];
+  let compareResultButtons = [];
   let compareFocusedIndex = -1;
   titleEl.textContent = fallbackLawName;
   document.body.dataset.fontSize = '2';
@@ -632,12 +633,26 @@
     const button = rightPaneEl.querySelector('#compare-search-button');
     const run = () => runCompareSearch(input.value.trim());
     button.addEventListener('click', run);
+    input.addEventListener('input', () => {
+      if (compareFocusedIndex >= 0) compareResultButtons[compareFocusedIndex]?.classList.remove('is-focused');
+      compareFocusedIndex = -1;
+    });
     input.addEventListener('keydown', (event) => {
-      if (event.key === 'Enter') { event.preventDefault(); run(); }
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        if (compareFocusedIndex >= 0 && compareResults[compareFocusedIndex]) openCompareResult(compareFocusedIndex);
+        else run();
+      }
       else if (event.key === 'ArrowDown') { event.preventDefault(); focusCompareResult(compareFocusedIndex + 1); }
       else if (event.key === 'ArrowUp') { event.preventDefault(); focusCompareResult(compareFocusedIndex - 1); }
     });
-    rightPaneEl.querySelector('#compare-results').addEventListener('keydown', (event) => {
+    const resultsEl = rightPaneEl.querySelector('#compare-results');
+    resultsEl.addEventListener('click', (event) => {
+      const buttonEl = event.target.closest('.compare-result');
+      if (!buttonEl) return;
+      openCompareResult(Number(buttonEl.dataset.index));
+    });
+    resultsEl.addEventListener('keydown', (event) => {
       if (event.key === 'ArrowDown' || event.key === 'n') { event.preventDefault(); focusCompareResult(compareFocusedIndex + 1); }
       else if (event.key === 'ArrowUp' || event.key === 'p') { event.preventDefault(); focusCompareResult(compareFocusedIndex - 1); }
       else if (event.key === 'Enter') { event.preventDefault(); openCompareResult(compareFocusedIndex); }
@@ -652,12 +667,14 @@
       status.textContent = '検索語を入力してください';
       resultsEl.innerHTML = '';
       compareResults = [];
+      compareResultButtons = [];
       compareFocusedIndex = -1;
       return;
     }
     status.textContent = '検索中...';
     resultsEl.innerHTML = '';
     compareResults = [];
+    compareResultButtons = [];
     compareFocusedIndex = -1;
     try {
       const url = `${API_V2_BASE}/laws?law_title=${encodeURIComponent(query)}&limit=31&response_format=json`;
@@ -671,9 +688,7 @@
           ${law.lawNum ? `<span class="compare-result-num">${escapeHtml(law.lawNum)}</span>` : ''}
         </button>
       `).join('');
-      resultsEl.querySelectorAll('.compare-result').forEach((button) => {
-        button.addEventListener('click', () => openCompareResult(Number(button.dataset.index)));
-      });
+      compareResultButtons = Array.from(resultsEl.querySelectorAll('.compare-result'));
       if (compareResults.length) focusCompareResult(0);
     } catch (error) {
       status.textContent = `検索に失敗しました: ${error.message || ''}`;
@@ -682,11 +697,14 @@
 
   function focusCompareResult(index) {
     if (!compareResults.length) return;
+    const previous = compareFocusedIndex;
     compareFocusedIndex = (index + compareResults.length) % compareResults.length;
-    rightPaneEl.querySelectorAll('.compare-result').forEach((el, i) => {
-      el.classList.toggle('is-focused', i === compareFocusedIndex);
-    });
-    rightPaneEl.querySelector('.compare-result.is-focused')?.focus();
+    if (previous >= 0) compareResultButtons[previous]?.classList.remove('is-focused');
+    const current = compareResultButtons[compareFocusedIndex];
+    if (!current) return;
+    current.classList.add('is-focused');
+    current.focus({ preventScroll: true });
+    current.scrollIntoView({ block: 'nearest' });
   }
 
   function openCompareResult(index) {
