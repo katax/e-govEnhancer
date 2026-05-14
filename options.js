@@ -351,21 +351,33 @@ document.addEventListener('DOMContentLoaded', async () => {
     const favoritesCommand = commands.find((c) => c.name === 'open_favorites_popup');
     const historyCommand = commands.find((c) => c.name === 'open_history_popup');
     const shortcutEl = document.getElementById('currentShortcut');
-    const shortcutSummary = [
-      actionCommand?.shortcut || 'Ctrl+Shift+E',
-      favoritesCommand?.shortcut || 'Ctrl+Shift+F',
-      historyCommand?.shortcut || 'Ctrl+Shift+H',
-    ].join(' / ');
+    const shortcutItems = [
+      { label: '法令検索', command: actionCommand, fallback: 'Ctrl+Shift+E' },
+      { label: 'お気に入り', command: favoritesCommand, fallback: 'Ctrl+Shift+F' },
+      { label: '履歴', command: historyCommand, fallback: 'Ctrl+Shift+H' },
+    ];
 
-    if (actionCommand && actionCommand.shortcut) {
-      shortcutEl.textContent = shortcutSummary;
-    } else {
-      shortcutEl.textContent = '未設定です。Chrome の設定から変更してください。';
-      shortcutEl.style.background = '#fff3e0';
-      shortcutEl.style.color = '#e65100';
-    }
+    shortcutEl.textContent = '';
+    shortcutItems.forEach((item) => {
+      const row = document.createElement('div');
+      row.className = 'shortcut-row';
+
+      const label = document.createElement('span');
+      label.className = 'shortcut-row-label';
+      label.textContent = item.label;
+
+      const key = document.createElement('span');
+      key.className = 'shortcut-row-key';
+      key.textContent = item.command?.shortcut || `未設定（既定: ${item.fallback}）`;
+      if (!item.command?.shortcut) {
+        key.classList.add('is-unset');
+      }
+
+      row.append(label, key);
+      shortcutEl.append(row);
+    });
   } catch (_) {
-    document.getElementById('currentShortcut').textContent = 'Ctrl+Shift+E / Ctrl+Shift+F / Ctrl+Shift+H';
+    document.getElementById('currentShortcut').textContent = '法令検索: Ctrl+Shift+E / お気に入り: Ctrl+Shift+F / 履歴: Ctrl+Shift+H';
   }
 
   document.getElementById('openShortcutsPageLink').addEventListener('click', (event) => {

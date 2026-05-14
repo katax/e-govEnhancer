@@ -78,7 +78,7 @@ body {
 /* ショートカット表示 */
 .shortcut-display {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 12px;
   flex-wrap: wrap;
 }
@@ -91,11 +91,40 @@ body {
 .shortcut-badge {
   background: #e8eaf6;
   color: #3949ab;
-  padding: 5px 16px;
-  border-radius: 20px;
+  padding: 8px 14px;
+  border-radius: 8px;
   font-weight: 700;
   font-size: 14px;
-  letter-spacing: 0.5px;
+  letter-spacing: 0;
+  min-width: 260px;
+}
+
+.shortcut-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  line-height: 1.6;
+}
+
+.shortcut-row + .shortcut-row {
+  margin-top: 4px;
+}
+
+.shortcut-row-label {
+  color: #555;
+  font-weight: 600;
+}
+
+.shortcut-row-key {
+  color: #283593;
+  font-family: monospace;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.shortcut-row-key.is-unset {
+  color: #e65100;
 }
 
 /* インフォボックス */

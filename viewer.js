@@ -1270,7 +1270,6 @@
       <div class="lite-shortcut-list">
         <div><kbd>Alt+s</kbd><span>並べて表示の切替</span></div>
         <div><kbd>Alt+O</kbd><span>設定画面を開く</span></div>
-        <div><kbd>Ctrl+Enter</kbd><span>通常画面からLiteを開く</span></div>
         <div><kbd>s</kbd><span>ページ内検索</span></div>
         <div><kbd>0-9</kbd><span>条文ジャンプダイアログ</span></div>
         <div><kbd>h / l</kbd><span>条文ジャンプ履歴を前後移動</span></div>
@@ -1281,6 +1280,7 @@
         <div><kbd>t</kbd><span>目次</span></div>
         <div><kbd>Tab</kbd><span>並べて表示中の左右ペイン切替</span></div>
         <div><kbd>?</kbd><span>この一覧を表示</span></div>
+        <div><kbd>Esc</kbd><span>ダイアログを閉じる</span></div>
       </div>
     `;
   }
