@@ -22,6 +22,43 @@
     return `${LAW_BASE_URL}/law/${encodeURIComponent(lawId)}`;
   }
 
+  function formatArticleNumber(article) {
+    const [base, ...suffixes] = String(article || '').split('_').filter(Boolean);
+    if (!base) return '';
+    return `第${base}条${suffixes.map((suffix) => `の${suffix}`).join('')}`;
+  }
+
+  function formatProvisionNumber(parts, {
+    isArticleLevel = false,
+    omitSingleParagraphFirst = false,
+  } = {}) {
+    if (!parts?.article) return '';
+    let text = formatArticleNumber(parts.article);
+    if (
+      parts.paragraph &&
+      !isArticleLevel &&
+      !(omitSingleParagraphFirst && parts.paragraph === '1' && !parts.item)
+    ) {
+      text += `第${parts.paragraph}項`;
+    }
+    if (parts.item) text += `第${parts.item}号`;
+    return text;
+  }
+
+  function normalizeLawNameForCopy(name) {
+    return String(name || '')
+      .replace(/\s*（[^）]*第[^）]*号）\s*$/, '')
+      .trim();
+  }
+
+  function buildProvisionCopyPayload({ lawName, numberLabel, bodyText = '', url = '' } = {}, mode = 'url') {
+    if (mode === 'url') return url;
+    const titleLine = `${normalizeLawNameForCopy(lawName)} ${numberLabel || ''}`.trim();
+    if (mode === 'law-number-url') return `${titleLine}\n${url}`;
+    if (mode === 'text-url') return `${titleLine}\n---\n${bodyText || ''}\n${url}`;
+    return url;
+  }
+
   function extractLaws(data) {
     if (Array.isArray(data?.laws)) return data.laws;
     if (Array.isArray(data?.data?.laws)) return data.data.laws;
@@ -59,10 +96,14 @@
   global.EgovShared = Object.freeze({
     LAW_BASE_URL,
     buildLawUrl,
+    buildProvisionCopyPayload,
     escapeHtml,
     extractLaws,
+    formatArticleNumber,
     formatLawNameHtml,
+    formatProvisionNumber,
     getLawFields,
+    normalizeLawNameForCopy,
     searchLawsByTitle,
   });
 })(globalThis);

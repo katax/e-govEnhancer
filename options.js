@@ -1,6 +1,7 @@
 document.addEventListener('DOMContentLoaded', async () => {
   const smoothToggle = document.getElementById('smoothScrollToggle');
   const liteModeDefaultToggle = document.getElementById('liteModeDefaultToggle');
+  const hideLawSidebarDefaultToggle = document.getElementById('hideLawSidebarDefaultToggle');
   const pinToastToggle = document.getElementById('pinToastToggle');
   const lawRefClickToggle = document.getElementById('lawRefClickToggle');
   const lawRefHoverPopupToggle = document.getElementById('lawRefHoverPopupToggle');
@@ -19,6 +20,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   smoothToggle.checked = false;
   liteModeDefaultToggle.checked = false;
+  hideLawSidebarDefaultToggle.checked = false;
   pinToastToggle.checked = true;
   lawRefClickToggle.checked = true;
   lawRefHoverPopupToggle.checked = false;
@@ -27,6 +29,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   chrome.storage.local.get([
     'scrollBehavior',
     'liteModeDefault',
+    'hideLawSidebarDefault',
     'pinToastDefaultVisible',
     'lawRefClickEnabled',
     'lawRefHoverPopup',
@@ -34,6 +37,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   ]).then(({
     scrollBehavior,
     liteModeDefault,
+    hideLawSidebarDefault,
     pinToastDefaultVisible,
     lawRefClickEnabled,
     lawRefHoverPopup,
@@ -41,6 +45,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   }) => {
     smoothToggle.checked = (scrollBehavior === 'smooth');
     liteModeDefaultToggle.checked = (typeof liteModeDefault === 'boolean') ? liteModeDefault : false;
+    hideLawSidebarDefaultToggle.checked = (typeof hideLawSidebarDefault === 'boolean') ? hideLawSidebarDefault : false;
     pinToastToggle.checked = (typeof pinToastDefaultVisible === 'boolean') ? pinToastDefaultVisible : true;
     lawRefClickToggle.checked = (typeof lawRefClickEnabled === 'boolean') ? lawRefClickEnabled : true;
     lawRefHoverPopupToggle.checked = (typeof lawRefHoverPopup === 'boolean') ? lawRefHoverPopup : false;
@@ -305,6 +310,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   liteModeDefaultToggle.addEventListener('change', () => {
     chrome.storage.local.set({ liteModeDefault: liteModeDefaultToggle.checked });
+  });
+
+  hideLawSidebarDefaultToggle.addEventListener('change', () => {
+    chrome.storage.local.set({ hideLawSidebarDefault: hideLawSidebarDefaultToggle.checked });
   });
 
   pinToastToggle.addEventListener('change', () => {

@@ -1,6 +1,11 @@
 (function () {
   'use strict';
 
+  const shared = globalThis.EgovShared;
+  const {
+    buildProvisionCopyPayload: buildSharedProvisionCopyPayload,
+    formatProvisionNumber,
+  } = shared;
   const params = new URLSearchParams(location.search);
   const lawId = params.get('lawId') || '';
   const revisionIdParam = params.get('revisionId') || '';
@@ -198,8 +203,14 @@
   }
 
   function buildArticleCopyText(article) {
-    return Array.from(article.querySelectorAll(':scope > .law-paragraph'))
+    const leadLines = [
+      copyLine(article.querySelector(':scope > .article-caption')?.textContent || ''),
+      copyLine(article.querySelector(':scope > .article-title')?.textContent || ''),
+    ].filter(Boolean);
+    const paragraphLines = Array.from(article.querySelectorAll(':scope > .law-paragraph'))
       .flatMap((paragraph) => buildParagraphCopyLines(paragraph))
+      .filter(Boolean);
+    return [...leadLines, ...paragraphLines]
       .filter(Boolean)
       .join('\n');
   }
@@ -217,7 +228,10 @@
   }
 
   function getNodeText(el) {
-    return normalizeText(el?.textContent || '');
+    if (!(el instanceof Element)) return normalizeText(el?.textContent || '');
+    const clone = el.cloneNode(true);
+    clone.querySelectorAll('Rt,rt,rp').forEach((node) => node.remove());
+    return normalizeText(clone.textContent || '');
   }
 
   function safeIdPart(value) {
@@ -262,7 +276,12 @@
       return `<${lowerTag}>${children}</${lowerTag}>`;
     }
     if (tag === 'ArithFormula') return `<strong>${escapeHtml(getNodeText(node))}</strong>`;
-    if (tag === 'Ruby') return escapeHtml(getNodeText(node));
+    if (tag === 'Ruby') {
+      return Array.from(node.childNodes)
+        .filter((child) => !(child.nodeType === Node.ELEMENT_NODE && child.tagName === 'Rt'))
+        .map(renderInline)
+        .join('');
+    }
     if (tag === 'Line') return `${renderInlineChildren(node)}<br>`;
     if (tag === 'Column' || tag === 'TableColumn') {
       const html = renderInlineChildren(node).trim();
@@ -791,8 +810,9 @@
   function pushJumpHistory(key) {
     if (!key) return;
     if (articleJumpCursor >= 0 && articleJumpHistory[articleJumpCursor] === key) return;
-    articleJumpHistory.splice(articleJumpCursor + 1, articleJumpHistory.length - articleJumpCursor - 1, key);
-    articleJumpCursor = articleJumpHistory.length - 1;
+    const insertAt = articleJumpCursor + 1;
+    articleJumpHistory.splice(insertAt, 0, key);
+    articleJumpCursor = insertAt;
     if (articleJumpHistory.length > 200) {
       articleJumpHistory.shift();
       articleJumpCursor = Math.max(0, articleJumpCursor - 1);
@@ -1142,26 +1162,51 @@
   function getAllProvisionItems() {
     const items = [];
     Array.from(contentEl.querySelectorAll('.law-article')).forEach((article) => {
-      const articleTitle = normalizeCopyText(article.querySelector('.article-title')?.textContent || article.dataset.articleNum || '');
+      const articleNum = article.dataset.articleNum || '';
+      const articleTitle = formatProvisionNumber({ article: articleNum }) ||
+        normalizeCopyText(article.querySelector('.article-title')?.textContent || articleNum);
+      const paragraphNums = new Set(
+        Array.from(article.querySelectorAll(':scope > .law-paragraph[data-paragraph-num]'))
+          .map((paragraph) => paragraph.dataset.paragraphNum || '')
+          .filter(Boolean)
+      );
       items.push({
         el: article,
         id: article.id,
         type: 'article',
         title: articleTitle,
+        copyTitle: articleTitle,
         url: `${sourceUrl.split('#')[0]}#${encodeURIComponent(article.id)}`,
       });
       article.querySelectorAll('.law-paragraph[data-paragraph-num]').forEach((paragraph) => {
         const paragraphNum = paragraph.dataset.paragraphNum || '';
-        const visibleNum = normalizeCopyText(paragraph.querySelector(':scope > .law-num')?.textContent || '');
-        const label = paragraphNum === '1' && !visibleNum
-          ? articleTitle
-          : `${articleTitle}第${visibleNum || paragraphNum}項`;
+        const label = formatProvisionNumber(
+          { article: articleNum, paragraph: paragraphNum },
+          { omitSingleParagraphFirst: paragraphNums.size === 1 }
+        ) || articleTitle;
         items.push({
           el: paragraph,
           id: paragraph.id,
           type: 'paragraph',
           title: label,
+          copyTitle: label,
           url: `${sourceUrl.split('#')[0]}#${encodeURIComponent(paragraph.id)}`,
+        });
+        paragraph.querySelectorAll(':scope > div:nth-child(2) > .law-item[data-item-num]').forEach((item) => {
+          const itemNum = item.dataset.itemNum || '';
+          const itemLabel = formatProvisionNumber({
+            article: articleNum,
+            paragraph: paragraphNum,
+            item: itemNum,
+          }) || label;
+          items.push({
+            el: item,
+            id: item.id,
+            type: 'item',
+            title: itemLabel,
+            copyTitle: itemLabel,
+            url: `${sourceUrl.split('#')[0]}#${encodeURIComponent(item.id)}`,
+          });
         });
       });
     });
@@ -1178,13 +1223,17 @@
   }
 
   function getProvisionCopyText(item) {
+    if (item.type === 'item') return buildItemCopyLines(item.el).filter(Boolean).join('\n');
     return item.type === 'paragraph' ? buildParagraphCopyText(item.el) : buildArticleCopyText(item.el);
   }
 
   function buildProvisionCopyPayload(item, mode) {
-    if (mode === 'url') return item.url;
-    if (mode === 'law-number-url') return `${lawTitleText} ${item.title}\n${item.url}`;
-    return `${lawTitleText} ${item.title}\n${getProvisionCopyText(item)}\n${item.url}`;
+    return buildSharedProvisionCopyPayload({
+      lawName: lawTitleText,
+      numberLabel: item.copyTitle || item.title,
+      bodyText: getProvisionCopyText(item),
+      url: item.url,
+    }, mode);
   }
 
   async function copyText(text) {
@@ -1220,7 +1269,7 @@
     const body = dialog.querySelector('.lite-dialog-body');
     body.innerHTML = `
       <div class="lite-link-panel" id="lite-link-panel" tabindex="0">
-        <p class="lite-hint">↑/↓ または u/p/n/d: コピー対象移動（条・項）</p>
+        <p class="lite-hint">↑/↓ または u/p/n/d: コピー対象移動（条・項・号）</p>
         <p class="lite-hint"><kbd>Enter</kbd>: URL / <kbd>Shift+Enter</kbd>: 法令名+条項+URL / <kbd>Ctrl+Enter</kbd>: 本文付き</p>
         <div class="lite-link-preview" id="lite-link-preview-url"></div>
         <div class="lite-link-preview" id="lite-link-preview-meta"></div>

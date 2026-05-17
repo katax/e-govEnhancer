@@ -45,6 +45,17 @@
           </div>
 
           <div class="setting-row">
+            <label class="setting-label" for="hideLawSidebarDefaultToggle">
+              <span class="setting-title">通常モードでサイドバーを非表示にする</span>
+              <span class="setting-desc">法令ページを開いたとき、左側の改正法一覧・目次を隠して本文エリアを全幅表示します。ページ上では w キーで表示を切り替えられます。</span>
+            </label>
+            <label class="toggle-switch">
+              <input type="checkbox" id="hideLawSidebarDefaultToggle">
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+
+          <div class="setting-row">
             <label class="setting-label" for="lawRefClickToggle">
               <span class="setting-title">法令リンクのポップアップ抑止</span>
               <span class="setting-desc">本文中の法令リンクをクリックした時に、ポップアップ表示をせずにスクロール移動します。</span>
@@ -194,6 +205,7 @@
               <tr><td><kbd>h</kbd> / <kbd>l</kbd></td><td>条文ジャンプ履歴を前後に移動</td></tr>
               <tr><td><kbd>n</kbd> / <kbd>p</kbd></td><td>次 / 前の条文をページ中央に表示</td></tr>
               <tr><td><kbd>d</kbd> / <kbd>u</kbd></td><td>半ページ単位で下 / 上にスクロール</td></tr>
+              <tr><td><kbd>w</kbd></td><td>サイドバーを隠して本文を全幅表示 / 元に戻す</td></tr>
               <tr><td><kbd>s</kbd></td><td>ページ内検索ダイアログを開く</td></tr>
               <tr><td><kbd>r</kbd></td><td>現在の法令名で法令検索ポップアップを開く</td></tr>
               <tr><td><kbd>f</kbd></td><td>現在の法令をお気に入り登録 / 解除</td></tr>
@@ -218,7 +230,7 @@
             <a href="https://laws.e-gov.go.jp/" target="_blank" rel="noopener">e-Gov 法令検索</a>
             をより便利に使うための補助ツールです。
           </p>
-          <p class="version-info">バージョン 2.0.0</p>
+          <p class="version-info">バージョン 2.1.0</p>
         </div>
       </section>
     </main>

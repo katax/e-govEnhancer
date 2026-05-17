@@ -1599,6 +1599,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       resultsEl.querySelector('.fallback-link')?.addEventListener('click', (e) => {
         e.preventDefault(); chrome.tabs.create({ url: e.currentTarget.dataset.url }); window.close();
       });
+      searchInput.focus();
       return;
     }
 
@@ -1652,6 +1653,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
     currentResults = sortedLaws;
     resultsEl.appendChild(list);
+
+    const firstItem = list.querySelector('.result-item');
+    if (firstItem) {
+      focusedResultIndex = 0;
+      firstItem.classList.add('result-item-focused');
+      blurSearchInputForListSelection();
+    }
 
     if (hasMore) {
       const notice = document.createElement('div');

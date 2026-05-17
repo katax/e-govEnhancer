@@ -17,8 +17,11 @@
   const shared = globalThis.EgovShared;
   const {
     buildLawUrl,
+    buildProvisionCopyPayload: buildSharedProvisionCopyPayload,
     escapeHtml,
+    formatProvisionNumber: formatSharedProvisionNumber,
     getLawFields,
+    normalizeLawNameForCopy,
   } = shared;
   const formatLawNameHtml = (name) => shared.formatLawNameHtml(name, 'egov-ext-law-name-muted');
 
@@ -77,6 +80,8 @@
   let lawReferenceOpenLockUntil = 0;
   let lawRefHoverPopupEnabled = false;
   let lawRefOtherLawPopupEnabled = true;
+  let lawRevisionAreaExpanded = false;
+  let lawRevisionAreaOriginalStyle = null;
   let articleLinkCopyLastSelection = '';
   let activeProvisionSelectionEl = null;
   const PIN_SLOT_ORDER = ['i', 'o', 'j', 'k', 'm'];
@@ -112,6 +117,9 @@
     }
     if (area === 'local' && changes.lawRefOtherLawPopup) {
       lawRefOtherLawPopupEnabled = changes.lawRefOtherLawPopup.newValue !== false;
+    }
+    if (area === 'local' && changes.hideLawSidebarDefault) {
+      setLawRevisionAreaExpanded(changes.hideLawSidebarDefault.newValue === true);
     }
     if (area === 'session' && changes.colorPins) {
       refreshColorPinHighlights();
@@ -1286,6 +1294,41 @@
     scrollToElementAtRatio(el, 0.25);
   }
 
+  function setLawRevisionAreaExpanded(expanded) {
+    const sidebar = document.getElementById('sidebar');
+    const revision = document.getElementById('revision');
+    const footer = document.querySelector('footer.toolbar-main');
+    if (!sidebar || !revision) return false;
+
+    if (!lawRevisionAreaOriginalStyle) {
+      lawRevisionAreaOriginalStyle = {
+        sidebarDisplay: sidebar.style.display,
+        revisionMarginLeft: revision.style.marginLeft,
+        revisionWidth: revision.style.width,
+        footerWidth: footer?.style.width || '',
+      };
+    }
+
+    if (expanded) {
+      sidebar.style.display = 'none';
+      revision.style.marginLeft = '0px';
+      revision.style.width = '100%';
+      if (footer) footer.style.width = '100%';
+    } else {
+      sidebar.style.display = lawRevisionAreaOriginalStyle.sidebarDisplay;
+      revision.style.marginLeft = lawRevisionAreaOriginalStyle.revisionMarginLeft;
+      revision.style.width = lawRevisionAreaOriginalStyle.revisionWidth;
+      if (footer) footer.style.width = lawRevisionAreaOriginalStyle.footerWidth;
+    }
+
+    lawRevisionAreaExpanded = expanded;
+    return true;
+  }
+
+  function toggleLawRevisionArea() {
+    return setLawRevisionAreaExpanded(!lawRevisionAreaExpanded);
+  }
+
   // ==================
   // キーボードイベント
   // ==================
@@ -1367,6 +1410,10 @@
       if (e.key === 'c') { e.preventDefault(); toggleNumberMode(); return; }
       if (e.key === 'a') { e.preventDefault(); showArticleLinkCopyDialog(); return; }
       if (e.key === 't') { e.preventDefault(); showLawTocDialog(); return; }
+      if (lowerKey === 'w') {
+        if (toggleLawRevisionArea()) e.preventDefault();
+        return;
+      }
     }
 
     const wasTocDialog = !!(activeDialog && activeDialog.classList.contains('egov-ext-toc-mode'));
@@ -1493,11 +1540,14 @@
   }
 
   function formatProvisionNumber(parts, el = null) {
-    if (!parts?.article) return '';
-    let text = `第${String(parts.article).replace(/_/g, 'の')}条`;
-    if (parts.paragraph && !isArticleLevelProvision(el, parts)) text += `第${parts.paragraph}項`;
-    if (parts.item) text += `第${parts.item}号`;
-    return text;
+    return formatSharedProvisionNumber(parts, { isArticleLevel: isArticleLevelProvision(el, parts) });
+  }
+
+  function formatProvisionNumberForCopy(parts, el = null, articleParagraphs = new Map()) {
+    return formatSharedProvisionNumber(parts, {
+      isArticleLevel: isArticleLevelProvision(el, parts),
+      omitSingleParagraphFirst: articleParagraphs.get(parts?.article)?.size === 1,
+    });
   }
 
   function normalizeProvisionText(text) {
@@ -1507,10 +1557,22 @@
       .trim();
   }
 
+  function removeRubyAnnotations(root) {
+    root.querySelectorAll('rt,rp').forEach((node) => node.remove());
+  }
+
+  function getTextWithoutRubyAnnotations(el) {
+    if (!(el instanceof Element)) return '';
+    const clone = el.cloneNode(true);
+    removeRubyAnnotations(clone);
+    return clone.textContent || '';
+  }
+
   function extractProvisionText(el, parts = null) {
     if (!(el instanceof Element)) return '';
 
     const clone = el.cloneNode(true);
+    removeRubyAnnotations(clone);
     clone.querySelectorAll('br').forEach((br) => br.replaceWith('\n'));
 
     return String(clone.textContent || '')
@@ -1528,7 +1590,7 @@
 
       // Heading — old rendering: em.articleheading / new rendering: ._div_ArticleCaption
       if (child.matches('em.articleheading, .articleheading, ._div_ArticleCaption')) {
-        const heading = normalizeProvisionText(child.textContent || '');
+        const heading = normalizeProvisionText(getTextWithoutRubyAnnotations(child));
         if (heading) blocks.push(heading);
         continue;
       }
@@ -1536,7 +1598,7 @@
       // New rendering paragraphs: ._div_ArticleTitle = 第1項, ._div_ParagraphSentence = 第2項以降.
       // textContent already contains 　 between number and text as a text node, so trim() suffices.
       if (child.matches('._div_ArticleTitle, ._div_ParagraphSentence')) {
-        const line = (child.textContent || '').trim();
+        const line = getTextWithoutRubyAnnotations(child).trim();
         if (line) blocks.push(line);
         continue;
       }
@@ -1546,10 +1608,11 @@
       if (child.matches('.paragraph, [id*="-Pa_"], [id*="-Co_"]')) {
         // Preserve 　 in the title: normalizeProvisionText collapses \u3000 into a regular
         // space and trim() then removes it, losing the separator between number and text.
-        const title = (child.querySelector('.paragraphtitle, .itemtitle, .listtitle')?.textContent || '')
+        const titleEl = child.querySelector('.paragraphtitle, .itemtitle, .listtitle');
+        const title = getTextWithoutRubyAnnotations(titleEl)
           .replace(/[\r\n\t]+/g, '');
         const sentenceParts = [...child.querySelectorAll('.sentence, .itemsentence, .listsentence')]
-          .map((node) => normalizeProvisionText(node.textContent || ''))
+          .map((node) => normalizeProvisionText(getTextWithoutRubyAnnotations(node)))
           .filter(Boolean);
         const line = [title, ...sentenceParts].join('');
         if (line) blocks.push(line);
@@ -1592,7 +1655,7 @@
   }
 
   function getProvisionPreviewText(el, numberLabel) {
-    const fullText = normalizeProvisionText(el?.textContent || '');
+    const fullText = normalizeProvisionText(getTextWithoutRubyAnnotations(el));
     const combined = !fullText
       ? numberLabel
       : (fullText.startsWith(numberLabel) ? fullText : `${numberLabel} ${fullText}`);
@@ -1638,16 +1701,27 @@
   }
 
   function getProvisionLinkCopyItems() {
-    return collectProvisionLinkTargets()
-      .map((el, index) => {
-        const parts = parseProvisionPath(el.id);
-        if (!parts) return null;
+    const parsedTargets = collectProvisionLinkTargets()
+      .map((el, index) => ({ el, index, parts: parseProvisionPath(el.id) }))
+      .filter((item) => item.parts);
+    const articleParagraphs = new Map();
+
+    for (const { parts } of parsedTargets) {
+      if (!parts.article || !parts.paragraph || parts.item) continue;
+      if (!articleParagraphs.has(parts.article)) articleParagraphs.set(parts.article, new Set());
+      articleParagraphs.get(parts.article).add(parts.paragraph);
+    }
+
+    return parsedTargets
+      .map(({ el, index, parts }) => {
         const numberLabel = formatProvisionNumber(parts, el) || getArticleLinkLabel(el, index);
+        const copyNumberLabel = formatProvisionNumberForCopy(parts, el, articleParagraphs) || numberLabel;
         return {
           articleEl: el,
           id: el.id,
           parts,
           numberLabel,
+          copyNumberLabel,
           url: buildArticleLinkUrl(el),
         };
       })
@@ -1655,9 +1729,7 @@
   }
 
   function getLawNameForCopy() {
-    return getCurrentLawName()
-      .replace(/\s*（[^）]*第[^）]*号）\s*$/, '')
-      .trim();
+    return normalizeLawNameForCopy(getCurrentLawName());
   }
 
   function getProvisionAtViewport25pct(items) {
@@ -1677,10 +1749,12 @@
   }
 
   function buildProvisionCopyPayload(item, mode) {
-    if (mode === 'url') return item.url;
-    if (mode === 'text-url') return `${getLawNameForCopy()} ${item.numberLabel}\n${joinProvisionLeadLine(getProvisionBodyText(item))}\n${item.url}`;
-    if (mode === 'law-number-url') return `${getLawNameForCopy()} ${item.numberLabel}\n${item.url}`;
-    return item.url;
+    return buildSharedProvisionCopyPayload({
+      lawName: getLawNameForCopy(),
+      numberLabel: item.copyNumberLabel || item.numberLabel,
+      bodyText: joinProvisionLeadLine(getProvisionBodyText(item)),
+      url: item.url,
+    }, mode);
   }
 
   async function showArticleLinkCopyDialog() {
@@ -3627,6 +3701,8 @@
               <td>次/前の条文を画面上端に表示</td></tr>
           <tr><td><kbd>d</kbd> / <kbd>u</kbd></td>
               <td>下/上へ80%スクロール</td></tr>
+          <tr><td><kbd>w</kbd></td>
+              <td>サイドバーを隠して本文を全幅表示 / 元に戻す</td></tr>
           <tr><td><kbd>s</kbd></td>
               <td>ページ内検索<br>
                 <span class="egov-ext-guide-sub">Ctrl+Enter=現在位置から検索</span></td></tr>
@@ -3707,6 +3783,19 @@
     setTimeout(() => observer.disconnect(), 10000);
   }
 
+  function applyDefaultLawSidebarVisibility() {
+    chrome.storage.local.get(['hideLawSidebarDefault'], ({ hideLawSidebarDefault }) => {
+      if (hideLawSidebarDefault !== true || setLawRevisionAreaExpanded(true)) return;
+
+      const observer = new MutationObserver(() => {
+        if (!setLawRevisionAreaExpanded(true)) return;
+        observer.disconnect();
+      });
+      observer.observe(document.documentElement, { childList: true, subtree: true });
+      setTimeout(() => observer.disconnect(), 10000);
+    });
+  }
+
   function setupColorPinFeatures() {
     runWhenIdle(() => refreshColorPinHighlights(), 1200);
     // pinToastDefaultVisible は起動時に既に読み込み済み
@@ -3760,6 +3849,7 @@
       });
     }, 1800);
     runWhenIdle(ensureShortcutGuide, 900);
+    runWhenIdle(applyDefaultLawSidebarVisibility, 900);
     runWhenIdle(setupFavoriteHeaderBadge, 1200);
     runWhenIdle(setupColorPinFeatures, 1600);
     restoreFavoriteScrollOnLoad()
