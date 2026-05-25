@@ -90,9 +90,11 @@
     applyContentWidth(contentWidthSelect.value);
     chrome.storage.local.set({ [LITE_CONTENT_WIDTH_KEY]: contentWidthSelect.value }).catch(() => {});
   });
-  normalModeButton.addEventListener('click', () => {
+  function openNormalMode() {
     location.href = sourceUrl || `https://laws.e-gov.go.jp/law/${encodeURIComponent(lawId)}`;
-  });
+  }
+
+  normalModeButton.addEventListener('click', openNormalMode);
   compareModeButton.addEventListener('click', () => toggleCompareMode());
   favoriteButton.addEventListener('click', () => toggleFavorite());
   shortcutButton.addEventListener('click', () => showShortcutDialog());
@@ -1472,6 +1474,11 @@
     if (event.altKey && !event.ctrlKey && !event.metaKey && lower === 'o' && !activeDialog && !isInputActive()) {
       event.preventDefault();
       chrome.runtime.openOptionsPage();
+      return;
+    }
+    if (event.altKey && !event.ctrlKey && !event.metaKey && (lower === 'l' || event.code === 'KeyL') && !activeDialog) {
+      event.preventDefault();
+      openNormalMode();
       return;
     }
     if (embeddedMode && event.altKey && !event.ctrlKey && !event.metaKey && lower === 's' && !activeDialog && !isInputActive()) {

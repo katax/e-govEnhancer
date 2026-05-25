@@ -75,11 +75,14 @@
   let lawReferenceHoverTimer = null;
   let lawReferenceHoverAnchor = null;
   let lawReferenceHoverPoint = null;
+  let lawReferencePointerPoint = null;
   let lawReferenceShieldEl = null;
   let lawReferenceShieldAnchor = null;
   let lawReferenceOpenLockUntil = 0;
+  let lawRefClickEnabled = true;
   let lawRefHoverPopupEnabled = false;
   let lawRefOtherLawPopupEnabled = true;
+  let lawReferenceInteractionsInitialized = false;
   let lawRevisionAreaExpanded = false;
   let lawRevisionAreaOriginalStyle = null;
   let articleLinkCopyLastSelection = '';
@@ -117,6 +120,13 @@
     }
     if (area === 'local' && changes.lawRefOtherLawPopup) {
       lawRefOtherLawPopupEnabled = changes.lawRefOtherLawPopup.newValue !== false;
+    }
+    if (area === 'local' && changes.lawRefClickEnabled) {
+      lawRefClickEnabled = changes.lawRefClickEnabled.newValue !== false;
+      if (!lawRefClickEnabled) hideLawReferencePreview();
+    }
+    if (area === 'local' && changes.lawRefHoverPopup) {
+      lawRefHoverPopupEnabled = changes.lawRefHoverPopup.newValue === true;
     }
     if (area === 'local' && changes.hideLawSidebarDefault) {
       setLawRevisionAreaExpanded(changes.hideLawSidebarDefault.newValue === true);
@@ -1345,7 +1355,7 @@
       chrome.runtime.sendMessage({ type: 'egov-open-options-page' }).catch(() => {});
       return;
     }
-    if (e.altKey && !e.ctrlKey && !e.metaKey && (e.key === 'l' || e.key === 'L') && !activeDialog && !isInputActive()) {
+    if (e.altKey && !e.ctrlKey && !e.metaKey && (e.key === 'l' || e.key === 'L' || e.code === 'KeyL') && !activeDialog) {
       e.preventDefault();
       openLightweightViewerFromPage();
       return;
@@ -2816,7 +2826,14 @@
       event.preventDefault();
       event.stopPropagation();
       event.stopImmediatePropagation();
-      if (lawReferenceShieldAnchor) openLawReferenceTarget(lawReferenceShieldAnchor);
+      const anchor = lawReferenceShieldAnchor;
+      if (!anchor) return;
+      if (shouldSuppressLawReferencePopup(event, anchor)) {
+        openLawReferenceTarget(anchor);
+        return;
+      }
+      hideLawReferencePreview();
+      triggerLawReferencePopup(anchor, event);
     });
     document.body.appendChild(shield);
     lawReferenceShieldEl = shield;
@@ -2841,12 +2858,26 @@
     lawReferenceShieldAnchor = anchor;
   }
 
-  function triggerLawReferencePopup(anchor) {
+  function activateLawReferenceAnchorAtPoint(point) {
+    if (!point) return false;
+    const target = document.elementFromPoint(point.x, point.y);
+    const anchor = getLawReferenceAnchor(target);
+    if (!anchor) return false;
+    if (!shouldSuppressLawReferencePopup({ ctrlKey: true }, anchor)) return false;
+    activateLawReferenceAnchor(anchor, point);
+    return true;
+  }
+
+  function triggerLawReferencePopup(anchor, sourceEvent = null) {
     const point = lawReferenceHoverPoint;
     const eventInit = {
       bubbles: true,
       cancelable: true,
       view: window,
+      ctrlKey: !!sourceEvent?.ctrlKey,
+      shiftKey: !!sourceEvent?.shiftKey,
+      altKey: !!sourceEvent?.altKey,
+      metaKey: !!sourceEvent?.metaKey,
       clientX: point?.x ?? 0,
       clientY: point?.y ?? 0,
       screenX: point?.x ?? 0,
@@ -2931,12 +2962,23 @@
     return !!(targetLawId && targetLawId !== getCurrentLawIdFromUrl());
   }
 
+  function shouldSuppressLawReferencePopup(event, anchor) {
+    const baseSuppress = lawRefClickEnabled !== false;
+    const effectiveSuppress = event?.ctrlKey ? !baseSuppress : baseSuppress;
+    if (!effectiveSuppress) return false;
+    return !(lawRefOtherLawPopupEnabled && isAnchorDifferentLaw(anchor));
+  }
+
   function setupLawReferenceInteractions() {
+    if (lawReferenceInteractionsInitialized) return;
+    lawReferenceInteractionsInitialized = true;
+
     document.addEventListener('mouseover', (event) => {
       if (!event.isTrusted) return;
+      lawReferencePointerPoint = { x: event.clientX, y: event.clientY };
       const anchor = getLawReferenceAnchor(event.target);
       if (!anchor) return;
-      if (lawRefOtherLawPopupEnabled && isAnchorDifferentLaw(anchor)) {
+      if (!shouldSuppressLawReferencePopup(event, anchor)) {
         hideLawReferencePreview();
         return;
       }
@@ -2962,14 +3004,56 @@
 
     document.addEventListener('mousemove', (event) => {
       if (!event.isTrusted) return;
+      lawReferencePointerPoint = { x: event.clientX, y: event.clientY };
+      const anchor = getLawReferenceAnchor(event.target);
+      if (anchor && shouldSuppressLawReferencePopup(event, anchor)) {
+        activateLawReferenceAnchor(anchor, lawReferencePointerPoint);
+        return;
+      }
       if (!lawReferenceShieldAnchor) return;
       lawReferenceHoverPoint = { x: event.clientX, y: event.clientY };
     }, true);
 
     document.addEventListener('mousedown', (event) => {
       if (!event.isTrusted) return;
+      const anchor = getLawReferenceAnchor(event.target);
+      if (anchor && shouldSuppressLawReferencePopup(event, anchor)) {
+        event.preventDefault();
+        event.stopPropagation();
+        event.stopImmediatePropagation();
+        return;
+      }
       const insideShield = lawReferenceShieldEl?.contains(event.target);
       if (!insideShield) hideLawReferencePreview();
+    }, true);
+
+    document.addEventListener('mouseup', (event) => {
+      if (!event.isTrusted) return;
+      const anchor = getLawReferenceAnchor(event.target);
+      if (!anchor || !shouldSuppressLawReferencePopup(event, anchor)) return;
+      event.preventDefault();
+      event.stopPropagation();
+      event.stopImmediatePropagation();
+    }, true);
+
+    document.addEventListener('click', (event) => {
+      if (!event.isTrusted) return;
+      const anchor = getLawReferenceAnchor(event.target);
+      if (!anchor || !shouldSuppressLawReferencePopup(event, anchor)) return;
+      event.preventDefault();
+      event.stopPropagation();
+      event.stopImmediatePropagation();
+      openLawReferenceTarget(anchor);
+    }, true);
+
+    document.addEventListener('keydown', (event) => {
+      if (!event.isTrusted || event.key !== 'Control' || lawRefClickEnabled !== false) return;
+      activateLawReferenceAnchorAtPoint(lawReferencePointerPoint);
+    }, true);
+
+    document.addEventListener('keyup', (event) => {
+      if (!event.isTrusted || event.key !== 'Control' || lawRefClickEnabled !== false) return;
+      hideLawReferencePreview();
     }, true);
 
     window.addEventListener('scroll', () => hideLawReferencePreview(), { passive: true });
@@ -3840,12 +3924,15 @@
     articleCacheObserver.observe(articleRoot, { childList: true, subtree: true });
     // 法令参照設定の読み込みを非同期にし、他の初期化をブロックしない
     runWhenIdle(() => {
-      chrome.storage.local.get(['lawRefClickEnabled', 'lawRefHoverPopup', 'lawRefOtherLawPopup'], ({ lawRefClickEnabled, lawRefHoverPopup, lawRefOtherLawPopup }) => {
-        if (lawRefClickEnabled !== false) {
-          lawRefHoverPopupEnabled = lawRefHoverPopup === true;
-          lawRefOtherLawPopupEnabled = lawRefOtherLawPopup !== false;
-          setupLawReferenceInteractions();
-        }
+      chrome.storage.local.get(['lawRefClickEnabled', 'lawRefHoverPopup', 'lawRefOtherLawPopup'], ({
+        lawRefClickEnabled: storedLawRefClickEnabled,
+        lawRefHoverPopup,
+        lawRefOtherLawPopup,
+      }) => {
+        lawRefClickEnabled = storedLawRefClickEnabled !== false;
+        lawRefHoverPopupEnabled = lawRefHoverPopup === true;
+        lawRefOtherLawPopupEnabled = lawRefOtherLawPopup !== false;
+        setupLawReferenceInteractions();
       });
     }, 1800);
     runWhenIdle(ensureShortcutGuide, 900);
