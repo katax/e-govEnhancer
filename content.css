@@ -78,6 +78,151 @@
   width: 504px !important;
 }
 
+.egov-ext-reference-clickable {
+  background-color: rgba(29, 111, 214, 0.08) !important;
+  border-radius: 3px !important;
+  box-shadow: inset 0 -1px 0 rgba(29, 111, 214, 0.8) !important;
+  cursor: pointer !important;
+  transition: background-color 0.12s ease !important;
+}
+
+.egov-ext-reference-clickable:hover,
+.egov-ext-reference-clickable:focus-visible {
+  background-color: rgba(29, 111, 214, 0.18) !important;
+  outline: none !important;
+}
+
+.egov-ext-reference-popup {
+  position: fixed !important;
+  z-index: 2147483647 !important;
+  width: min(540px, calc(100vw - 20px)) !important;
+  max-height: min(68vh, 620px) !important;
+  display: flex !important;
+  flex-direction: column !important;
+  background: #ffffff !important;
+  border: 1px solid #cfd6e2 !important;
+  border-radius: 8px !important;
+  box-shadow: 0 14px 42px rgba(20, 28, 40, 0.22), 0 4px 12px rgba(20, 28, 40, 0.14) !important;
+  color: #243044 !important;
+  font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Sans', 'Yu Gothic UI', sans-serif !important;
+  font-size: 13px !important;
+  overflow: hidden !important;
+}
+
+.egov-ext-reference-popup-head {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 8px !important;
+  padding: 9px 11px !important;
+  background: #f4f7fb !important;
+  border-bottom: 1px solid #dce2ec !important;
+}
+
+.egov-ext-reference-target {
+  color: #303949 !important;
+  font-size: 13px !important;
+  font-weight: 700 !important;
+}
+
+.egov-ext-reference-close {
+  appearance: none !important;
+  background: transparent !important;
+  border: 0 !important;
+  border-radius: 5px !important;
+  color: #5b6575 !important;
+  cursor: pointer !important;
+  font: inherit !important;
+  line-height: 1 !important;
+  padding: 4px 6px !important;
+}
+
+.egov-ext-reference-close:hover,
+.egov-ext-reference-close:focus-visible {
+  background: rgba(20, 28, 40, 0.08) !important;
+  outline: none !important;
+}
+
+.egov-ext-reference-list {
+  overflow-y: auto !important;
+  background: #fbfcfe !important;
+}
+
+.egov-ext-reference-link {
+  appearance: none !important;
+  background: #fff !important;
+  border: 0 !important;
+  border-bottom: 1px solid #e5e9f0 !important;
+  color: #243044 !important;
+  cursor: pointer !important;
+  display: block !important;
+  font-family: inherit !important;
+  padding: 9px 12px !important;
+  text-align: left !important;
+  width: 100% !important;
+}
+
+.egov-ext-reference-link:last-child {
+  border-bottom: 0 !important;
+}
+
+.egov-ext-reference-link:hover,
+.egov-ext-reference-link:focus-visible {
+  background: #eef5ff !important;
+  outline: none !important;
+}
+
+.egov-ext-reference-link-related {
+  background: #fff7df !important;
+}
+
+.egov-ext-reference-link-related:hover,
+.egov-ext-reference-link-related:focus-visible {
+  background: #ffefc2 !important;
+}
+
+.egov-ext-reference-related-badge {
+  background: #ffe0a3 !important;
+  border-radius: 999px !important;
+  color: #7a4a00 !important;
+  display: none !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  line-height: 1 !important;
+  margin: 0 0 5px !important;
+  padding: 3px 7px !important;
+}
+
+.egov-ext-reference-link-related .egov-ext-reference-related-badge {
+  display: inline-block !important;
+}
+
+.egov-ext-reference-link-title {
+  display: block !important;
+  font-size: 13px !important;
+  font-weight: 700 !important;
+  line-height: 1.45 !important;
+}
+
+.egov-ext-reference-link-url {
+  color: #657084 !important;
+  display: block !important;
+  font-size: 11px !important;
+  line-height: 1.35 !important;
+  margin-top: 3px !important;
+  overflow-wrap: anywhere !important;
+}
+
+.egov-ext-reference-source-proxy {
+  position: fixed !important;
+  left: -9999px !important;
+  top: -9999px !important;
+  width: 1px !important;
+  height: 1px !important;
+  overflow: hidden !important;
+  opacity: 0 !important;
+}
+
 .egov-ext-toc-mode .egov-ext-dialog-header {
   background: linear-gradient(135deg, #4d4f39, #6a6d4a) !important;
 }

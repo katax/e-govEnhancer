@@ -8,15 +8,26 @@ document.addEventListener('DOMContentLoaded', async () => {
   const lawRefHoverPopupRow = document.getElementById('lawRefHoverPopupRow');
   const lawRefOtherLawPopupToggle = document.getElementById('lawRefOtherLawPopupToggle');
   const lawRefOtherLawPopupRow = document.getElementById('lawRefOtherLawPopupRow');
+  const externalReferencesAutoEnableToggle = document.getElementById('externalReferencesAutoEnableToggle');
   const exportFavoritesBtn = document.getElementById('exportFavoritesBtn');
   const importFavoritesBtn = document.getElementById('importFavoritesBtn');
   const importFavoritesInput = document.getElementById('importFavoritesInput');
   const favoritesTransferStatus = document.getElementById('favoritesTransferStatus');
   const favoritesTransferSummary = document.getElementById('favoritesTransferSummary');
+  const exportReferencesBtn = document.getElementById('exportReferencesBtn');
+  const importReferencesBtn = document.getElementById('importReferencesBtn');
+  const importReferencesInput = document.getElementById('importReferencesInput');
+  const referencesTransferStatus = document.getElementById('referencesTransferStatus');
+  const referencesTransferSummary = document.getElementById('referencesTransferSummary');
 
   const FAVORITES_EXPORT_TYPE = 'egov-extension-favorites';
   const FAVORITES_EXPORT_VERSION = 1;
   const FAVORITES_MAX = 50;
+  const REFERENCES_DB_NAME = 'egov-extension-references';
+  const REFERENCES_DB_VERSION = 1;
+  const REFERENCES_LAWS_STORE = 'laws';
+  const REFERENCES_META_STORE = 'meta';
+  const REFERENCES_CURRENT_META_KEY = 'current';
 
   smoothToggle.checked = false;
   liteModeDefaultToggle.checked = false;
@@ -25,6 +36,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   lawRefClickToggle.checked = true;
   lawRefHoverPopupToggle.checked = false;
   lawRefOtherLawPopupToggle.checked = true;
+  externalReferencesAutoEnableToggle.checked = true;
 
   chrome.storage.local.get([
     'scrollBehavior',
@@ -34,6 +46,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     'lawRefClickEnabled',
     'lawRefHoverPopup',
     'lawRefOtherLawPopup',
+    'externalReferencesAutoEnable',
   ]).then(({
     scrollBehavior,
     liteModeDefault,
@@ -42,6 +55,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     lawRefClickEnabled,
     lawRefHoverPopup,
     lawRefOtherLawPopup,
+    externalReferencesAutoEnable,
   }) => {
     smoothToggle.checked = (scrollBehavior === 'smooth');
     liteModeDefaultToggle.checked = (typeof liteModeDefault === 'boolean') ? liteModeDefault : false;
@@ -50,6 +64,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     lawRefClickToggle.checked = (typeof lawRefClickEnabled === 'boolean') ? lawRefClickEnabled : true;
     lawRefHoverPopupToggle.checked = (typeof lawRefHoverPopup === 'boolean') ? lawRefHoverPopup : false;
     lawRefOtherLawPopupToggle.checked = (typeof lawRefOtherLawPopup === 'boolean') ? lawRefOtherLawPopup : true;
+    externalReferencesAutoEnableToggle.checked = (typeof externalReferencesAutoEnable === 'boolean') ? externalReferencesAutoEnable : true;
     updateLawRefHoverPopupRow();
   }).catch(() => {});
 
@@ -79,6 +94,178 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   function isNonEmptyString(value) {
     return typeof value === 'string' && value.trim() !== '';
+  }
+
+  function setReferencesTransferStatus(message, tone = 'info') {
+    referencesTransferStatus.textContent = message;
+    referencesTransferStatus.className = `backup-status is-visible is-${tone}`;
+  }
+
+  function clearReferencesTransferStatus() {
+    referencesTransferStatus.textContent = '';
+    referencesTransferStatus.className = 'backup-status';
+  }
+
+  function setReferencesTransferSummary(message = '') {
+    referencesTransferSummary.textContent = message;
+    referencesTransferSummary.classList.toggle('is-visible', !!message);
+  }
+
+  function openReferencesDb() {
+    return new Promise((resolve, reject) => {
+      const request = indexedDB.open(REFERENCES_DB_NAME, REFERENCES_DB_VERSION);
+      request.onupgradeneeded = () => {
+        const db = request.result;
+        if (!db.objectStoreNames.contains(REFERENCES_LAWS_STORE)) {
+          db.createObjectStore(REFERENCES_LAWS_STORE, { keyPath: 'lawId' });
+        }
+        if (!db.objectStoreNames.contains(REFERENCES_META_STORE)) {
+          db.createObjectStore(REFERENCES_META_STORE, { keyPath: 'key' });
+        }
+      };
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error || new Error('IndexedDB を開けませんでした。'));
+    });
+  }
+
+  function waitForTransaction(tx) {
+    return new Promise((resolve, reject) => {
+      tx.oncomplete = () => resolve();
+      tx.onabort = () => reject(tx.error || new Error('IndexedDB の処理が中断されました。'));
+      tx.onerror = () => reject(tx.error || new Error('IndexedDB の処理に失敗しました。'));
+    });
+  }
+
+  function requestToPromise(request) {
+    return new Promise((resolve, reject) => {
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error || new Error('IndexedDB の読み込みに失敗しました。'));
+    });
+  }
+
+  function isReferenceLawId(value) {
+    return /^[0-9A-Z]{12,20}$/.test(String(value || ''));
+  }
+
+  function isReferenceTargetKey(value) {
+    return /^\d+(?:-\d+)*(?:\.\d+(?:-\d+)*){0,2}$/.test(String(value || ''));
+  }
+
+  function sanitizeReferenceSource(raw, path) {
+    if (!isPlainObject(raw)) throw new Error(`${path} がオブジェクトではありません。`);
+    if (!isReferenceLawId(raw.sourceLawId)) throw new Error(`${path}.sourceLawId が不正です。`);
+    if (!isNonEmptyString(raw.sourceLawTitle)) throw new Error(`${path}.sourceLawTitle が不正です。`);
+    if (typeof raw.sourceLawType !== 'string') throw new Error(`${path}.sourceLawType が文字列ではありません。`);
+    if (!isNonEmptyString(raw.sourceUrl)) throw new Error(`${path}.sourceUrl が不正です。`);
+    try {
+      const parsed = new URL(raw.sourceUrl);
+      if (parsed.protocol !== 'https:' || parsed.hostname !== 'laws.e-gov.go.jp') {
+        throw new Error();
+      }
+    } catch (_) {
+      throw new Error(`${path}.sourceUrl は e-Gov の https URL ではありません。`);
+    }
+    if (!isNonEmptyString(raw.sourceDisplayPath)) throw new Error(`${path}.sourceDisplayPath が不正です。`);
+    return {
+      sourceLawId: raw.sourceLawId.trim(),
+      sourceLawTitle: raw.sourceLawTitle.trim(),
+      sourceLawType: raw.sourceLawType,
+      sourceUrl: raw.sourceUrl.trim(),
+      sourceDisplayPath: raw.sourceDisplayPath.trim(),
+    };
+  }
+
+  function validateReferencesImport(raw) {
+    if (!isPlainObject(raw)) {
+      throw new Error('JSON のトップレベルがオブジェクトではありません。');
+    }
+
+    const lawEntries = Object.entries(raw);
+    if (!lawEntries.length) throw new Error('参照データが空です。');
+
+    let targetCount = 0;
+    let linkCount = 0;
+    const laws = [];
+
+    for (const [lawId, lawReferences] of lawEntries) {
+      if (!isReferenceLawId(lawId)) throw new Error(`法令IDが不正です: ${lawId}`);
+      if (!isPlainObject(lawReferences)) throw new Error(`${lawId} の値がオブジェクトではありません。`);
+
+      const sanitizedReferences = {};
+      for (const [targetKey, value] of Object.entries(lawReferences)) {
+        if (!isReferenceTargetKey(targetKey)) throw new Error(`${lawId}.${targetKey} の参照先キーが不正です。`);
+        if (!isPlainObject(value)) throw new Error(`${lawId}.${targetKey} の値がオブジェクトではありません。`);
+        if (!Array.isArray(value.externalLawSources)) {
+          throw new Error(`${lawId}.${targetKey}.externalLawSources が配列ではありません。`);
+        }
+
+        const externalLawSources = value.externalLawSources.map((source, index) =>
+          sanitizeReferenceSource(source, `${lawId}.${targetKey}.externalLawSources[${index}]`)
+        );
+        sanitizedReferences[targetKey] = { externalLawSources };
+        targetCount += 1;
+        linkCount += externalLawSources.length;
+      }
+
+      laws.push({ lawId, references: sanitizedReferences });
+    }
+
+    return {
+      laws,
+      summary: {
+        lawCount: laws.length,
+        targetCount,
+        linkCount,
+      },
+    };
+  }
+
+  function buildReferencesSummary(summary = {}) {
+    return [
+      `法令 ${summary.lawCount || 0} 件`,
+      `参照先 ${summary.targetCount || 0} 件`,
+      `リンク元 ${summary.linkCount || 0} 件`,
+    ].join(' / ');
+  }
+
+  async function saveReferencesImport(validated, file) {
+    const db = await openReferencesDb();
+    try {
+      const tx = db.transaction([REFERENCES_LAWS_STORE, REFERENCES_META_STORE], 'readwrite');
+      const lawsStore = tx.objectStore(REFERENCES_LAWS_STORE);
+      const metaStore = tx.objectStore(REFERENCES_META_STORE);
+      lawsStore.clear();
+      for (const law of validated.laws) lawsStore.put(law);
+      metaStore.put({
+        key: REFERENCES_CURRENT_META_KEY,
+        importedAt: new Date().toISOString(),
+        fileName: file?.name || '',
+        fileSize: file?.size || 0,
+        ...validated.summary,
+      });
+      await waitForTransaction(tx);
+    } finally {
+      db.close();
+    }
+  }
+
+  async function readImportedReferences() {
+    const db = await openReferencesDb();
+    try {
+      const metaTx = db.transaction(REFERENCES_META_STORE, 'readonly');
+      const meta = await requestToPromise(metaTx.objectStore(REFERENCES_META_STORE).get(REFERENCES_CURRENT_META_KEY));
+      if (!meta) return null;
+
+      const lawTx = db.transaction(REFERENCES_LAWS_STORE, 'readonly');
+      const laws = await requestToPromise(lawTx.objectStore(REFERENCES_LAWS_STORE).getAll());
+      const references = {};
+      for (const law of laws) {
+        if (law?.lawId && law.references) references[law.lawId] = law.references;
+      }
+      return { meta, references };
+    } finally {
+      db.close();
+    }
   }
 
   function formatDateForFileName(date = new Date()) {
@@ -225,8 +412,17 @@ document.addEventListener('DOMContentLoaded', async () => {
   async function reloadLawTabsIfConfirmed() {
     const ok = window.confirm('設定を反映するため、開いている e-Gov 法令ページをリロードしますか？');
     if (!ok) return;
-    const tabs = await chrome.tabs.query({ url: 'https://laws.e-gov.go.jp/law/*' });
-    for (const tab of tabs) chrome.tabs.reload(tab.id);
+    const lawTabs = await chrome.tabs.query({ url: 'https://laws.e-gov.go.jp/law/*' });
+    const allTabs = await chrome.tabs.query({});
+    const viewerUrl = chrome.runtime.getURL('viewer.html');
+    const viewerTabs = allTabs.filter((tab) => String(tab.url || '').startsWith(viewerUrl));
+    const tabs = [...lawTabs, ...viewerTabs];
+    const seen = new Set();
+    for (const tab of tabs) {
+      if (!tab.id || seen.has(tab.id)) continue;
+      seen.add(tab.id);
+      chrome.tabs.reload(tab.id);
+    }
   }
 
   async function exportFavorites() {
@@ -302,6 +498,82 @@ document.addEventListener('DOMContentLoaded', async () => {
     setTransferSummary(summary);
   }
 
+  async function exportReferences() {
+    clearReferencesTransferStatus();
+    setReferencesTransferSummary('');
+
+    const imported = await readImportedReferences();
+    let payload;
+    let summary;
+    let sourceLabel;
+
+    if (imported) {
+      payload = imported.references;
+      summary = {
+        lawCount: imported.meta.lawCount,
+        targetCount: imported.meta.targetCount,
+        linkCount: imported.meta.linkCount,
+      };
+      sourceLabel = '読み込み済みデータ';
+    } else {
+      const response = await fetch(chrome.runtime.getURL('data/references.json'), { cache: 'force-cache' });
+      if (!response.ok) throw new Error(`同梱データを読み込めませんでした: HTTP ${response.status}`);
+      payload = await response.json();
+      summary = validateReferencesImport(payload).summary;
+      sourceLabel = '同梱データ';
+    }
+
+    const blob = new Blob([`${JSON.stringify(payload)}\n`], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = `e-GovEnhancerReferences-${formatDateForFileName()}.json`;
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 0);
+
+    setReferencesTransferStatus(`逆参照リンク用ファイルをエクスポートしました。`, 'success');
+    setReferencesTransferSummary(`${sourceLabel} / ${buildReferencesSummary(summary)}`);
+  }
+
+  async function importReferences(file) {
+    if (!file) return;
+
+    clearReferencesTransferStatus();
+    setReferencesTransferSummary('');
+    setReferencesTransferStatus('JSON を読み込み、文法チェックを実行しています。', 'info');
+
+    let parsed;
+    try {
+      parsed = JSON.parse(await file.text());
+    } catch (_) {
+      setReferencesTransferStatus('JSON の読み込みに失敗しました。ファイルが壊れている可能性があります。', 'error');
+      return;
+    }
+
+    let validated;
+    try {
+      validated = validateReferencesImport(parsed);
+    } catch (error) {
+      setReferencesTransferStatus(`読み込めません: ${error.message}`, 'error');
+      return;
+    }
+
+    const summary = buildReferencesSummary(validated.summary);
+    const ok = window.confirm(`逆参照リンク用データを取り込みますか？\n\n${summary}`);
+    if (!ok) {
+      setReferencesTransferStatus('読み込みをキャンセルしました。', 'info');
+      return;
+    }
+
+    setReferencesTransferStatus('文法チェックに成功しました。拡張内へ保存しています。', 'info');
+    await saveReferencesImport(validated, file);
+    setReferencesTransferStatus('逆参照リンク用ファイルを読み込みました。', 'success');
+    setReferencesTransferSummary(`${summary} / ${file.name || 'ファイル名なし'}`);
+    reloadLawTabsIfConfirmed();
+  }
+
   updateLawRefHoverPopupRow();
 
   smoothToggle.addEventListener('change', () => {
@@ -336,6 +608,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     reloadLawTabsIfConfirmed();
   });
 
+  externalReferencesAutoEnableToggle.addEventListener('change', () => {
+    chrome.storage.local.set({ externalReferencesAutoEnable: externalReferencesAutoEnableToggle.checked });
+    reloadLawTabsIfConfirmed();
+  });
+
   exportFavoritesBtn.addEventListener('click', () => {
     exportFavorites().catch((error) => {
       setTransferStatus(`エクスポートに失敗しました: ${error.message}`, 'error');
@@ -351,6 +628,24 @@ document.addEventListener('DOMContentLoaded', async () => {
     const file = importFavoritesInput.files?.[0];
     importFavorites(file).catch((error) => {
       setTransferStatus(`インポートに失敗しました: ${error.message}`, 'error');
+    });
+  });
+
+  exportReferencesBtn.addEventListener('click', () => {
+    exportReferences().catch((error) => {
+      setReferencesTransferStatus(`エクスポートに失敗しました: ${error.message}`, 'error');
+    });
+  });
+
+  importReferencesBtn.addEventListener('click', () => {
+    importReferencesInput.value = '';
+    importReferencesInput.click();
+  });
+
+  importReferencesInput.addEventListener('change', () => {
+    const file = importReferencesInput.files?.[0];
+    importReferences(file).catch((error) => {
+      setReferencesTransferStatus(`読み込みに失敗しました: ${error.message}`, 'error');
     });
   });
 

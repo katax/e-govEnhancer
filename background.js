@@ -30,6 +30,51 @@ function getViewerUrl({ lawId, lawName = '', sourceUrl = '' }) {
   return chrome.runtime.getURL(`viewer.html?${params.toString()}`);
 }
 
+const REFERENCES_DB_NAME = 'egov-extension-references';
+const REFERENCES_DB_VERSION = 1;
+const REFERENCES_LAWS_STORE = 'laws';
+const REFERENCES_META_STORE = 'meta';
+
+function openReferencesDb() {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(REFERENCES_DB_NAME, REFERENCES_DB_VERSION);
+    request.onupgradeneeded = () => {
+      const db = request.result;
+      if (!db.objectStoreNames.contains(REFERENCES_LAWS_STORE)) {
+        db.createObjectStore(REFERENCES_LAWS_STORE, { keyPath: 'lawId' });
+      }
+      if (!db.objectStoreNames.contains(REFERENCES_META_STORE)) {
+        db.createObjectStore(REFERENCES_META_STORE, { keyPath: 'key' });
+      }
+    };
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error || new Error('IndexedDB open failed'));
+  });
+}
+
+function idbRequest(request) {
+  return new Promise((resolve, reject) => {
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error || new Error('IndexedDB request failed'));
+  });
+}
+
+async function getImportedLawReferences(lawId) {
+  if (!lawId) return null;
+  const db = await openReferencesDb();
+  try {
+    const metaTx = db.transaction(REFERENCES_META_STORE, 'readonly');
+    const meta = await idbRequest(metaTx.objectStore(REFERENCES_META_STORE).get('current'));
+    if (!meta) return null;
+
+    const lawTx = db.transaction(REFERENCES_LAWS_STORE, 'readonly');
+    const record = await idbRequest(lawTx.objectStore(REFERENCES_LAWS_STORE).get(lawId));
+    return record?.references && typeof record.references === 'object' ? record.references : {};
+  } finally {
+    db.close();
+  }
+}
+
 async function openActionPopup(mode = '') {
   await chrome.storage.session.set({ requestedPopupMode: mode || '' }).catch(() => {});
 
@@ -76,6 +121,12 @@ function sendJumpWhenReady(tabId, pin) {
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message?.type === 'egov-open-options-page') {
     chrome.runtime.openOptionsPage().then(() => sendResponse({ ok: true })).catch(() => sendResponse({ ok: false }));
+    return true;
+  }
+  if (message?.type === 'egov-get-imported-law-references') {
+    getImportedLawReferences(message.lawId)
+      .then((lawReferences) => sendResponse({ ok: true, lawReferences }))
+      .catch((error) => sendResponse({ ok: false, error: error?.message || String(error || '') }));
     return true;
   }
   if (message?.type === 'egov-open-law-reference-tab' && message.url) {

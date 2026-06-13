@@ -800,7 +800,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       li.addEventListener('mouseleave', () => hideTooltip());
       li.addEventListener('click', (ev) => {
         if (ev.target instanceof Element && (ev.target.closest('.hist-del-btn') || ev.target.closest('.hist-fav-btn'))) return;
-        selectHistItem(parseInt(li.dataset.idx));
+        selectHistItem(parseInt(li.dataset.idx), { alternate: ev.ctrlKey });
       });
       histListEl.appendChild(li);
     });
@@ -944,7 +944,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     li.addEventListener('mouseleave', () => hideTooltip());
     li.addEventListener('click', (ev) => {
       if (ev.target instanceof Element && ev.target.closest('.hist-del-btn')) return;
-      selectHistItem(parseInt(li.dataset.idx));
+      selectHistItem(parseInt(li.dataset.idx), { alternate: ev.ctrlKey });
     });
 
     // ---- Drag & Drop (dragstart/dragend のみ。dragover/drop は委譲ハンドラで処理) ----
@@ -1639,7 +1639,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         updateFavBtnAt(i);
         searchInput.focus();
       });
-      li.addEventListener('click', () => openResult(law));
+      li.addEventListener('click', (ev) => openResult(law, { alternate: ev.ctrlKey }));
       li.addEventListener('mouseenter', () => {
         if (!mainHoverEnabled) return;
         const items = resultsEl.querySelectorAll('.result-item');

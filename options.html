@@ -100,6 +100,17 @@
           </div>
 
           <div class="setting-row">
+            <label class="setting-label" for="externalReferencesAutoEnableToggle">
+              <span class="setting-title">起動時に逆参照リンクを有効にする</span>
+              <span class="setting-desc">法令ページまたは Lite モードを開いた後、逆参照リンクを自動で付与します。</span>
+            </label>
+            <label class="toggle-switch">
+              <input type="checkbox" id="externalReferencesAutoEnableToggle">
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+
+          <div class="setting-row">
             <label class="setting-label" for="pinToastToggle">
               <span class="setting-title">ピン状態の常時表示</span>
               <span class="setting-desc">法令ページ上でピンの状態を常に表示します。</span>
@@ -150,6 +161,29 @@
 
           <div class="info-box">
             <p>インポートすると、現在の「お気に入り」「フォルダ」「フォルダ開閉状態」はまとめて置き換わります。</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-header">
+          <span class="card-icon">↩</span>
+          <h2>逆参照リンク用ファイルのエクスポートと読み込み</h2>
+        </div>
+        <div class="card-body">
+          <p>逆参照リンク用 JSON ファイルの保存と読み込みを行えます。</p>
+
+          <div class="backup-actions">
+            <button type="button" class="action-btn action-btn-primary" id="exportReferencesBtn">保存</button>
+            <button type="button" class="action-btn" id="importReferencesBtn">読み込み</button>
+            <input type="file" id="importReferencesInput" accept="application/json,.json" hidden>
+          </div>
+
+          <div class="backup-status" id="referencesTransferStatus" aria-live="polite"></div>
+          <div class="backup-summary" id="referencesTransferSummary"></div>
+
+          <div class="info-box">
+            <p>読み込み時に JSON の文法と、法令ID・参照先キー・リンク元配列の形式を確認します。読み込んだデータは拡張内に保存され、同梱データより優先して使われます。</p>
           </div>
         </div>
       </section>
@@ -225,7 +259,7 @@
             <a href="https://laws.e-gov.go.jp/" target="_blank" rel="noopener">e-Gov 法令検索</a>
             をより便利に使うための補助ツールです。
           </p>
-          <p class="version-info">バージョン 2.1.1</p>
+          <p class="version-info">バージョン 2.2</p>
         </div>
       </section>
     </main>

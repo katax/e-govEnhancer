@@ -403,6 +403,155 @@ body[data-content-width="narrow"] .law-content {
   text-underline-offset: 2px;
 }
 
+.egov-lite-reference-clickable {
+  background-color: rgba(29, 111, 214, 0.08);
+  border-radius: 3px;
+  box-shadow: inset 0 -1px 0 rgba(29, 111, 214, 0.8);
+  cursor: pointer;
+  transition: background-color 0.12s ease;
+}
+
+.egov-lite-reference-clickable:hover,
+.egov-lite-reference-clickable:focus-visible {
+  background-color: rgba(29, 111, 214, 0.18);
+  outline: none;
+}
+
+.egov-lite-reference-popup,
+.egov-lite-reference-viewer-popup {
+  position: fixed;
+  z-index: 2147483647;
+  display: flex;
+  overflow: hidden;
+  flex-direction: column;
+  border: 1px solid #cfd6e2;
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 14px 42px rgba(20, 28, 40, 0.22), 0 4px 12px rgba(20, 28, 40, 0.14);
+  color: #243044;
+  font-size: 13px;
+}
+
+.egov-lite-reference-popup {
+  width: min(540px, calc(100vw - 20px));
+  max-height: min(68vh, 620px);
+}
+
+.egov-lite-reference-viewer-popup {
+  width: min(780px, calc(100vw - 20px));
+  height: min(720px, calc(100vh - 20px));
+}
+
+.egov-lite-reference-popup-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 9px 11px;
+  border-bottom: 1px solid #dce2ec;
+  background: #f4f7fb;
+}
+
+.egov-lite-reference-target {
+  overflow: hidden;
+  color: #303949;
+  font-size: 13px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.egov-lite-reference-close {
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: #5b6575;
+  cursor: pointer;
+  font: inherit;
+  line-height: 1;
+  padding: 4px 6px;
+}
+
+.egov-lite-reference-close:hover,
+.egov-lite-reference-close:focus-visible {
+  background: rgba(20, 28, 40, 0.08);
+  outline: none;
+}
+
+.egov-lite-reference-list {
+  overflow-y: auto;
+  background: #fbfcfe;
+}
+
+.egov-lite-reference-link {
+  display: block;
+  width: 100%;
+  border: 0;
+  border-bottom: 1px solid #e5e9f0;
+  background: #fff;
+  color: #243044;
+  cursor: pointer;
+  font: inherit;
+  padding: 9px 12px;
+  text-align: left;
+}
+
+.egov-lite-reference-link:last-child { border-bottom: 0; }
+
+.egov-lite-reference-link:hover,
+.egov-lite-reference-link:focus-visible {
+  background: #eef5ff;
+  outline: none;
+}
+
+.egov-lite-reference-link-related {
+  background: #fff7df;
+}
+
+.egov-lite-reference-link-related:hover,
+.egov-lite-reference-link-related:focus-visible {
+  background: #ffefc2;
+}
+
+.egov-lite-reference-related-badge {
+  display: none;
+  margin: 0 0 5px;
+  border-radius: 999px;
+  background: #ffe0a3;
+  color: #7a4a00;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  padding: 3px 7px;
+}
+
+.egov-lite-reference-link-related .egov-lite-reference-related-badge {
+  display: inline-block;
+}
+
+.egov-lite-reference-link-title {
+  display: block;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.45;
+}
+
+.egov-lite-reference-link-url {
+  display: block;
+  overflow-wrap: anywhere;
+  margin-top: 3px;
+  color: #657084;
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.egov-lite-reference-frame {
+  flex: 1;
+  min-height: 0;
+  border: 0;
+  background: #fff;
+}
+
 .law-content b,
 .law-content strong { font-weight: 700; }
 
