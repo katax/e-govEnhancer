@@ -20,6 +20,7 @@
     buildProvisionCopyPayload: buildSharedProvisionCopyPayload,
     escapeHtml,
     formatProvisionNumber: formatSharedProvisionNumber,
+    formatProvisionSourcePathFromEgovUrl,
     getLawFields,
     normalizeLawNameForCopy,
   } = shared;
@@ -50,6 +51,7 @@
   // ショートカット有効/無効
   let extensionEnabled = true;
   let guideTooltipPinned = false;
+  let guideTooltipHoverHideTimer = null;
   let autoMovedToFirstArticle = false;
   let activeFlashEl = null;
   let activeFlashOrigBg = '';
@@ -2524,7 +2526,7 @@
 
   function getReferenceSourceLabel(source) {
     const lawTitle = String(source?.sourceLawTitle || source?.sourceLawId || '').trim();
-    const path = String(source?.sourceDisplayPath || '').trim();
+    const path = formatProvisionSourcePathFromEgovUrl(source?.sourceUrl, location.href);
     return [lawTitle, path].filter(Boolean).join(' ');
   }
 
@@ -2864,6 +2866,11 @@
       return;
     }
     enableExternalReferenceLinks();
+  }
+
+  async function autoEnableExternalReferenceLinks() {
+    if (externalReferencesEnabled) return;
+    await enableExternalReferenceLinks();
   }
 
   function clearFlashElementHighlight() {
@@ -4317,9 +4324,16 @@
     }
   }
 
+  function clearGuideTooltipHoverHideTimer() {
+    if (!guideTooltipHoverHideTimer) return;
+    clearTimeout(guideTooltipHoverHideTimer);
+    guideTooltipHoverHideTimer = null;
+  }
+
   function showShortcutGuideTooltip() {
     const guide = document.getElementById('egov-ext-guide');
     if (!guide) return;
+    clearGuideTooltipHoverHideTimer();
     guideTooltipPinned = true;
     guide.classList.add('egov-ext-guide-open');
   }
@@ -4420,6 +4434,19 @@
     document.body.appendChild(guide);
 
     // ガイドボタンクリックで有効/無効トグル
+    guide.addEventListener('mouseenter', () => {
+      clearGuideTooltipHoverHideTimer();
+      guide.classList.add('egov-ext-guide-hover');
+    });
+
+    guide.addEventListener('mouseleave', () => {
+      clearGuideTooltipHoverHideTimer();
+      guideTooltipHoverHideTimer = setTimeout(() => {
+        guideTooltipHoverHideTimer = null;
+        guide.classList.remove('egov-ext-guide-hover');
+      }, 500);
+    });
+
     guide.querySelector('.egov-ext-guide-btn').addEventListener('click', (e) => {
       e.stopPropagation();
       extensionEnabled = !extensionEnabled;
@@ -4518,7 +4545,7 @@
     setupExternalReferenceInteractions();
     runWhenIdle(() => {
       chrome.storage.local.get(['externalReferencesAutoEnable'], ({ externalReferencesAutoEnable }) => {
-        if (externalReferencesAutoEnable !== false) enableExternalReferenceLinks({ silent: true });
+        if (externalReferencesAutoEnable !== false) autoEnableExternalReferenceLinks();
       });
     }, 2000);
     restoreFavoriteScrollOnLoad()

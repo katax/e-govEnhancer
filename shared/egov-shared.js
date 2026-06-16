@@ -28,6 +28,45 @@
     return `第${base}条${suffixes.map((suffix) => `の${suffix}`).join('')}`;
   }
 
+  function formatProvisionBranch(value, unit) {
+    const [base, ...suffixes] = String(value || '').split(/[-_]/).filter(Boolean);
+    if (!base) return '';
+    return `第${base}${unit}${suffixes.map((suffix) => `の${suffix}`).join('')}`;
+  }
+
+  function parseProvisionHash(hash) {
+    const rawHash = decodeURIComponent(String(hash || '')).replace(/^#/, '');
+    const articleMatch = rawHash.match(/(?:^|-)At_([0-9_]+)/);
+    const article = articleMatch?.[1] || '';
+    if (!article) return null;
+
+    const suffix = rawHash.slice((articleMatch.index ?? 0) + articleMatch[0].length);
+    const paragraph = suffix.match(/(?:^|-)(?:Co|Pr)_([0-9_]+)/)?.[1] || '';
+    const item = suffix.match(/(?:^|-)(?:It|Sg)_([0-9_]+)/)?.[1] || '';
+    return { article, paragraph, item };
+  }
+
+  function parseProvisionPathFromEgovUrl(url, base = LAW_BASE_URL) {
+    try {
+      const parsed = new URL(String(url || ''), base);
+      return parseProvisionHash(parsed.hash);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  function formatProvisionSourcePath(parts) {
+    if (!parts?.article) return '';
+    let text = formatProvisionBranch(parts.article, '条');
+    if (parts.paragraph) text += formatProvisionBranch(parts.paragraph, '項');
+    if (parts.item) text += formatProvisionBranch(parts.item, '号');
+    return text;
+  }
+
+  function formatProvisionSourcePathFromEgovUrl(url, base = LAW_BASE_URL) {
+    return formatProvisionSourcePath(parseProvisionPathFromEgovUrl(url, base));
+  }
+
   function formatProvisionNumber(parts, {
     isArticleLevel = false,
     omitSingleParagraphFirst = false,
@@ -102,8 +141,12 @@
     formatArticleNumber,
     formatLawNameHtml,
     formatProvisionNumber,
+    formatProvisionSourcePath,
+    formatProvisionSourcePathFromEgovUrl,
     getLawFields,
     normalizeLawNameForCopy,
+    parseProvisionHash,
+    parseProvisionPathFromEgovUrl,
     searchLawsByTitle,
   });
 })(globalThis);

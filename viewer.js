@@ -5,6 +5,7 @@
   const {
     buildProvisionCopyPayload: buildSharedProvisionCopyPayload,
     formatProvisionNumber,
+    formatProvisionSourcePathFromEgovUrl,
     normalizeLawNameForCopy,
   } = shared;
   const params = new URLSearchParams(location.search);
@@ -591,10 +592,10 @@
       return;
     }
     contentEl.innerHTML = '<p class="viewer-status">e-Gov APIから条文XMLを読み込んでいます...</p>';
-    const revisionsPromise = loadRevisions();
-    const target = currentRevisionId || lawId;
     try {
-      const url = `${API_V2_BASE}/law_data/${encodeURIComponent(target)}?response_format=xml&law_full_text_format=xml&omit_amendment_suppl_provision=true`;
+      await loadRevisions();
+      const target = currentRevisionId || lawId;
+      const url = `${API_V2_BASE}/law_data/${encodeURIComponent(target)}?response_format=xml&law_full_text_format=xml`;
       const response = await fetch(url, { cache: 'force-cache' });
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       const xmlText = await response.text();
@@ -609,11 +610,10 @@
       } else {
         const stored = await chrome.storage.local.get([EXTERNAL_REFERENCES_AUTO_ENABLE_KEY]).catch(() => ({}));
         if (stored[EXTERNAL_REFERENCES_AUTO_ENABLE_KEY] !== false && externalReferencesAutoEnable) {
-          runWhenIdle(() => enableExternalReferenceLinks({ silent: true }), 600);
+          runWhenIdle(() => enableExternalReferenceLinks(), 600);
         }
       }
       await refreshFavoriteButton();
-      revisionsPromise.catch(() => {});
     } catch (error) {
       contentEl.innerHTML = `<p class="viewer-error">条文の読み込みに失敗しました。${escapeHtml(error.message || '')}</p>`;
     }
@@ -1067,7 +1067,7 @@
 
   function getReferenceSourceLabel(source) {
     const title = String(source?.sourceLawTitle || source?.sourceLawId || '').trim();
-    const path = String(source?.sourceDisplayPath || '').trim();
+    const path = formatProvisionSourcePathFromEgovUrl(source?.sourceUrl, location.href);
     return [title, path].filter(Boolean).join(' ');
   }
 

@@ -28,6 +28,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const REFERENCES_LAWS_STORE = 'laws';
   const REFERENCES_META_STORE = 'meta';
   const REFERENCES_CURRENT_META_KEY = 'current';
+  const formatProvisionSourcePathFromEgovUrl = globalThis.EgovShared?.formatProvisionSourcePathFromEgovUrl || (() => '');
 
   smoothToggle.checked = false;
   liteModeDefaultToggle.checked = false;
@@ -155,7 +156,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (!isPlainObject(raw)) throw new Error(`${path} がオブジェクトではありません。`);
     if (!isReferenceLawId(raw.sourceLawId)) throw new Error(`${path}.sourceLawId が不正です。`);
     if (!isNonEmptyString(raw.sourceLawTitle)) throw new Error(`${path}.sourceLawTitle が不正です。`);
-    if (typeof raw.sourceLawType !== 'string') throw new Error(`${path}.sourceLawType が文字列ではありません。`);
     if (!isNonEmptyString(raw.sourceUrl)) throw new Error(`${path}.sourceUrl が不正です。`);
     try {
       const parsed = new URL(raw.sourceUrl);
@@ -165,13 +165,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     } catch (_) {
       throw new Error(`${path}.sourceUrl は e-Gov の https URL ではありません。`);
     }
-    if (!isNonEmptyString(raw.sourceDisplayPath)) throw new Error(`${path}.sourceDisplayPath が不正です。`);
+    if (!formatProvisionSourcePathFromEgovUrl(raw.sourceUrl)) {
+      throw new Error(`${path}.sourceUrl から条項号を生成できません。`);
+    }
     return {
       sourceLawId: raw.sourceLawId.trim(),
       sourceLawTitle: raw.sourceLawTitle.trim(),
-      sourceLawType: raw.sourceLawType,
       sourceUrl: raw.sourceUrl.trim(),
-      sourceDisplayPath: raw.sourceDisplayPath.trim(),
     };
   }
 

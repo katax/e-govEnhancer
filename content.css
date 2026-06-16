@@ -850,6 +850,10 @@ mark.egov-ext-mark-current {
   position: absolute !important;
   bottom: 48px !important;
   right: 0 !important;
+  box-sizing: border-box !important;
+  max-height: calc(100vh - 96px) !important;
+  overflow-y: auto !important;
+  overscroll-behavior: contain !important;
   background: #fff !important;
   border-radius: 10px !important;
   box-shadow: 0 8px 30px rgba(0,0,0,0.2) !important;
@@ -862,6 +866,10 @@ mark.egov-ext-mark-current {
 }
 
 #egov-ext-guide:hover .egov-ext-guide-tooltip {
+  display: block !important;
+}
+
+#egov-ext-guide.egov-ext-guide-hover .egov-ext-guide-tooltip {
   display: block !important;
 }
 
