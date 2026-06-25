@@ -3416,9 +3416,39 @@
       hideLawReferencePreview();
       triggerLawReferencePopup(anchor, event);
     });
+    shield.addEventListener('wheel', handleLawReferenceShieldWheel, { passive: false });
     document.body.appendChild(shield);
     lawReferenceShieldEl = shield;
     return shield;
+  }
+
+  function getNormalizedWheelDelta(event) {
+    let unit = 1;
+    if (event.deltaMode === WheelEvent.DOM_DELTA_LINE) {
+      unit = parseFloat(window.getComputedStyle(document.body).lineHeight) || 16;
+    } else if (event.deltaMode === WheelEvent.DOM_DELTA_PAGE) {
+      const container = getScrollContainer();
+      unit = container?.clientHeight || window.innerHeight || 800;
+    }
+    return {
+      left: event.deltaX * unit,
+      top: event.deltaY * unit,
+    };
+  }
+
+  function handleLawReferenceShieldWheel(event) {
+    const delta = getNormalizedWheelDelta(event);
+    hideLawReferencePreview();
+    event.preventDefault();
+    event.stopPropagation();
+    event.stopImmediatePropagation();
+
+    const container = getScrollContainer();
+    if (container) {
+      container.scrollBy({ left: delta.left, top: delta.top, behavior: 'auto' });
+      return;
+    }
+    window.scrollBy({ left: delta.left, top: delta.top, behavior: 'auto' });
   }
 
   function hideLawReferencePreview() {
