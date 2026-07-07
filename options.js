@@ -67,26 +67,65 @@ document.addEventListener('DOMContentLoaded', async () => {
     lawRefOtherLawPopupToggle.checked = (typeof lawRefOtherLawPopup === 'boolean') ? lawRefOtherLawPopup : true;
     externalReferencesAutoEnableToggle.checked = (typeof externalReferencesAutoEnable === 'boolean') ? externalReferencesAutoEnable : true;
     updateLawRefHoverPopupRow();
-  }).catch(() => {});
+  }).catch((error) => {
+    console.warn('[e-Gov Enhancer] 設定の読み込みに失敗しました', error);
+    updateLawRefHoverPopupRow();
+  });
 
   function updateLawRefHoverPopupRow() {
     lawRefHoverPopupRow.classList.toggle('is-disabled', !lawRefClickToggle.checked);
     lawRefOtherLawPopupRow.classList.toggle('is-disabled', !lawRefClickToggle.checked);
   }
 
-  function setTransferStatus(message, tone = 'info') {
-    favoritesTransferStatus.textContent = message;
-    favoritesTransferStatus.className = `backup-status is-visible is-${tone}`;
+  function createTransferUi(statusEl, summaryEl) {
+    return {
+      setStatus(message, tone = 'info') {
+        statusEl.textContent = message;
+        statusEl.className = `backup-status is-visible is-${tone}`;
+      },
+      clearStatus() {
+        statusEl.textContent = '';
+        statusEl.className = 'backup-status';
+      },
+      setSummary(message = '') {
+        summaryEl.textContent = message;
+        summaryEl.classList.toggle('is-visible', !!message);
+      },
+    };
   }
 
-  function clearTransferStatus() {
-    favoritesTransferStatus.textContent = '';
-    favoritesTransferStatus.className = 'backup-status';
+  const favoritesUi = createTransferUi(favoritesTransferStatus, favoritesTransferSummary);
+  const referencesUi = createTransferUi(referencesTransferStatus, referencesTransferSummary);
+
+  const setTransferStatus = (message, tone) => favoritesUi.setStatus(message, tone);
+  const clearTransferStatus = () => favoritesUi.clearStatus();
+  const setTransferSummary = (message) => favoritesUi.setSummary(message);
+  const setReferencesTransferStatus = (message, tone) => referencesUi.setStatus(message, tone);
+  const clearReferencesTransferStatus = () => referencesUi.clearStatus();
+  const setReferencesTransferSummary = (message) => referencesUi.setSummary(message);
+
+  function persistLocal(items) {
+    chrome.storage.local.set(items).catch((error) => {
+      console.warn('[e-Gov Enhancer] 設定の保存に失敗しました', error);
+    });
   }
 
-  function setTransferSummary(message = '') {
-    favoritesTransferSummary.textContent = message;
-    favoritesTransferSummary.classList.toggle('is-visible', !!message);
+  function runReloadLawTabs() {
+    reloadLawTabsIfConfirmed().catch((error) => {
+      console.warn('[e-Gov Enhancer] タブのリロードに失敗しました', error);
+    });
+  }
+
+  function downloadJson(filename, text) {
+    const blob = new Blob([text], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = filename;
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 0);
   }
 
   function isPlainObject(value) {
@@ -95,21 +134,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   function isNonEmptyString(value) {
     return typeof value === 'string' && value.trim() !== '';
-  }
-
-  function setReferencesTransferStatus(message, tone = 'info') {
-    referencesTransferStatus.textContent = message;
-    referencesTransferStatus.className = `backup-status is-visible is-${tone}`;
-  }
-
-  function clearReferencesTransferStatus() {
-    referencesTransferStatus.textContent = '';
-    referencesTransferStatus.className = 'backup-status';
-  }
-
-  function setReferencesTransferSummary(message = '') {
-    referencesTransferSummary.textContent = message;
-    referencesTransferSummary.classList.toggle('is-visible', !!message);
   }
 
   function openReferencesDb() {
@@ -218,6 +242,21 @@ document.addEventListener('DOMContentLoaded', async () => {
         linkCount,
       },
     };
+  }
+
+  // 同梱データ（検証済みの信頼できるデータ）の件数のみを軽量に集計する。
+  function countReferencesSummary(payload) {
+    let targetCount = 0;
+    let linkCount = 0;
+    const laws = isPlainObject(payload) ? Object.values(payload) : [];
+    for (const lawReferences of laws) {
+      if (!isPlainObject(lawReferences)) continue;
+      for (const value of Object.values(lawReferences)) {
+        targetCount += 1;
+        linkCount += Array.isArray(value?.externalLawSources) ? value.externalLawSources.length : 0;
+      }
+    }
+    return { lawCount: laws.length, targetCount, linkCount };
   }
 
   function buildReferencesSummary(summary = {}) {
@@ -444,15 +483,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       folderCollapsed: isPlainObject(folderCollapsed) ? folderCollapsed : {},
     };
 
-    const blob = new Blob([`${JSON.stringify(payload, null, 2)}\n`], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const anchor = document.createElement('a');
-    anchor.href = url;
-    anchor.download = `e-GovEnhancerFav-${formatDateForFileName()}.json`;
-    document.body.appendChild(anchor);
-    anchor.click();
-    anchor.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 0);
+    downloadJson(`e-GovEnhancerFav-${formatDateForFileName()}.json`, `${JSON.stringify(payload, null, 2)}\n`);
 
     setTransferStatus('お気に入りを JSON でエクスポートしました。', 'success');
     setTransferSummary(buildExportSummary(payload));
@@ -519,19 +550,11 @@ document.addEventListener('DOMContentLoaded', async () => {
       const response = await fetch(chrome.runtime.getURL('data/references.json'), { cache: 'force-cache' });
       if (!response.ok) throw new Error(`同梱データを読み込めませんでした: HTTP ${response.status}`);
       payload = await response.json();
-      summary = validateReferencesImport(payload).summary;
+      summary = countReferencesSummary(payload);
       sourceLabel = '同梱データ';
     }
 
-    const blob = new Blob([`${JSON.stringify(payload)}\n`], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const anchor = document.createElement('a');
-    anchor.href = url;
-    anchor.download = `e-GovEnhancerReferences-${formatDateForFileName()}.json`;
-    document.body.appendChild(anchor);
-    anchor.click();
-    anchor.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 0);
+    downloadJson(`e-GovEnhancerReferences-${formatDateForFileName()}.json`, `${JSON.stringify(payload)}\n`);
 
     setReferencesTransferStatus(`逆参照リンク用ファイルをエクスポートしました。`, 'success');
     setReferencesTransferSummary(`${sourceLabel} / ${buildReferencesSummary(summary)}`);
@@ -571,46 +594,44 @@ document.addEventListener('DOMContentLoaded', async () => {
     await saveReferencesImport(validated, file);
     setReferencesTransferStatus('逆参照リンク用ファイルを読み込みました。', 'success');
     setReferencesTransferSummary(`${summary} / ${file.name || 'ファイル名なし'}`);
-    reloadLawTabsIfConfirmed();
+    runReloadLawTabs();
   }
 
-  updateLawRefHoverPopupRow();
-
   smoothToggle.addEventListener('change', () => {
-    chrome.storage.local.set({ scrollBehavior: smoothToggle.checked ? 'smooth' : 'instant' });
+    persistLocal({ scrollBehavior: smoothToggle.checked ? 'smooth' : 'instant' });
   });
 
   liteModeDefaultToggle.addEventListener('change', () => {
-    chrome.storage.local.set({ liteModeDefault: liteModeDefaultToggle.checked });
+    persistLocal({ liteModeDefault: liteModeDefaultToggle.checked });
   });
 
   hideLawSidebarDefaultToggle.addEventListener('change', () => {
-    chrome.storage.local.set({ hideLawSidebarDefault: hideLawSidebarDefaultToggle.checked });
+    persistLocal({ hideLawSidebarDefault: hideLawSidebarDefaultToggle.checked });
   });
 
   pinToastToggle.addEventListener('change', () => {
-    chrome.storage.local.set({ pinToastDefaultVisible: pinToastToggle.checked });
+    persistLocal({ pinToastDefaultVisible: pinToastToggle.checked });
   });
 
   lawRefClickToggle.addEventListener('change', () => {
-    chrome.storage.local.set({ lawRefClickEnabled: lawRefClickToggle.checked });
+    persistLocal({ lawRefClickEnabled: lawRefClickToggle.checked });
     updateLawRefHoverPopupRow();
-    reloadLawTabsIfConfirmed();
+    runReloadLawTabs();
   });
 
   lawRefHoverPopupToggle.addEventListener('change', () => {
-    chrome.storage.local.set({ lawRefHoverPopup: lawRefHoverPopupToggle.checked });
-    reloadLawTabsIfConfirmed();
+    persistLocal({ lawRefHoverPopup: lawRefHoverPopupToggle.checked });
+    runReloadLawTabs();
   });
 
   lawRefOtherLawPopupToggle.addEventListener('change', () => {
-    chrome.storage.local.set({ lawRefOtherLawPopup: lawRefOtherLawPopupToggle.checked });
-    reloadLawTabsIfConfirmed();
+    persistLocal({ lawRefOtherLawPopup: lawRefOtherLawPopupToggle.checked });
+    runReloadLawTabs();
   });
 
   externalReferencesAutoEnableToggle.addEventListener('change', () => {
-    chrome.storage.local.set({ externalReferencesAutoEnable: externalReferencesAutoEnableToggle.checked });
-    reloadLawTabsIfConfirmed();
+    persistLocal({ externalReferencesAutoEnable: externalReferencesAutoEnableToggle.checked });
+    runReloadLawTabs();
   });
 
   exportFavoritesBtn.addEventListener('click', () => {

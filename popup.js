@@ -24,11 +24,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const resultsEl     = document.getElementById('searchResults');
   const histPanelEl   = document.getElementById('historyPanel');
   const histListEl    = document.getElementById('historyList');
-  const histTitleEl   = { textContent: '' };
-  const histHintEl    = { textContent: '' };
   const searchHintEl  = document.getElementById('searchHint');
-  const histLeftBtn   = { style: {}, disabled: false, title: '', addEventListener() {} };
-  const histRightBtn  = { style: {}, disabled: false, title: '', addEventListener() {} };
   const liteModeTitleBadge = document.getElementById('liteModeTitleBadge');
   const favFolderBtn  = document.getElementById('favFolderBtn');
   const mode0NavLeft  = document.getElementById('mode0NavLeft');
@@ -186,6 +182,36 @@ document.addEventListener('DOMContentLoaded', async () => {
     toastTimer = setTimeout(() => {
       toastEl.classList.remove('is-visible');
     }, 1800);
+  }
+
+  // 描画直後に検索入力へフォーカスを戻す（一覧再描画後の共通処理）
+  function refocusSearchInput() {
+    setTimeout(() => { searchInput.focus(); }, 0);
+  }
+
+  // chrome.storage.local への保存を共通化（失敗時はログのみ・従来どおり握り潰さない）
+  function persistLocal(items) {
+    chrome.storage.local.set(items).catch((error) => {
+      console.warn('[e-Gov Enhancer] 保存に失敗しました', error);
+    });
+  }
+
+  // 「e-Govで直接検索する」フォールバックリンクの共通配線
+  function wireFallbackLink() {
+    resultsEl.querySelector('.fallback-link')?.addEventListener('click', (e) => {
+      e.preventDefault();
+      chrome.tabs.create({ url: e.currentTarget.dataset.url });
+      window.close();
+    });
+  }
+
+  // ★／☆ お気に入りボタンの表示状態を更新する共通処理
+  function applyFavButtonState(btn, isFav, activeClass, { shortcut = false } = {}) {
+    if (!btn) return;
+    btn.textContent = isFav ? '★' : '☆';
+    btn.classList.toggle(activeClass, isFav);
+    const suffix = shortcut ? ' (Shift+Enter)' : '';
+    btn.title = (isFav ? 'お気に入りから削除' : 'お気に入りに追加') + suffix;
   }
 
   function isMainModeArrowKey(e) {
@@ -433,8 +459,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       return;
     }
     if (e.key === 'ArrowRight' && historyMode === 'law') {
-      if (historyMode === 'law')            hideHistoryPanel(); // Mode2 → Mode0（閉じる）
-      else if (historyMode === 'favorites') hideHistoryPanel(); // Mode3 → Mode0（閉じる）
+      hideHistoryPanel(); // Mode2 → Mode0（閉じる）
       return;
     }
     if (e.key === 'Delete' && e.ctrlKey) {
@@ -450,12 +475,7 @@ document.addEventListener('DOMContentLoaded', async () => {
           const items = histListEl.querySelectorAll('.history-item');
           if (items[histFocusedIdx]) {
             const btn = items[histFocusedIdx].querySelector('.hist-fav-btn');
-            if (btn) {
-              const fav = isFavorite(openedLawHistory[idx].lawId);
-              btn.textContent = fav ? '★' : '☆';
-              btn.classList.toggle('hist-fav-active', fav);
-              btn.title = fav ? 'お気に入りから削除' : 'お気に入りに追加';
-            }
+            applyFavButtonState(btn, isFavorite(openedLawHistory[idx].lawId), 'hist-fav-active');
           }
         }
         return;
@@ -507,7 +527,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (isEmptyState && e.key === 'Delete' && e.ctrlKey && focusedResultIndex >= 0) {
       e.preventDefault();
       queryHistory.splice(focusedResultIndex, 1);
-      chrome.storage.local.set({ queryHistory }).catch(() => {});
+      persistLocal({ queryHistory });
       const nextIdx = Math.min(focusedResultIndex, queryHistory.length - 1);
       showEmptyState();
       if (nextIdx >= 0) {
@@ -577,69 +597,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   // ================================================
   function showHistoryPanel(mode) {
     hideTooltip();
-    historyMode    = mode;
-    histFocusedIdx = -1;
-    syncModeHint(mode);
-
-    // タイトル
-
-    // ◀ ボタン（Mode3 のみ表示）
-    histLeftBtn.title = mode === 'favorites' ? '閉じる' : '';
-
-    // ▶ ボタン（Mode2 / Mode3 で表示）
-    const showRight = mode === 'law';
-    histRightBtn.style.visibility = showRight ? 'visible' : 'hidden';
-    histRightBtn.style.display    = showRight ? '' : 'none';
-    histRightBtn.disabled         = !showRight;
-    histRightBtn.title = mode === 'law' ? '閉じる' : mode === 'favorites' ? '閉じる' : '';
-
-    // フォルダ作成ボタン（Mode3 のみ表示）
-    favFolderBtn.style.display = mode === 'favorites' ? '' : 'none';
-
-    // ガイドヒント
-    const hints = {
-      law:       '▶ 閉じる ｜ ↑↓ 選択 ｜ Shift+Enter ★ ｜ Enter 開く ｜ Ctrl+Del 削除',
-      favorites: '◀ 閉じる ｜ ↑↓ 選択 ｜ Enter 開く ｜ Ctrl+Del 削除 ｜ D&D 並替/移動',
-    };
-    histHintEl.textContent = ({
-      law: '↑↓ 選択 ｜ Shift+Enter お気に入り ｜ Enter 開く ｜ Ctrl+Del 削除',
-      favorites: '↑↓ 選択 ｜ Enter 開く ｜ Ctrl+Del 削除',
-    })[mode] || '';
-
-    // リスト描画
-    histListEl.innerHTML = '';
-
-    if (mode === 'favorites') {
-      renderFavoritesPanel();
-    } else {
-      renderHistList(mode);
-    }
-
-    histPanelEl.style.display  = 'flex';
-    searchHintEl.style.display = '';
-    resultsEl.style.display    = 'none';
-    searchInput.focus();
-  }
-
-  function hideHistoryPanel() {
-    hideTooltip();
-    historyMode    = null;
-    histFocusedIdx = -1;
-    syncModeHint('search');
-    document.body.style.cursor = '';
-    histPanelEl.style.display  = 'none';
-    searchHintEl.style.display = '';
-    resultsEl.style.display    = '';
-    favFolderBtn.style.display = 'none';
-    // 確認ダイアログが残っていたら除去
-    document.getElementById('folderDelConfirm')?.remove();
-    searchInput.focus();
-    // 入力が空欄なら検索履歴をインライン表示
-    if (!searchInput.value.trim()) showEmptyState();
-  }
-
-  function showHistoryPanel(mode) {
-    hideTooltip();
     historyMode = mode;
     histFocusedIdx = -1;
     syncModeHint(mode);
@@ -707,7 +664,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       li.querySelector('.hist-del-btn').addEventListener('click', (ev) => {
         ev.stopPropagation();
         queryHistory.splice(i, 1);
-        chrome.storage.local.set({ queryHistory }).catch(() => {});
+        persistLocal({ queryHistory });
         showEmptyState();
         searchInput.focus();
       });
@@ -775,12 +732,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         li.querySelector('.hist-fav-btn').addEventListener('click', (ev) => {
           ev.stopPropagation();
           toggleFavorite(item);
-          const btn  = ev.currentTarget;
-          const nfav = isFavorite(item.lawId);
-          btn.textContent = nfav ? '★' : '☆';
-          btn.classList.toggle('hist-fav-active', nfav);
-          btn.title = nfav ? 'お気に入りから削除' : 'お気に入りに追加';
-          setTimeout(() => searchInput.focus(), 0);
+          applyFavButtonState(ev.currentTarget, isFavorite(item.lawId), 'hist-fav-active');
+          refocusSearchInput();
         });
       }
 
@@ -788,7 +741,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       li.querySelector('.hist-del-btn').addEventListener('click', (ev) => {
         ev.stopPropagation();
         deleteHistItem(parseInt(li.dataset.idx));
-        setTimeout(() => searchInput.focus(), 0);
+        refocusSearchInput();
       });
 
       li.addEventListener('mouseenter', () => {
@@ -837,16 +790,16 @@ document.addEventListener('DOMContentLoaded', async () => {
       bar.querySelector('[data-action="collapse-all"]').addEventListener('click', () => {
         favFolders.forEach(f => { folderCollapsed[f.id] = true; });
         folderCollapsed['__uncat__'] = true;
-        chrome.storage.local.set({ folderCollapsed }).catch(() => {});
+        persistLocal({ folderCollapsed });
         renderFavoritesPanel();
-        setTimeout(() => searchInput.focus(), 0);
+        refocusSearchInput();
       });
       bar.querySelector('[data-action="expand-all"]').addEventListener('click', () => {
         favFolders.forEach(f => { folderCollapsed[f.id] = false; });
         folderCollapsed['__uncat__'] = false;
-        chrome.storage.local.set({ folderCollapsed }).catch(() => {});
+        persistLocal({ folderCollapsed });
         renderFavoritesPanel();
-        setTimeout(() => searchInput.focus(), 0);
+        refocusSearchInput();
       });
       histListEl.appendChild(bar);
     }
@@ -932,7 +885,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       ev.stopPropagation();
       hideTooltip();
       deleteHistItem(parseInt(li.dataset.idx));
-      setTimeout(() => searchInput.focus(), 0);
+      refocusSearchInput();
     });
 
     li.addEventListener('mouseenter', () => {
@@ -983,9 +936,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     li.querySelector('.fav-folder-toggle').addEventListener('click', (ev) => {
       ev.stopPropagation();
       folderCollapsed[folder.id] = !folderCollapsed[folder.id];
-      chrome.storage.local.set({ folderCollapsed }).catch(() => {});
+      persistLocal({ folderCollapsed });
       renderFavoritesPanel();
-      setTimeout(() => searchInput.focus(), 0);
+      refocusSearchInput();
     });
 
     li.querySelector('.fav-folder-rename-btn').addEventListener('click', (ev) => {
@@ -996,7 +949,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     li.querySelector('.fav-folder-del-btn').addEventListener('click', (ev) => {
       ev.stopPropagation();
       confirmDeleteFolder(folder.id, folder.name);
-      setTimeout(() => searchInput.focus(), 0);
+      refocusSearchInput();
     });
 
     // D&D: dragstart/dragend のみ。dragover/drop は委譲ハンドラで処理
@@ -1032,9 +985,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     li.querySelector('.fav-folder-toggle').addEventListener('click', (ev) => {
       ev.stopPropagation();
       folderCollapsed['__uncat__'] = !folderCollapsed['__uncat__'];
-      chrome.storage.local.set({ folderCollapsed }).catch(() => {});
+      persistLocal({ folderCollapsed });
       renderFavoritesPanel();
-      setTimeout(() => searchInput.focus(), 0);
+      refocusSearchInput();
     });
     return li;
   }
@@ -1067,17 +1020,17 @@ document.addEventListener('DOMContentLoaded', async () => {
       const newName = input.value.trim();
       if (newName && newName !== currentName) {
         favFolders[folderIdx].name = newName;
-        chrome.storage.local.set({ favFolders }).catch(() => {});
+        persistLocal({ favFolders });
       }
       renderFavoritesPanel();
-      setTimeout(() => searchInput.focus(), 0);
+      refocusSearchInput();
     }
     function cancelRename() {
       if (done) return;
       done = true;
       input.removeEventListener('keydown', onKeydown);
       renderFavoritesPanel();
-      setTimeout(() => searchInput.focus(), 0);
+      refocusSearchInput();
     }
     function onKeydown(ev) {
       ev.stopPropagation();
@@ -1180,9 +1133,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         const adjustedTo   = toIdx > fromIdx ? toIdx - 1 : toIdx;
         favFolders.splice(insertBefore ? adjustedTo : adjustedTo + 1, 0, moved);
 
-        chrome.storage.local.set({ favFolders }).catch(() => {});
+        persistLocal({ favFolders });
         renderFavoritesPanel();
-        setTimeout(() => searchInput.focus(), 0);
+        refocusSearchInput();
 
       } else if (dragType === 'item') {
         const target = e.target instanceof Element ? e.target.closest(TARGETS) : null;
@@ -1207,9 +1160,9 @@ document.addEventListener('DOMContentLoaded', async () => {
           favorites[fromIdx].folderId = target.dataset.folderId || null;
         }
 
-        chrome.storage.local.set({ favorites }).catch(() => {});
+        persistLocal({ favorites });
         renderFavoritesPanel();
-        setTimeout(() => searchInput.focus(), 0);
+        refocusSearchInput();
       }
     });
   }
@@ -1258,9 +1211,9 @@ document.addEventListener('DOMContentLoaded', async () => {
       name,
     };
     favFolders.push(folder);
-    chrome.storage.local.set({ favFolders }).catch(() => {});
+    persistLocal({ favFolders });
     renderFavoritesPanel();
-    setTimeout(() => searchInput.focus(), 0);
+    refocusSearchInput();
   }
 
   // ================================================
@@ -1288,22 +1241,22 @@ document.addEventListener('DOMContentLoaded', async () => {
     div.querySelector('.fdc-root').addEventListener('click', () => {
       favorites.forEach(f => { if (f.folderId === folderId) f.folderId = null; });
       favFolders = favFolders.filter(f => f.id !== folderId);
-      chrome.storage.local.set({ favorites, favFolders }).catch(() => {});
+      persistLocal({ favorites, favFolders });
       div.remove();
       renderFavoritesPanel();
-      setTimeout(() => searchInput.focus(), 0);
+      refocusSearchInput();
     });
     div.querySelector('.fdc-del').addEventListener('click', () => {
       favorites  = favorites.filter(f => f.folderId !== folderId);
       favFolders = favFolders.filter(f => f.id !== folderId);
-      chrome.storage.local.set({ favorites, favFolders }).catch(() => {});
+      persistLocal({ favorites, favFolders });
       div.remove();
       renderFavoritesPanel();
-      setTimeout(() => searchInput.focus(), 0);
+      refocusSearchInput();
     });
     div.querySelector('.fdc-cancel').addEventListener('click', () => {
       div.remove();
-      setTimeout(() => searchInput.focus(), 0);
+      refocusSearchInput();
     });
   }
 
@@ -1365,7 +1318,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     hist.splice(arrayIdx, 1);
 
     const keyMap = { search: 'queryHistory', law: 'openedLawHistory', favorites: 'favorites' };
-    chrome.storage.local.set({ [keyMap[historyMode]]: hist }).catch(() => {});
+    persistLocal({ [keyMap[historyMode]]: hist });
 
     if (historyMode === 'favorites') {
       renderFavoritesPanel();
@@ -1409,10 +1362,6 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
     }
   }
-
-  // ◀ ▶ ボタンクリック（履歴パネル内）— 両方とも閉じるだけ
-  histLeftBtn.addEventListener('click',  () => { if (historyMode !== null) hideHistoryPanel(); });
-  histRightBtn.addEventListener('click', () => { if (historyMode !== null) hideHistoryPanel(); });
 
   // Mode0 の ◀ ▶ ボタンクリック（searchHint 内）
   mode0NavLeft.addEventListener('click', () => {
@@ -1493,10 +1442,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const btn = li.querySelector('.result-fav-btn');
     if (!btn || !currentResults[idx]) return;
     const { lawId } = getLawFields(currentResults[idx]);
-    const fav = isFavorite(lawId);
-    btn.textContent = fav ? '★' : '☆';
-    btn.classList.toggle('result-fav-active', fav);
-    btn.title = fav ? 'お気に入りから削除 (Shift+Enter)' : 'お気に入りに追加 (Shift+Enter)';
+    applyFavButtonState(btn, isFavorite(lawId), 'result-fav-active', { shortcut: true });
   }
 
   // ================================================
@@ -1511,7 +1457,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       const laws = await searchLawsByTitle(query, { limit: 31 });
       const hasMore = laws.length > 30;
       const display = hasMore ? laws.slice(0, 30) : laws;
-      currentResults = display;
+      // currentResults は showResults 内で表示順（sortedLaws）に確定させる
       showResults(display, query, hasMore);
       pushQueryHistory(query);
     } catch (err) {
@@ -1545,7 +1491,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (idx !== -1) queryHistory.splice(idx, 1);
     queryHistory.unshift(query);
     if (queryHistory.length > HIST_MAX) queryHistory.length = HIST_MAX;
-    chrome.storage.local.set({ queryHistory }).catch(() => {});
+    persistLocal({ queryHistory });
   }
 
   function pushOpenedLaw(law) {
@@ -1554,7 +1500,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (idx !== -1) openedLawHistory.splice(idx, 1);
     openedLawHistory.unshift(law);
     if (openedLawHistory.length > HIST_MAX) openedLawHistory.length = HIST_MAX;
-    chrome.storage.local.set({ openedLawHistory }).catch(() => {});
+    persistLocal({ openedLawHistory });
   }
 
   function isFavorite(lawId) {
@@ -1574,14 +1520,9 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (favorites.length > FAV_MAX) favorites.length = FAV_MAX;
       showToast('お気に入りに追加しました');
     }
-    chrome.storage.local.set({ favorites }).catch(() => {});
+    persistLocal({ favorites });
   }
 
-  // （セッション保存・復元は廃止：起動時は常に空欄から開始）
-
-  // ================================================
-  // API レスポンス解析
-  // ================================================
   // ================================================
   // 結果表示
   // ================================================
@@ -1596,9 +1537,7 @@ document.addEventListener('DOMContentLoaded', async () => {
           「${escapeHtml(query ?? '')}」に一致する法令が見つかりませんでした
           <a href="#" class="fallback-link" data-url="https://laws.e-gov.go.jp/">e-Govで直接検索する →</a>
         </div>`;
-      resultsEl.querySelector('.fallback-link')?.addEventListener('click', (e) => {
-        e.preventDefault(); chrome.tabs.create({ url: e.currentTarget.dataset.url }); window.close();
-      });
+      wireFallbackLink();
       searchInput.focus();
       return;
     }
@@ -1614,7 +1553,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     const list = document.createElement('ul');
     list.className = 'results-list';
 
-    // カーソル非表示 → マウス移動で復元 + ホバー有効化
     // カーソル非表示 + マウス移動でホバー有効化（描画直後の誤検知防止）
     hideCursorBriefly();
 
@@ -1679,9 +1617,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         <span>${escapeHtml(msg)}</span>
         <a href="#" class="fallback-link" data-url="https://laws.e-gov.go.jp/">e-Govで直接検索する →</a>
       </div>`;
-    resultsEl.querySelector('.fallback-link')?.addEventListener('click', (e) => {
-      e.preventDefault(); chrome.tabs.create({ url: e.currentTarget.dataset.url }); window.close();
-    });
+    wireFallbackLink();
   }
 
   // ================================================

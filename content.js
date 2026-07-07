@@ -111,37 +111,40 @@
     if (typeof data.pinToastDefaultVisible === 'boolean') pinToastDefaultVisible = data.pinToastDefaultVisible;
   });
   chrome.storage.onChanged.addListener((changes, area) => {
-    if (area === 'local' && changes.scrollBehavior) scrollBehavior = changes.scrollBehavior.newValue;
-    if (area === 'local' && changes.favorites) refreshFavoriteHeaderBadge();
-    if (area === 'local' && changes.favorites) {
-      favoritesCache = Array.isArray(changes.favorites.newValue) ? changes.favorites.newValue : [];
-    }
-    if (area === 'local' && changes.pinToastDefaultVisible) {
-      pinToastDefaultVisible = !!changes.pinToastDefaultVisible.newValue;
-      if (pinToastDefaultVisible) {
-        pinToastPinned = true;
-        showPinToast(false);
-      } else if (pinToastPinned) {
-        pinToastPinned = false;
-        hidePinToast(true);
+    if (area === 'local') {
+      if (changes.scrollBehavior) scrollBehavior = changes.scrollBehavior.newValue;
+      if (changes.favorites) {
+        favoritesCache = Array.isArray(changes.favorites.newValue) ? changes.favorites.newValue : [];
+        refreshFavoriteHeaderBadge();
       }
-    }
-    if (area === 'local' && changes.lawRefOtherLawPopup) {
-      lawRefOtherLawPopupEnabled = changes.lawRefOtherLawPopup.newValue !== false;
-    }
-    if (area === 'local' && changes.lawRefClickEnabled) {
-      lawRefClickEnabled = changes.lawRefClickEnabled.newValue !== false;
-      if (!lawRefClickEnabled) hideLawReferencePreview();
-    }
-    if (area === 'local' && changes.lawRefHoverPopup) {
-      lawRefHoverPopupEnabled = changes.lawRefHoverPopup.newValue === true;
-    }
-    if (area === 'local' && changes.hideLawSidebarDefault) {
-      setLawRevisionAreaExpanded(changes.hideLawSidebarDefault.newValue === true);
-    }
-    if (area === 'session' && changes.colorPins) {
-      refreshColorPinHighlights();
-      if (pinToastVisible) schedulePinToastRender();
+      if (changes.pinToastDefaultVisible) {
+        pinToastDefaultVisible = !!changes.pinToastDefaultVisible.newValue;
+        if (pinToastDefaultVisible) {
+          pinToastPinned = true;
+          showPinToast(false);
+        } else if (pinToastPinned) {
+          pinToastPinned = false;
+          hidePinToast(true);
+        }
+      }
+      if (changes.lawRefOtherLawPopup) {
+        lawRefOtherLawPopupEnabled = changes.lawRefOtherLawPopup.newValue !== false;
+      }
+      if (changes.lawRefClickEnabled) {
+        lawRefClickEnabled = changes.lawRefClickEnabled.newValue !== false;
+        if (!lawRefClickEnabled) hideLawReferencePreview();
+      }
+      if (changes.lawRefHoverPopup) {
+        lawRefHoverPopupEnabled = changes.lawRefHoverPopup.newValue === true;
+      }
+      if (changes.hideLawSidebarDefault) {
+        setLawRevisionAreaExpanded(changes.hideLawSidebarDefault.newValue === true);
+      }
+    } else if (area === 'session') {
+      if (changes.colorPins) {
+        refreshColorPinHighlights();
+        if (pinToastVisible) schedulePinToastRender();
+      }
     }
   });
   window.addEventListener('resize', () => { if (pinToastVisible) schedulePinToastRender(); });
@@ -690,25 +693,7 @@
       e.preventDefault();
       e.stopPropagation();
       if (!e.isTrusted) return;
-      const lawId = getCurrentLawIdFromUrl();
-      if (!lawId) {
-        showPinIndicator('\u6cd5\u4ee4ID\u3092\u53d6\u5f97\u3067\u304d\u307e\u305b\u3093\u3067\u3057\u305f');
-        return;
-      }
-      if (openLightweightViewerDirectly(lawId)) return;
-      try {
-        const response = await chrome.runtime.sendMessage({
-          type: 'egov-open-lightweight-viewer',
-          lawId,
-          lawName: getCurrentLawName(),
-          sourceUrl: location.href,
-        });
-        if (!response?.ok && !openLightweightViewerDirectly(lawId)) {
-          showPinIndicator('\u8efd\u91cf\u30d3\u30e5\u30fc\u30a2\u3092\u958b\u3051\u307e\u305b\u3093\u3067\u3057\u305f');
-        }
-      } catch (_) {
-        if (!openLightweightViewerDirectly(lawId)) showPinIndicator('\u8efd\u91cf\u30d3\u30e5\u30fc\u30a2\u3092\u958b\u3051\u307e\u305b\u3093\u3067\u3057\u305f');
-      }
+      await openLightweightViewerFromPage();
     });
 
     const favorite = document.getElementById('egov-ext-favorite-header-badge');
@@ -750,7 +735,8 @@
       if (!response?.ok && !openLightweightViewerDirectly(lawId)) {
         showPinIndicator('\u8efd\u91cf\u30d3\u30e5\u30fc\u30a2\u3092\u958b\u3051\u307e\u305b\u3093\u3067\u3057\u305f');
       }
-    } catch (_) {
+    } catch (error) {
+      console.warn('[e-Gov Enhancer] \u8efd\u91cf\u30d3\u30e5\u30fc\u30a2\u306e\u8d77\u52d5\u306b\u5931\u6557\u3057\u307e\u3057\u305f', error);
       if (!openLightweightViewerDirectly(lawId)) showPinIndicator('\u8efd\u91cf\u30d3\u30e5\u30fc\u30a2\u3092\u958b\u3051\u307e\u305b\u3093\u3067\u3057\u305f');
     }
   }
@@ -2097,7 +2083,6 @@
   // ==================
   function jumpToArticle(num) {
     const norm = num.replace(/[のノ]/g, '_').replace(/[-－‐ー]/g, '_').replace(/\s+/g, '');
-    console.log(`[e-Gov Jump] 検索: "${num}" → norm: "${norm}"`);
 
     const idPatterns = [
       `[id$="-At_${norm}"]`,
@@ -2117,7 +2102,6 @@
               el = el.parentElement;
             }
           }
-          console.log(`[e-Gov Jump] ヒット: ${sel} → id="${target.id}"`);
           highlightAndScroll(target, 0.25);
           return true;
         }
@@ -2191,7 +2175,7 @@
     }
 
     if (!itemEl) {
-      const kanjiN = toKanjiNum(parseInt(ni));
+      const kanjiN = toKanjiNum(parseInt(ni, 10));
       const root   = paraEl.parentElement || document.querySelector('#provisionview') || document.body;
       let pastPara = false;
       const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null);
@@ -2274,35 +2258,15 @@
     const rawHash = String(hash || '');
     if (!rawHash || rawHash === '#') return false;
 
-    const targetId = decodeURIComponent(rawHash.replace(/^#/, ''));
-    if (!targetId) return false;
-
-    const provisionRoot = document.querySelector('#provisionview') || document.body;
-    const escapedId = globalThis.CSS?.escape
-      ? CSS.escape(targetId)
-      : targetId.replace(/(["\\#.:[\],=<>+~*^$| ])/g, '\\$1');
-
-    let target = null;
-    try {
-      target = document.getElementById(targetId) || provisionRoot.querySelector(`#${escapedId}`);
-    } catch (_) {
-      target = document.getElementById(targetId);
-    }
-
-    // 短縮形ID（例: "Mp-At_5-Pr_1"）で見つからない場合、フルパスID（例: "Mp-Pa_1-Ch_2-Se_3-At_5-Pr_1"）を末尾一致で検索
-    // 民法のように「編-章-節」構造がある法令ではIDに構造パスが付くが、リンクは短縮形を使う
-    if (!(target instanceof Element) && targetId.startsWith('Mp-')) {
-      const suffix = targetId.slice(2); // "Mp-At_5-Pr_1" → "-At_5-Pr_1"
-      try {
-        target = provisionRoot.querySelector(`[id$="${suffix}"]`);
-      } catch (_) {}
-    }
-
+    // ハッシュ→要素の解決は getHashTargetElement に集約（短縮形/フルパスID対応を共通化）
+    const target = getHashTargetElement(rawHash);
     if (!(target instanceof Element)) return false;
+
     highlightAndScroll(target, 0.25);
     history.replaceState(null, '', rawHash);
 
     // 条文ジャンプ履歴に追加（ポップアップ経由でないスクロール移動のみ）
+    const provisionRoot = document.querySelector('#provisionview') || document.body;
     if (options.sourceJumpKey) pushJumpHistory(options.sourceJumpKey);
     const jumpKey = getJumpHistoryKeyFromTargetElement(target, provisionRoot);
     if (jumpKey) pushJumpHistory(jumpKey);
@@ -2665,6 +2629,7 @@
 
       function onResult(event) {
         if (event.source !== window) return;
+        if (event.origin !== window.location.origin) return;
         const data = event.data || {};
         if (data.type !== 'egov-ext-open-inyo-dialog-result' || data.requestId !== requestId) return;
         clearTimeout(timer);
@@ -2680,7 +2645,7 @@
         objectId,
         clientX: point?.x ?? 0,
         clientY: point?.y ?? 0,
-      }, '*');
+      }, window.location.origin);
     });
   }
 
@@ -3778,10 +3743,10 @@
         pushHistory(searchHistory, query);
         performSearch(query, resultEl);
         markSearchExecuted();
-        navigateFromCurrentScrollPos(resultEl);
+        navigateFromViewportStart(resultEl);
         refocusSearchInput();
       } else {
-        navigateFromCurrentScrollPos(resultEl);
+        navigateFromViewportStart(resultEl);
         refocusSearchInput();
       }
     }
@@ -3869,10 +3834,6 @@
       resultEl.textContent = `${targetIdx + 1} / ${highlights.length} 件`;
       resultEl.className   = 'egov-ext-result egov-ext-result-success';
     }
-  }
-
-  function navigateFromCurrentScrollPos(resultEl) {
-    navigateFromViewportStart(resultEl);
   }
 
   function navigate(direction, resultEl) {
