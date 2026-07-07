@@ -4,10 +4,14 @@
   const shared = globalThis.EgovShared;
   const {
     buildProvisionCopyPayload: buildSharedProvisionCopyPayload,
+    cloneDefinitionPatterns,
     escapeHtml,
+    extractInlineAliasDefinition: extractSharedInlineAliasDefinition,
     extractLaws,
+    extractTermBeforeParentheticalDefinition: extractSharedTermBeforeParentheticalDefinition,
     formatProvisionNumber,
     formatProvisionSourcePathFromEgovUrl,
+    isTermBoundarySafe: isSharedTermBoundarySafe,
     normalizeLawNameForCopy,
   } = shared;
   const params = new URLSearchParams(location.search);
@@ -19,6 +23,9 @@
   const API_V2_BASE = 'https://laws.e-gov.go.jp/api/2';
   const LITE_FONT_SIZE_KEY = 'liteFontSize';
   const LITE_CONTENT_WIDTH_KEY = 'liteContentWidth';
+  // Historical key name: this controls the definition guide in both normal and Lite modes.
+  const LITE_DEF_TOOLTIP_ENABLED_KEY = 'liteDefTooltipEnabled';
+  const DEF_TOOLTIP_CLICK_ONLY_KEY = 'defTooltipClickOnly';
   const EXTERNAL_REFERENCES_AUTO_ENABLE_KEY = 'externalReferencesAutoEnable';
   const VALID_FONT_SIZES = new Set(['1', '2', '3', '4', '5']);
   const VALID_CONTENT_WIDTHS = new Set(['full', 'medium', 'narrow']);
@@ -72,11 +79,19 @@
   let compareFocusedIndex = -1;
   let lawRefClickEnabled = true;
   let lawRefOtherLawPopupEnabled = true;
+  let liteDefTooltipEnabled = true;
+  let defTooltipClickOnly = true;
   let externalReferencesAutoEnable = true;
   let externalReferencesEnabled = false;
   let referencesDataPromise = null;
   let activeReferencesPopup = null;
   let activeReferenceViewerPopup = null;
+  let liteDefinitionMap = new Map();
+  let activeLiteTooltip = null;
+  let liteTooltipPinned = false;
+  let liteTooltipShowTimer = 0;
+  let liteTooltipHideTimer = 0;
+  let jumpReturnButtonTimer = 0;
   const externalReferencesByElement = new WeakMap();
   titleEl.textContent = fallbackLawName;
   document.body.dataset.fontSize = '2';
@@ -126,6 +141,8 @@
     LITE_CONTENT_WIDTH_KEY,
     'lawRefClickEnabled',
     'lawRefOtherLawPopup',
+    LITE_DEF_TOOLTIP_ENABLED_KEY,
+    DEF_TOOLTIP_CLICK_ONLY_KEY,
     EXTERNAL_REFERENCES_AUTO_ENABLE_KEY,
   ]).then((stored) => {
     applyFontSize(stored[LITE_FONT_SIZE_KEY]);
@@ -133,6 +150,9 @@
     if (stored.scrollBehavior === 'smooth') scrollBehavior = 'smooth';
     lawRefClickEnabled = stored.lawRefClickEnabled !== false;
     lawRefOtherLawPopupEnabled = stored.lawRefOtherLawPopup !== false;
+    liteDefTooltipEnabled = stored[LITE_DEF_TOOLTIP_ENABLED_KEY] !== false;
+    defTooltipClickOnly = stored[DEF_TOOLTIP_CLICK_ONLY_KEY] !== false;
+    if (!liteDefTooltipEnabled) clearLiteDefinitionTooltips();
     externalReferencesAutoEnable = stored[EXTERNAL_REFERENCES_AUTO_ENABLE_KEY] !== false;
   }).catch(() => {});
   chrome.storage.onChanged.addListener((changes, area) => {
@@ -143,6 +163,18 @@
     if (area === 'local' && changes[LITE_CONTENT_WIDTH_KEY]) applyContentWidth(changes[LITE_CONTENT_WIDTH_KEY].newValue);
     if (area === 'local' && changes.lawRefClickEnabled) lawRefClickEnabled = changes.lawRefClickEnabled.newValue !== false;
     if (area === 'local' && changes.lawRefOtherLawPopup) lawRefOtherLawPopupEnabled = changes.lawRefOtherLawPopup.newValue !== false;
+    if (area === 'local' && changes[LITE_DEF_TOOLTIP_ENABLED_KEY]) {
+      liteDefTooltipEnabled = changes[LITE_DEF_TOOLTIP_ENABLED_KEY].newValue !== false;
+      if (liteDefTooltipEnabled) {
+        applyLiteDefinitionTooltips();
+      } else {
+        clearLiteDefinitionTooltips();
+      }
+    }
+    if (area === 'local' && changes[DEF_TOOLTIP_CLICK_ONLY_KEY]) {
+      defTooltipClickOnly = changes[DEF_TOOLTIP_CLICK_ONLY_KEY].newValue !== false;
+      hideLiteTooltip(true);
+    }
     if (area === 'local' && changes[EXTERNAL_REFERENCES_AUTO_ENABLE_KEY]) {
       externalReferencesAutoEnable = changes[EXTERNAL_REFERENCES_AUTO_ENABLE_KEY].newValue !== false;
     }
@@ -150,6 +182,16 @@
 
   function escapeRegExp(value) {
     return String(value || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  }
+
+  function injectSearchHighlightStyles() {
+    if (document.getElementById('egov-lite-search-highlight-style')) return;
+    const style = document.createElement('style');
+    style.id = 'egov-lite-search-highlight-style';
+    style.textContent =
+      '::highlight(egov-lite-search){background:#fff1a8;color:inherit}' +
+      '::highlight(egov-lite-search-current){background:#ff8a00;color:#1f2933}';
+    document.head.appendChild(style);
   }
 
   function runWhenIdle(callback, timeout = 1500) {
@@ -536,6 +578,276 @@
     });
   }
 
+  function getDefinitionAnchorKey(el) {
+    if (!(el instanceof Element)) return '';
+    const article = el.closest('[data-article-num]')?.dataset.articleNum || '';
+    const paragraph = el.closest('[data-paragraph-num]')?.dataset.paragraphNum || '';
+    const item = el.closest('[data-item-num]')?.dataset.itemNum || '';
+    return [article, paragraph, item].filter(Boolean).join('.');
+  }
+
+  function getDefinitionLocationLabel(definition) {
+    const key = definition?.key || getDefinitionAnchorKey(definition?.anchorEl);
+    return key ? getReferenceTargetLabel(key) : '';
+  }
+
+  function buildDefinitionSourceCandidates(article) {
+    const scope = article instanceof Element ? article : contentEl;
+    return Array.from(scope.querySelectorAll('.law-item, .law-subitem, .law-paragraph, .law-article'))
+      .map((el) => ({
+        el,
+        text: normalizeCopyText(el.textContent || ''),
+      }))
+      .filter((item) => item.text)
+      .sort((a, b) => a.text.length - b.text.length);
+  }
+
+  function getDefinitionSourceElement(matchText, candidates) {
+    const needle = normalizeCopyText(matchText);
+    if (!needle) return null;
+    for (const item of candidates || []) {
+      if (item.text.includes(needle)) return item.el;
+    }
+    return null;
+  }
+
+  function trimDefinitionText(value, maxLength = 220) {
+    const text = normalizeCopyText(value);
+    return text.length > maxLength ? `${text.slice(0, maxLength)}...` : text;
+  }
+
+  function getDefinitionTargetElement(el) {
+    if (!(el instanceof Element)) return null;
+    return el.closest('.law-subitem, .law-item, .law-paragraph, .law-article');
+  }
+
+  function getDefinitionTargetDepth(el) {
+    if (!(el instanceof Element)) return 0;
+    if (el.classList.contains('law-subitem')) return 4;
+    if (el.classList.contains('law-item')) return 3;
+    if (el.classList.contains('law-paragraph')) return 2;
+    if (el.classList.contains('law-article')) return 1;
+    return 0;
+  }
+
+  function buildDefinitionTargetText(el) {
+    if (!(el instanceof Element)) return '';
+    if (el.classList.contains('law-item') || el.classList.contains('law-subitem')) {
+      return buildItemCopyLines(el).filter(Boolean).join('\n');
+    }
+    if (el.classList.contains('law-paragraph')) return buildParagraphCopyText(el);
+    if (el.classList.contains('law-article')) return buildArticleCopyText(el);
+    return normalizeCopyText(el.textContent || '');
+  }
+
+  function addDefinition(definitions, item) {
+    const term = normalizeCopyText(item.term);
+    const sourceEl = item.anchorEl;
+    const targetEl = getDefinitionTargetElement(sourceEl);
+    const definition = buildDefinitionTargetText(targetEl) || normalizeCopyText(item.definition);
+    if (term.length < 2 || term.length > 40 || !definition || !targetEl) return;
+    const existing = definitions.get(term);
+    const next = {
+      term,
+      definition,
+      anchorEl: targetEl,
+      sourceEl,
+      excludeEl: targetEl,
+      key: getDefinitionAnchorKey(targetEl),
+      targetDepth: getDefinitionTargetDepth(targetEl),
+      sourceType: item.sourceType || 'patternA',
+    };
+    if (
+      !existing ||
+      next.targetDepth > (existing.targetDepth || 0) ||
+      (next.targetDepth === existing.targetDepth && next.definition.length > existing.definition.length)
+    ) {
+      definitions.set(term, next);
+    }
+  }
+
+  function extractListedDefinitionFromItem(item) {
+    const body = item.children[1] || item;
+    const text = normalizeCopyText(ownCopyText(body, '.law-subitem'));
+    const match = text.match(/^([^ 　、。]{2,40})[ 　]+(.{2,})$/);
+    if (!match) return null;
+    const term = match[1].trim();
+    const definition = match[2].trim();
+    if (!term || !definition || /[。、]$/.test(term)) return null;
+    return { term, definition };
+  }
+
+  function extractTermBeforeParentheticalDefinition(text, matchIndex, cleanupPatterns = []) {
+    return extractSharedTermBeforeParentheticalDefinition(text, matchIndex, cleanupPatterns, normalizeCopyText);
+  }
+
+  function extractInlineAliasDefinition(text, matchIndex, cleanupPatterns = []) {
+    return extractSharedInlineAliasDefinition(text, matchIndex, cleanupPatterns, normalizeCopyText);
+  }
+
+  function extractDefinitions() {
+    const definitions = new Map();
+    const articleElements = Array.from(contentEl.querySelectorAll('.law-article'));
+    const { patternA, patternC, patternD } = cloneDefinitionPatterns();
+
+    for (const article of articleElements) {
+      const text = normalizeCopyText(article.textContent || '');
+      const articleCandidates = buildDefinitionSourceCandidates(article);
+      let match;
+      patternA.lastIndex = 0;
+      while ((match = patternA.exec(text))) {
+        const anchorEl = getDefinitionSourceElement(match[0], articleCandidates) || article;
+        addDefinition(definitions, {
+          term: match[2],
+          definition: `${match[2]}とは、${match[3]}をいう。`,
+          anchorEl,
+          sourceType: 'patternA',
+        });
+      }
+
+      patternD.lastIndex = 0;
+      while ((match = patternD.exec(text))) {
+        const term = extractTermBeforeParentheticalDefinition(text, match.index, [patternC, patternD]);
+        const anchorEl = getDefinitionSourceElement(match[0], articleCandidates) || article;
+        addDefinition(definitions, {
+          term,
+          definition: match[1].replace(/以下同じ。$/, ''),
+          anchorEl,
+          sourceType: 'patternD',
+        });
+      }
+
+      patternC.lastIndex = 0;
+      while ((match = patternC.exec(text))) {
+        const definition = extractInlineAliasDefinition(text, match.index, [patternC, patternD]);
+        const anchorEl = getDefinitionSourceElement(match[0], articleCandidates) || article;
+        addDefinition(definitions, {
+          term: match[1],
+          definition,
+          anchorEl,
+          sourceType: 'patternC',
+        });
+      }
+
+      if (/用語の意義は、?当該各号に定めるところによる/.test(text)) {
+        article.querySelectorAll(':scope .law-item').forEach((item) => {
+          const listed = extractListedDefinitionFromItem(item);
+          if (!listed) return;
+          addDefinition(definitions, {
+            term: listed.term,
+            definition: `${listed.term}とは、${listed.definition}`,
+            anchorEl: item,
+            sourceType: 'patternB',
+          });
+        });
+      }
+    }
+
+    if (params.get('debugDefs') === '1') {
+      console.table(Array.from(definitions.values()).map((def) => ({
+        term: def.term,
+        definition: def.definition,
+        location: getDefinitionLocationLabel(def),
+        sourceType: def.sourceType,
+      })));
+    }
+    return definitions;
+  }
+
+  function shouldSkipDefinitionTextNode(node, definition) {
+    const parent = node.parentElement;
+    if (!parent) return true;
+    if (parent.closest('a, button, script, style, mark, .law-title, .law-heading, .article-title, .article-caption, .egov-lite-paren, .lite-defined-term, .egov-lite-reference-number, .egov-lite-reference-clickable')) return true;
+    if (definition?.excludeEl?.contains(parent)) return true;
+    if (definition?.sourceType === 'patternC' && definition.sourceEl) {
+      const pos = parent.compareDocumentPosition(definition.sourceEl);
+      if (pos & Node.DOCUMENT_POSITION_FOLLOWING) return true;
+    }
+    return false;
+  }
+
+  function isTermBoundarySafe(text, start, end) {
+    return isSharedTermBoundarySafe(text, start, end);
+  }
+
+  function markDefinedTerms(definitions) {
+    const defs = Array.from(definitions.values()).sort((a, b) => b.term.length - a.term.length);
+    if (!defs.length) return;
+    const byTerm = new Map(defs.map((def) => [def.term, def]));
+    const pattern = new RegExp(defs.map((def) => escapeRegExp(def.term)).join('|'), 'g');
+    const walker = document.createTreeWalker(contentEl, NodeFilter.SHOW_TEXT, {
+      acceptNode(node) {
+        if (!node.nodeValue || !pattern.test(node.nodeValue)) {
+          pattern.lastIndex = 0;
+          return NodeFilter.FILTER_REJECT;
+        }
+        pattern.lastIndex = 0;
+        return NodeFilter.FILTER_ACCEPT;
+      },
+    });
+    const nodes = [];
+    let node;
+    while ((node = walker.nextNode())) nodes.push(node);
+
+    for (const textNode of nodes) {
+      const text = textNode.nodeValue || '';
+      const fragment = document.createDocumentFragment();
+      let lastIndex = 0;
+      let changed = false;
+      pattern.lastIndex = 0;
+      let match;
+      while ((match = pattern.exec(text))) {
+        const term = match[0];
+        const definition = byTerm.get(term);
+        const start = match.index;
+        const end = start + term.length;
+        if (!definition || shouldSkipDefinitionTextNode(textNode, definition) || !isTermBoundarySafe(text, start, end)) continue;
+        if (start > lastIndex) fragment.appendChild(document.createTextNode(text.slice(lastIndex, start)));
+        const span = document.createElement('span');
+        span.className = 'lite-defined-term';
+        span.dataset.term = term;
+        span.tabIndex = 0;
+        span.textContent = term;
+        fragment.appendChild(span);
+        lastIndex = end;
+        changed = true;
+      }
+      if (!changed) continue;
+      if (lastIndex < text.length) fragment.appendChild(document.createTextNode(text.slice(lastIndex)));
+      textNode.parentNode.replaceChild(fragment, textNode);
+    }
+  }
+
+  function unwrapElements(selector) {
+    contentEl.querySelectorAll(selector).forEach((el) => {
+      const parent = el.parentNode;
+      if (!parent) return;
+      while (el.firstChild) parent.insertBefore(el.firstChild, el);
+      parent.removeChild(el);
+      parent.normalize();
+    });
+  }
+
+  function clearLiteDefinitionTooltips() {
+    hideLiteTooltip(true);
+    liteDefinitionMap = new Map();
+    unwrapElements('.lite-defined-term');
+  }
+
+  function applyLiteDefinitionTooltips() {
+    clearLiteDefinitionTooltips();
+    if (!liteDefTooltipEnabled || !contentEl.querySelector('.law-article')) return;
+    const startedAt = performance.now();
+    liteDefinitionMap = extractDefinitions();
+    markDefinedTerms(liteDefinitionMap);
+    const markedCount = contentEl.querySelectorAll('.lite-defined-term').length;
+    console.debug(`[e-Gov Enhancer] Lite 定義用語ガイド: extract+mark ${(performance.now() - startedAt).toFixed(1)}ms (${liteDefinitionMap.size} terms / ${markedCount} marks)`);
+  }
+
+  function scheduleApplyLiteDefinitionTooltips() {
+    runWhenIdle(applyLiteDefinitionTooltips, 900);
+  }
+
   function renderLaw(law, doc) {
     const body = law.querySelector('LawBody') || law;
     lawTitleText = getNodeText(firstChildOfTag(body, 'LawTitle')) || fallbackLawName;
@@ -552,6 +864,7 @@
     contentEl.innerHTML = content || '<p class="viewer-error">表示できる条文が見つかりませんでした。</p>';
     rebuildArticleIndex();
     wrapParentheses();
+    scheduleApplyLiteDefinitionTooltips();
   }
 
   async function loadRevisions() {
@@ -928,10 +1241,12 @@
   function jumpToKey(key, record = true) {
     const target = findJumpTarget(key);
     if (!target) return false;
+    const returnPosition = record ? getCurrentJumpReturnPosition() : null;
     scrollToElement(target, 'start');
     setTimeout(() => flashJumpTarget(target), scrollBehavior === 'smooth' ? 220 : 0);
     if (record) pushJumpHistory(key);
     showJumpHistoryIndicator();
+    if (returnPosition) showJumpReturnButton(returnPosition);
     return true;
   }
 
@@ -1129,6 +1444,84 @@
     );
     popup.style.left = `${x}px`;
     popup.style.top = `${y}px`;
+  }
+
+  function clearLiteTooltipTimers() {
+    clearTimeout(liteTooltipShowTimer);
+    clearTimeout(liteTooltipHideTimer);
+    liteTooltipShowTimer = 0;
+    liteTooltipHideTimer = 0;
+  }
+
+  function hideLiteTooltip(immediate = false) {
+    clearTimeout(liteTooltipShowTimer);
+    const remove = () => {
+      activeLiteTooltip?.remove();
+      activeLiteTooltip = null;
+      liteTooltipPinned = false;
+    };
+    if (immediate) {
+      clearTimeout(liteTooltipHideTimer);
+      remove();
+      return;
+    }
+    clearTimeout(liteTooltipHideTimer);
+    liteTooltipHideTimer = setTimeout(remove, 200);
+  }
+
+  function buildLiteDefinitionBodyHtml(term, definitionText) {
+    const escaped = escapeHtml(definitionText);
+    const escapedTerm = escapeHtml(term);
+    if (!escapedTerm) return escaped;
+    return escaped.replace(new RegExp(escapeRegExp(escapedTerm), 'g'), `<mark class="lite-definition-term-highlight">${escapedTerm}</mark>`);
+  }
+
+  function moveToLiteDefinitionSource(definition) {
+    const returnPosition = getCurrentJumpReturnPosition();
+    hideLiteTooltip(true);
+    if (definition.key && jumpToKey(definition.key)) return;
+    showJumpReturnButton(returnPosition);
+    scrollToElement(definition.anchorEl, 'start');
+    setTimeout(() => flashJumpTarget(definition.anchorEl), scrollBehavior === 'smooth' ? 220 : 0);
+  }
+
+  function showLiteDefinitionTooltip(trigger, activation = 'click') {
+    if (!liteDefTooltipEnabled || (defTooltipClickOnly && activation !== 'click')) return;
+    const term = trigger?.dataset?.term || '';
+    const definition = liteDefinitionMap.get(term);
+    if (!definition) return;
+    const locationLabel = getDefinitionLocationLabel(definition) || '定義箇所';
+    hideLiteTooltip(true);
+
+    const popup = document.createElement('div');
+    popup.className = 'lite-definition-tooltip';
+    popup.setAttribute('role', 'tooltip');
+    liteTooltipPinned = activation === 'click';
+    popup.innerHTML = `
+      <div class="lite-definition-tooltip-head">
+        <button type="button" class="lite-definition-location">定義箇所の${escapeHtml(locationLabel)}に移動する</button>
+      </div>
+      <div class="lite-definition-body">${buildLiteDefinitionBodyHtml(term, definition.definition)}</div>
+    `;
+    document.body.appendChild(popup);
+    activeLiteTooltip = popup;
+    const rect = trigger.getBoundingClientRect();
+    positionFixedPopup(popup, { x: rect.left, y: rect.bottom }, { offset: 8 });
+
+    popup.addEventListener('mouseenter', clearLiteTooltipTimers);
+    popup.addEventListener('mouseleave', () => {
+      if (!liteTooltipPinned) hideLiteTooltip();
+    });
+    popup.querySelector('.lite-definition-location')?.addEventListener('click', (event) => {
+      event.preventDefault();
+      moveToLiteDefinitionSource(definition);
+    });
+  }
+
+  function scheduleLiteDefinitionTooltip(trigger) {
+    if (defTooltipClickOnly) return;
+    clearLiteTooltipTimers();
+    liteTooltipShowTimer = setTimeout(() => showLiteDefinitionTooltip(trigger, 'hover'), 300);
   }
 
   function showReferencesPopup({ targetKey, sources, point }) {
@@ -1392,6 +1785,7 @@
       if (event.key === 'Escape') {
         hideReferencesPopup();
         hideReferenceViewerPopup();
+        hideLiteTooltip(true);
       }
     });
   }
@@ -1400,6 +1794,46 @@
     const key = decodeURIComponent(location.hash || '').replace(/^#/, '');
     if (!key) return;
     runWhenIdle(() => jumpToKey(key, false), 300);
+  }
+
+  function getCurrentJumpReturnPosition() {
+    return {
+      windowTop: window.scrollY,
+      leftTop: leftPaneEl?.scrollTop || 0,
+      rightTop: rightPaneEl?.scrollTop || 0,
+      guide: formatJumpReturnArticleGuide(),
+    };
+  }
+
+  function scrollToJumpReturnPosition(position) {
+    if (!position) return;
+    if (compareMode) {
+      leftPaneEl?.scrollTo({ top: Math.max(0, position.leftTop || 0), behavior: scrollBehavior });
+      rightPaneEl?.scrollTo({ top: Math.max(0, position.rightTop || 0), behavior: scrollBehavior });
+      return;
+    }
+    window.scrollTo({ top: Math.max(0, position.windowTop || 0), behavior: scrollBehavior });
+  }
+
+  function hideJumpReturnButton() {
+    clearTimeout(jumpReturnButtonTimer);
+    jumpReturnButtonTimer = 0;
+    document.getElementById('lite-jump-return')?.remove();
+  }
+
+  function showJumpReturnButton(position) {
+    if (!position) return;
+    hideJumpReturnButton();
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.id = 'lite-jump-return';
+    button.textContent = `ジャンプ前の位置に戻る${position.guide ? `（${position.guide}）` : ''}`;
+    button.addEventListener('click', () => {
+      scrollToJumpReturnPosition(position);
+      hideJumpReturnButton();
+    });
+    document.body.appendChild(button);
+    jumpReturnButtonTimer = setTimeout(hideJumpReturnButton, 10 * 60 * 1000);
   }
 
   function scrollToElement(el, block = 'start') {
@@ -1435,17 +1869,47 @@
     window.scrollTo({ top: Math.max(0, window.scrollY + delta), behavior: scrollBehavior });
   }
 
-  function getArticleAtViewport() {
+  function getArticleAtViewportRatio(ratio = 0.25) {
     const articles = Array.from(contentEl.querySelectorAll('.law-article'));
     if (!articles.length) return null;
     const viewportTop = compareMode ? leftPaneEl.getBoundingClientRect().top : 0;
-    const y = viewportTop + (compareMode ? leftPaneEl.clientHeight : window.innerHeight) * 0.25;
+    const normalizedRatio = Math.max(0, Math.min(1, Number(ratio) || 0));
+    const y = viewportTop + (compareMode ? leftPaneEl.clientHeight : window.innerHeight) * normalizedRatio;
     let current = articles[0];
     for (const article of articles) {
       if (article.getBoundingClientRect().top <= y) current = article;
       else break;
     }
     return current;
+  }
+
+  function getArticleAtViewport() {
+    return getArticleAtViewportRatio(0.25);
+  }
+
+  function formatArabicArticleLabelFromTitle(title) {
+    const match = normalizeCopyText(title).match(/第([^条]{1,20})条/);
+    if (!match) return '';
+    const parts = match[1].split('の').map((part) => {
+      const normalized = String(part || '').trim();
+      return /^\d+$/.test(normalized) ? normalized : kanjiToNumber(normalized);
+    }).filter(Boolean);
+    if (!parts.length) return '';
+    return parts.length > 1
+      ? `第${parts[0]}条の${parts.slice(1).join('の')}`
+      : `第${parts[0]}条`;
+  }
+
+  function formatJumpReturnArticleGuide() {
+    const article = getArticleAtViewportRatio(1 / 3);
+    const title = normalizeCopyText(article?.querySelector(':scope > .article-title')?.textContent || '');
+    const titleLabel = formatArabicArticleLabelFromTitle(title);
+    if (titleLabel) return `${titleLabel}近辺`;
+    const articleParts = String(article?.dataset?.articleNum || '').split(/[-_]+/).filter(Boolean);
+    if (!articleParts.length) return '';
+    return articleParts.length > 1
+      ? `第${articleParts[0]}条の${articleParts.slice(1).join('の')}近辺`
+      : `第${articleParts[0]}条近辺`;
   }
 
   function navigateArticle(delta) {
@@ -1522,58 +1986,100 @@
   }
 
   function clearSearchMarks() {
-    const parents = new Set();
-    for (const mark of searchState.marks) {
-      const parent = mark.parentNode;
-      if (!parent) continue;
-      parents.add(parent);
-      parent.replaceChild(document.createTextNode(mark.textContent || ''), mark);
+    if (CSS.highlights) {
+      CSS.highlights.delete('egov-lite-search');
+      CSS.highlights.delete('egov-lite-search-current');
     }
-    parents.forEach((parent) => parent.normalize());
+    window.getSelection()?.removeAllRanges();
     searchState = { marks: [], current: -1, query: '' };
   }
 
+  function scrollRangeToView(range) {
+    const rect = range.getBoundingClientRect();
+    if (compareMode) {
+      const pane = leftPaneEl.contains(range.commonAncestorContainer) ? leftPaneEl : rightPaneEl;
+      const paneRect = pane.getBoundingClientRect();
+      pane.scrollTo({
+        top: Math.max(0, rect.top - paneRect.top + pane.scrollTop - pane.clientHeight * 0.35),
+        behavior: scrollBehavior,
+      });
+      return;
+    }
+    window.scrollTo({
+      top: Math.max(0, rect.top + window.scrollY - window.innerHeight * 0.35),
+      behavior: scrollBehavior,
+    });
+  }
+
   function markCurrentSearch() {
-    searchState.marks.forEach((mark) => mark.classList.remove('egov-lite-mark-current'));
     const current = searchState.marks[searchState.current];
     if (!current) return;
-    current.classList.add('egov-lite-mark-current');
-    scrollToElement(current, 'center');
+    if (CSS.highlights) CSS.highlights.set('egov-lite-search-current', new Highlight(current));
+    else {
+      const selection = window.getSelection();
+      selection?.removeAllRanges();
+      selection?.addRange(current.cloneRange());
+    }
+    scrollRangeToView(current);
+  }
+
+  function collectSearchTextSegments(searchRoot) {
+    const segments = [];
+    let text = '';
+    const walker = document.createTreeWalker(searchRoot, NodeFilter.SHOW_TEXT, {
+      acceptNode(node) {
+        if (!node.nodeValue) return NodeFilter.FILTER_REJECT;
+        if (node.parentElement?.closest('script, style')) return NodeFilter.FILTER_REJECT;
+        return NodeFilter.FILTER_ACCEPT;
+      }
+    });
+    let node;
+    while ((node = walker.nextNode())) {
+      const nodeText = node.nodeValue || '';
+      if (!nodeText) continue;
+      segments.push({ node, start: text.length, text: nodeText });
+      text += nodeText;
+    }
+    return { text, segments };
+  }
+
+  function findSearchSegment(segments, index) {
+    let low = 0;
+    let high = segments.length - 1;
+    while (low <= high) {
+      const mid = Math.floor((low + high) / 2);
+      const segment = segments[mid];
+      const end = segment.start + segment.text.length;
+      if (index < segment.start) high = mid - 1;
+      else if (index >= end) low = mid + 1;
+      else return segment;
+    }
+    return null;
+  }
+
+  function rangeFromSearchOffsets(segments, start, end) {
+    const startSegment = findSearchSegment(segments, start);
+    const endSegment = findSearchSegment(segments, end - 1);
+    if (!startSegment || !endSegment) return null;
+    const range = document.createRange();
+    range.setStart(startSegment.node, start - startSegment.start);
+    range.setEnd(endSegment.node, end - endSegment.start);
+    return range;
   }
 
   function findInPage(query) {
     clearSearchMarks();
     const q = normalizeText(query);
     if (!q) return 0;
-    const lowerQuery = q.toLowerCase();
+    injectSearchHighlightStyles();
     const pattern = new RegExp(escapeRegExp(q), 'gi');
-    const walker = document.createTreeWalker(contentEl, NodeFilter.SHOW_TEXT, {
-      acceptNode(node) {
-        if (!node.nodeValue || !node.nodeValue.toLowerCase().includes(lowerQuery)) return NodeFilter.FILTER_REJECT;
-        if (node.parentElement?.closest('mark, script, style')) return NodeFilter.FILTER_REJECT;
-        return NodeFilter.FILTER_ACCEPT;
-      }
-    });
-    const nodes = [];
-    let node;
-    while ((node = walker.nextNode())) nodes.push(node);
-    for (const textNode of nodes) {
-      const text = textNode.nodeValue || '';
-      const frag = document.createDocumentFragment();
-      let last = 0;
-      text.replace(pattern, (hit, offset) => {
-        frag.appendChild(document.createTextNode(text.slice(last, offset)));
-        const mark = document.createElement('mark');
-        mark.className = 'egov-lite-mark';
-        mark.textContent = hit;
-        frag.appendChild(mark);
-        searchState.marks.push(mark);
-        last = offset + hit.length;
-        return hit;
-      });
-      frag.appendChild(document.createTextNode(text.slice(last)));
-      textNode.parentNode.replaceChild(frag, textNode);
+    const searchText = collectSearchTextSegments(contentEl);
+    let match;
+    while ((match = pattern.exec(searchText.text)) !== null) {
+      const range = rangeFromSearchOffsets(searchText.segments, match.index, match.index + match[0].length);
+      if (range) searchState.marks.push(range);
     }
+    if (CSS.highlights) CSS.highlights.set('egov-lite-search', new Highlight(...searchState.marks));
     searchState.query = q;
     searchState.current = searchState.marks.length ? 0 : -1;
     markCurrentSearch();
@@ -1952,6 +2458,51 @@
     const related = event.relatedTarget?.closest?.('.egov-lite-paren[data-group]');
     if (related?.dataset.group === span.dataset.group) return;
     setParenHover('');
+  });
+  contentEl.addEventListener('mouseover', (event) => {
+    const term = event.target.closest?.('.lite-defined-term[data-term]');
+    if (!term || !contentEl.contains(term)) return;
+    if (defTooltipClickOnly) return;
+    scheduleLiteDefinitionTooltip(term);
+  });
+  contentEl.addEventListener('mouseout', (event) => {
+    if (defTooltipClickOnly) return;
+    if (liteTooltipPinned) return;
+    const term = event.target.closest?.('.lite-defined-term[data-term]');
+    if (!term) return;
+    if (event.relatedTarget?.closest?.('.lite-definition-tooltip, .lite-defined-term[data-term]')) return;
+    hideLiteTooltip();
+  });
+  contentEl.addEventListener('focusin', (event) => {
+    const term = event.target.closest?.('.lite-defined-term[data-term]');
+    if (!defTooltipClickOnly && term) scheduleLiteDefinitionTooltip(term);
+  });
+  contentEl.addEventListener('focusout', (event) => {
+    if (defTooltipClickOnly) return;
+    if (liteTooltipPinned) return;
+    const term = event.target.closest?.('.lite-defined-term[data-term]');
+    if (!term || event.relatedTarget?.closest?.('.lite-definition-tooltip')) return;
+    hideLiteTooltip();
+  });
+  contentEl.addEventListener('click', (event) => {
+    const term = event.target.closest?.('.lite-defined-term[data-term]');
+    if (!term || !contentEl.contains(term)) return;
+    event.preventDefault();
+    event.stopPropagation();
+    clearLiteTooltipTimers();
+    showLiteDefinitionTooltip(term);
+  });
+  contentEl.addEventListener('keydown', (event) => {
+    const term = event.target.closest?.('.lite-defined-term[data-term]');
+    if (!term || (event.key !== 'Enter' && event.key !== ' ')) return;
+    event.preventDefault();
+    clearLiteTooltipTimers();
+    showLiteDefinitionTooltip(term);
+  });
+  document.addEventListener('click', (event) => {
+    if (!activeLiteTooltip) return;
+    if (event.target.closest?.('.lite-definition-tooltip, .lite-defined-term[data-term]')) return;
+    hideLiteTooltip(true);
   });
 
   leftPaneEl.addEventListener('focusin', () => {

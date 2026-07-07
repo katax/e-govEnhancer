@@ -98,6 +98,62 @@
     return url;
   }
 
+  const DEFINITION_PATTERNS = Object.freeze({
+    patternA: /この(法律|政令|省令|規則|章|節|条)(?:[^に]{0,20})?において、?「([^」]+)」とは、([\s\S]+?)をいう/g,
+    patternC: /（以下(?:この(?:条|章|節|款)において)?(?:単に)?「([^」]+)」という。）/g,
+    patternD: /（([^（）]{2,260}?をいう。以下同じ。)）/g,
+  });
+
+  function cloneDefinitionPatterns() {
+    return {
+      patternA: new RegExp(DEFINITION_PATTERNS.patternA.source, 'g'),
+      patternC: new RegExp(DEFINITION_PATTERNS.patternC.source, 'g'),
+      patternD: new RegExp(DEFINITION_PATTERNS.patternD.source, 'g'),
+    };
+  }
+
+  function stripPriorDefinitionParentheses(text, patterns) {
+    return patterns.reduce((current, pattern) => current.replace(new RegExp(pattern.source, 'g'), ''), String(text || ''));
+  }
+
+  function extractTermBeforeParentheticalDefinition(text, matchIndex, cleanupPatterns = [], normalize = (value) => String(value || '')) {
+    const before = stripPriorDefinitionParentheses(String(text || '').slice(0, matchIndex), cleanupPatterns);
+    const sentenceTail = before.split(/[。；;]/).pop() || before;
+    const clauseTail = sentenceTail.split(/[、，]/).pop() || sentenceTail;
+    const match = normalize(clauseTail).match(/([^ 　、。，．；;（）()「」『』]{2,40})$/);
+    return match?.[1] || '';
+  }
+
+  function extractInlineAliasDefinition(text, matchIndex, cleanupPatterns = [], normalize = (value) => String(value || '')) {
+    const before = String(text || '').slice(0, matchIndex);
+    const withoutPriorAliases = stripPriorDefinitionParentheses(before, cleanupPatterns);
+    const sentenceTail = withoutPriorAliases.split(/[。；;]/).pop() || withoutPriorAliases;
+    const clauseTail = sentenceTail.split(/[、，]/).pop() || sentenceTail;
+    const connectiveParts = clauseTail.split(/(?:に対して|において|について|に関して|として)/);
+    return normalize(connectiveParts.pop() || clauseTail).replace(/^[はがをにへとで、。\s　]+/, '');
+  }
+
+  function isJapaneseWordChar(ch) {
+    return !!ch && /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Letter}\p{Number}]/u.test(ch);
+  }
+
+  function isAllowedDefinitionBoundaryChar(ch) {
+    return !ch || /[\s　、。，．・（）()「」『』【】［］〔〕《》〈〉・／/]/u.test(ch) || /[はがをにへとでものや及び又はか]/u.test(ch);
+  }
+
+  function isTermBoundarySafe(text, start, end) {
+    const value = String(text || '');
+    const prevText = value.slice(Math.max(0, start - 2), start);
+    const prevChar = value[start - 1] || '';
+    const nextChar = value[end] || '';
+    if (/(?:当該|同|各|本|旧|新)$/.test(prevText)) {
+      return !(isJapaneseWordChar(nextChar) && !isAllowedDefinitionBoundaryChar(nextChar));
+    }
+    if (isJapaneseWordChar(prevChar) && !isAllowedDefinitionBoundaryChar(prevChar)) return false;
+    if (isJapaneseWordChar(nextChar) && !isAllowedDefinitionBoundaryChar(nextChar)) return false;
+    return true;
+  }
+
   function extractLaws(data) {
     if (Array.isArray(data?.laws)) return data.laws;
     if (Array.isArray(data?.data?.laws)) return data.data.laws;
@@ -136,17 +192,25 @@
     LAW_BASE_URL,
     buildLawUrl,
     buildProvisionCopyPayload,
+    cloneDefinitionPatterns,
+    DEFINITION_PATTERNS,
     escapeHtml,
+    extractInlineAliasDefinition,
     extractLaws,
+    extractTermBeforeParentheticalDefinition,
     formatArticleNumber,
     formatLawNameHtml,
     formatProvisionNumber,
     formatProvisionSourcePath,
     formatProvisionSourcePathFromEgovUrl,
     getLawFields,
+    isAllowedDefinitionBoundaryChar,
+    isJapaneseWordChar,
+    isTermBoundarySafe,
     normalizeLawNameForCopy,
     parseProvisionHash,
     parseProvisionPathFromEgovUrl,
     searchLawsByTitle,
+    stripPriorDefinitionParentheses,
   });
 })(globalThis);

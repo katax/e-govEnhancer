@@ -18,10 +18,14 @@
   const {
     buildLawUrl,
     buildProvisionCopyPayload: buildSharedProvisionCopyPayload,
+    cloneDefinitionPatterns,
     escapeHtml,
+    extractInlineAliasDefinition: extractSharedInlineAliasDefinition,
+    extractTermBeforeParentheticalDefinition: extractSharedTermBeforeParentheticalDefinition,
     formatProvisionNumber: formatSharedProvisionNumber,
     formatProvisionSourcePathFromEgovUrl,
     getLawFields,
+    isTermBoundarySafe: isSharedTermBoundarySafe,
     normalizeLawNameForCopy,
   } = shared;
   const formatLawNameHtml = (name) => shared.formatLawNameHtml(name, 'egov-ext-law-name-muted');
@@ -85,6 +89,18 @@
   let lawRefHoverPopupEnabled = false;
   let lawRefOtherLawPopupEnabled = true;
   let lawReferenceInteractionsInitialized = false;
+  let defTooltipEnabled = true;
+  let defTooltipClickOnly = true;
+  let definitionTooltipInitialized = false;
+  let definitionApplyScheduled = false;
+  let definitionApplyNotify = false;
+  let definitionApplySignature = '';
+  let definitionMap = new Map();
+  let activeDefinitionTooltip = null;
+  let definitionTooltipPinned = false;
+  let definitionTooltipShowTimer = 0;
+  let definitionTooltipHideTimer = 0;
+  let jumpReturnButtonTimer = 0;
   let lawRevisionAreaExpanded = false;
   let lawRevisionAreaOriginalStyle = null;
   let articleLinkCopyLastSelection = '';
@@ -136,6 +152,15 @@
       }
       if (changes.lawRefHoverPopup) {
         lawRefHoverPopupEnabled = changes.lawRefHoverPopup.newValue === true;
+      }
+      if (changes.liteDefTooltipEnabled) {
+        defTooltipEnabled = changes.liteDefTooltipEnabled.newValue !== false;
+        if (defTooltipEnabled) scheduleApplyDefinitionTooltips({ notify: true });
+        else clearDefinitionTooltips();
+      }
+      if (changes.defTooltipClickOnly) {
+        defTooltipClickOnly = changes.defTooltipClickOnly.newValue !== false;
+        hideDefinitionTooltip(true);
       }
       if (changes.hideLawSidebarDefault) {
         setLawRevisionAreaExpanded(changes.hideLawSidebarDefault.newValue === true);
@@ -850,12 +875,17 @@
   }
 
   function getArticleAtViewport25pct() {
+    return getArticleAtViewportRatio(0.25);
+  }
+
+  function getArticleAtViewportRatio(ratio = 1 / 3) {
     const articles = getAllArticles();
     if (articles.length === 0) return null;
 
     const container = getScrollContainer();
     const containerRect = container ? container.getBoundingClientRect() : null;
-    const anchorTop = container ? container.clientHeight * 0.25 : window.innerHeight * 0.25;
+    const normalizedRatio = Math.max(0, Math.min(1, Number(ratio) || 0));
+    const anchorTop = container ? container.clientHeight * normalizedRatio : window.innerHeight * normalizedRatio;
     let current = articles[0];
 
     for (const article of articles) {
@@ -1676,6 +1706,496 @@
     return combined.length > 120 ? `${combined.slice(0, 120)}…` : combined;
   }
 
+  function normalizeDefinitionText(value) {
+    return normalizeProvisionText(value).replace(/\s+([。、，．；;])/g, '$1');
+  }
+
+  function formatJumpReturnArticleGuide() {
+    const article = getArticleAtViewportRatio(1 / 3);
+    const parts = parseProvisionPath(article?.id || '');
+    if (!parts?.article) return '';
+    const articleParts = String(parts.article).split(/[-_]+/).filter(Boolean);
+    if (!articleParts.length) return '';
+    return articleParts.length > 1
+      ? `第${articleParts[0]}条の${articleParts.slice(1).join('の')}近辺`
+      : `第${articleParts[0]}条近辺`;
+  }
+
+  function getCurrentJumpReturnPosition() {
+    const container = getScrollContainer();
+    return {
+      type: container ? 'container' : 'window',
+      top: container ? container.scrollTop : window.scrollY,
+      guide: formatJumpReturnArticleGuide(),
+    };
+  }
+
+  function scrollToJumpReturnPosition(position) {
+    if (!position) return;
+    const container = position.type === 'container' ? getScrollContainer() : null;
+    if (container) {
+      container.scrollTo({ top: Math.max(0, position.top || 0), behavior: scrollBehavior });
+      return;
+    }
+    window.scrollTo({ top: Math.max(0, position.top || 0), behavior: scrollBehavior });
+  }
+
+  function hideJumpReturnButton() {
+    clearTimeout(jumpReturnButtonTimer);
+    jumpReturnButtonTimer = 0;
+    document.getElementById('egov-ext-jump-return')?.remove();
+  }
+
+  function showJumpReturnButton(position) {
+    if (!position) return;
+    hideJumpReturnButton();
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.id = 'egov-ext-jump-return';
+    button.textContent = `ジャンプ前の位置に戻る${position.guide ? `（${position.guide}）` : ''}`;
+    button.addEventListener('click', () => {
+      scrollToJumpReturnPosition(position);
+      hideJumpReturnButton();
+    });
+    document.body.appendChild(button);
+    jumpReturnButtonTimer = setTimeout(hideJumpReturnButton, 10 * 60 * 1000);
+  }
+
+  function escapeRegExp(value) {
+    return String(value || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  }
+
+  function getDefinitionRoot() {
+    return document.querySelector('#provisionview') || document.body;
+  }
+
+  function getDefinitionTargetDepth(el) {
+    const parts = parseProvisionPath(el?.id || '');
+    if (parts?.item) return 3;
+    if (parts?.paragraph) return 2;
+    if (parts?.article) return 1;
+    return 0;
+  }
+
+  function getDefinitionTargetKey(el) {
+    const parts = parseProvisionPath(el?.id || '');
+    return parts?.article ? buildJumpHistoryKey(parts) : '';
+  }
+
+  function getDefinitionLocationLabel(definition) {
+    const key = definition?.key || '';
+    return key ? getReferenceTargetLabel(key) : '';
+  }
+
+  function getDefinitionTargetText(el) {
+    if (!(el instanceof Element)) return '';
+    const parts = parseProvisionPath(el.id || '');
+    if (parts?.article && !parts.paragraph && !parts.item) return buildArticleBodyText(el);
+    return normalizeProvisionMultilineText(extractProvisionText(el, parts));
+  }
+
+  function buildDefinitionCandidateCache() {
+    const groups = new Map();
+    for (const el of collectProvisionLinkTargets()) {
+      if (!(el instanceof Element)) continue;
+      const article = parseProvisionPath(el.id || '')?.article || '';
+      if (!article) continue;
+      if (!groups.has(article)) groups.set(article, { raw: [], normalized: null });
+      groups.get(article).raw.push(el);
+    }
+    return groups;
+  }
+
+  function getDefinitionCandidateGroup(candidateCache, article) {
+    const articleKey = parseProvisionPath(article?.id || '')?.article || '';
+    return candidateCache.get(articleKey) || null;
+  }
+
+  function getNormalizedDefinitionCandidates(group) {
+    if (!group) return [];
+    if (!group.normalized) {
+      group.normalized = group.raw
+        .map((el) => ({ el, text: normalizeDefinitionText(el.textContent || '') }))
+        .filter((item) => item.text)
+        .sort((a, b) => a.text.length - b.text.length);
+    }
+    return group.normalized;
+  }
+
+  function getDefinitionSourceElement(matchText, group) {
+    const needle = normalizeDefinitionText(matchText);
+    if (!needle) return null;
+    for (const item of getNormalizedDefinitionCandidates(group)) {
+      if (item.text.includes(needle)) return item.el;
+    }
+    return null;
+  }
+
+  function addDefinition(definitions, item) {
+    const term = normalizeDefinitionText(item.term);
+    const targetEl = item.anchorEl instanceof Element ? item.anchorEl : null;
+    const definition = getDefinitionTargetText(targetEl) || normalizeDefinitionText(item.definition);
+    const depth = getDefinitionTargetDepth(targetEl);
+    if (term.length < 2 || term.length > 40 || !definition || !targetEl || !depth) return;
+    const existing = definitions.get(term);
+    const next = {
+      term,
+      definition,
+      anchorEl: targetEl,
+      sourceEl: targetEl,
+      excludeEl: targetEl,
+      key: getDefinitionTargetKey(targetEl),
+      targetDepth: depth,
+      sourceType: item.sourceType || 'patternA',
+    };
+    if (!existing || next.targetDepth > (existing.targetDepth || 0) || (next.targetDepth === existing.targetDepth && next.definition.length > existing.definition.length)) {
+      definitions.set(term, next);
+    }
+  }
+
+  function extractTermBeforeParentheticalDefinition(text, matchIndex, cleanupPatterns = []) {
+    return extractSharedTermBeforeParentheticalDefinition(text, matchIndex, cleanupPatterns, normalizeDefinitionText);
+  }
+
+  function extractInlineAliasDefinition(text, matchIndex, cleanupPatterns = []) {
+    return extractSharedInlineAliasDefinition(text, matchIndex, cleanupPatterns, normalizeDefinitionText);
+  }
+
+  function extractListedDefinitionFromTarget(el) {
+    const text = normalizeDefinitionText(getDefinitionTargetText(el));
+    const withoutNumber = text.replace(/^(?:[一二三四五六七八九十百千]+|[0-9０-９]+)[ 　、.]*/, '');
+    const match = withoutNumber.match(/^([^ 　、。]{2,40})[ 　]+(.{2,})$/);
+    if (!match) return null;
+    const term = match[1].trim();
+    const definition = match[2].trim();
+    if (!term || !definition || /[。、]$/.test(term)) return null;
+    return { term, definition };
+  }
+
+  function extractDefinitions() {
+    const definitions = new Map();
+    const { patternA, patternC, patternD } = cloneDefinitionPatterns();
+    const candidateCache = buildDefinitionCandidateCache();
+
+    for (const article of getAllArticles()) {
+      const text = normalizeDefinitionText(getTextWithoutRubyAnnotations(article));
+      const articleCandidates = getDefinitionCandidateGroup(candidateCache, article);
+      let match;
+      patternA.lastIndex = 0;
+      while ((match = patternA.exec(text))) {
+        addDefinition(definitions, {
+          term: match[2],
+          definition: `${match[2]}とは、${match[3]}をいう。`,
+          anchorEl: getDefinitionSourceElement(match[0], articleCandidates) || article,
+          sourceType: 'patternA',
+        });
+      }
+      patternD.lastIndex = 0;
+      while ((match = patternD.exec(text))) {
+        addDefinition(definitions, {
+          term: extractTermBeforeParentheticalDefinition(text, match.index, [patternC, patternD]),
+          definition: match[1].replace(/以下同じ。$/, ''),
+          anchorEl: getDefinitionSourceElement(match[0], articleCandidates) || article,
+          sourceType: 'patternD',
+        });
+      }
+      patternC.lastIndex = 0;
+      while ((match = patternC.exec(text))) {
+        addDefinition(definitions, {
+          term: match[1],
+          definition: extractInlineAliasDefinition(text, match.index, [patternC, patternD]),
+          anchorEl: getDefinitionSourceElement(match[0], articleCandidates) || article,
+          sourceType: 'patternC',
+        });
+      }
+      if (/用語の意義は、?当該各号に定めるところによる/.test(text)) {
+        (articleCandidates?.raw || [])
+          .filter((el) => getDefinitionTargetDepth(el) >= 3)
+          .forEach((el) => {
+            const listed = extractListedDefinitionFromTarget(el);
+            if (!listed) return;
+            addDefinition(definitions, {
+              term: listed.term,
+              definition: `${listed.term}とは、${listed.definition}`,
+              anchorEl: el,
+              sourceType: 'patternB',
+            });
+          });
+      }
+    }
+    return definitions;
+  }
+
+  function shouldSkipDefinitionTextNode(node, definition) {
+    const parent = node.parentElement;
+    if (!parent) return true;
+    if (parent.closest('a, button, input, textarea, select, script, style, mark, .egov-ext-defined-term, .egov-ext-definition-tooltip, #egov-ext-guide, .egov-ext-dialog, .egov-ext-reference-popup')) return true;
+    if (!getDefinitionRoot().contains(parent)) return true;
+    if (definition?.excludeEl?.contains(parent)) return true;
+    if (definition?.sourceType === 'patternC' && definition.sourceEl) {
+      const pos = parent.compareDocumentPosition(definition.sourceEl);
+      if (pos & Node.DOCUMENT_POSITION_FOLLOWING) return true;
+    }
+    return false;
+  }
+
+  function isTermBoundarySafe(text, start, end) {
+    return isSharedTermBoundarySafe(text, start, end);
+  }
+
+  function unwrapDefinitionTerms() {
+    document.querySelectorAll('.egov-ext-defined-term').forEach((el) => {
+      const parent = el.parentNode;
+      if (!parent) return;
+      while (el.firstChild) parent.insertBefore(el.firstChild, el);
+      parent.removeChild(el);
+      parent.normalize();
+    });
+  }
+
+  function clearDefinitionTooltipTimers() {
+    clearTimeout(definitionTooltipShowTimer);
+    clearTimeout(definitionTooltipHideTimer);
+    definitionTooltipShowTimer = 0;
+    definitionTooltipHideTimer = 0;
+  }
+
+  function hideDefinitionTooltip(immediate = false) {
+    clearTimeout(definitionTooltipShowTimer);
+    const remove = () => {
+      activeDefinitionTooltip?.remove();
+      activeDefinitionTooltip = null;
+      definitionTooltipPinned = false;
+    };
+    if (immediate) {
+      clearTimeout(definitionTooltipHideTimer);
+      remove();
+      return;
+    }
+    clearTimeout(definitionTooltipHideTimer);
+    definitionTooltipHideTimer = setTimeout(remove, 200);
+  }
+
+  function positionDefinitionTooltip(popup, point) {
+    const margin = 10;
+    const rect = popup.getBoundingClientRect();
+    popup.style.left = `${Math.min(Math.max(margin, point.x + 8), Math.max(margin, window.innerWidth - rect.width - margin))}px`;
+    popup.style.top = `${Math.min(Math.max(margin, point.y + 8), Math.max(margin, window.innerHeight - rect.height - margin))}px`;
+  }
+
+  function buildDefinitionBodyHtml(term, definitionText) {
+    const escaped = escapeHtml(definitionText);
+    const escapedTerm = escapeHtml(term);
+    if (!escapedTerm) return escaped;
+    return escaped.replace(new RegExp(escapeRegExp(escapedTerm), 'g'), `<mark class="egov-ext-definition-term-highlight">${escapedTerm}</mark>`);
+  }
+
+  function moveToDefinitionSource(definition) {
+    hideDefinitionTooltip(true);
+    const sourceJumpKey = buildJumpHistoryKey(parseProvisionPath(getArticleAtViewport25pct()?.id || ''));
+    if (sourceJumpKey) pushJumpHistory(sourceJumpKey);
+    if (definition.key) pushJumpHistory(definition.key);
+    highlightAndScroll(definition.anchorEl, 0.25, { showReturnButton: true });
+  }
+
+  function showDefinitionTooltip(trigger, activation = 'click') {
+    if (!defTooltipEnabled || (defTooltipClickOnly && activation !== 'click')) return;
+    const term = trigger?.dataset?.term || '';
+    const definition = definitionMap.get(term);
+    if (!definition) return;
+    const locationLabel = getDefinitionLocationLabel(definition) || '定義箇所';
+    hideDefinitionTooltip(true);
+    const popup = document.createElement('div');
+    popup.className = 'egov-ext-definition-tooltip';
+    popup.setAttribute('role', 'tooltip');
+    definitionTooltipPinned = activation === 'click';
+    popup.innerHTML = `
+      <div class="egov-ext-definition-tooltip-head">
+        <button type="button" class="egov-ext-definition-location">定義箇所の${escapeHtml(locationLabel)}に移動する</button>
+      </div>
+      <div class="egov-ext-definition-body">${buildDefinitionBodyHtml(term, definition.definition)}</div>
+    `;
+    document.body.appendChild(popup);
+    activeDefinitionTooltip = popup;
+    const rect = trigger.getBoundingClientRect();
+    positionDefinitionTooltip(popup, { x: rect.left, y: rect.bottom });
+    popup.addEventListener('mouseenter', clearDefinitionTooltipTimers);
+    popup.addEventListener('mouseleave', () => {
+      if (!definitionTooltipPinned) hideDefinitionTooltip();
+    });
+    popup.querySelector('.egov-ext-definition-location')?.addEventListener('click', (event) => {
+      event.preventDefault();
+      moveToDefinitionSource(definition);
+    });
+  }
+
+  function scheduleDefinitionTooltip(trigger) {
+    if (defTooltipClickOnly) return;
+    clearDefinitionTooltipTimers();
+    definitionTooltipShowTimer = setTimeout(() => showDefinitionTooltip(trigger, 'hover'), 300);
+  }
+
+  function markDefinedTerms(definitions) {
+    const defs = Array.from(definitions.values()).sort((a, b) => b.term.length - a.term.length);
+    if (!defs.length) return 0;
+    const byTerm = new Map(defs.map((def) => [def.term, def]));
+    const pattern = new RegExp(defs.map((def) => escapeRegExp(def.term)).join('|'), 'g');
+    let markedCount = 0;
+    const walker = document.createTreeWalker(getDefinitionRoot(), NodeFilter.SHOW_TEXT, {
+      acceptNode(node) {
+        if (!node.nodeValue || !pattern.test(node.nodeValue)) {
+          pattern.lastIndex = 0;
+          return NodeFilter.FILTER_REJECT;
+        }
+        pattern.lastIndex = 0;
+        return NodeFilter.FILTER_ACCEPT;
+      },
+    });
+    const nodes = [];
+    let node;
+    while ((node = walker.nextNode())) nodes.push(node);
+    for (const textNode of nodes) {
+      const text = textNode.nodeValue || '';
+      const fragment = document.createDocumentFragment();
+      let lastIndex = 0;
+      let changed = false;
+      pattern.lastIndex = 0;
+      let match;
+      while ((match = pattern.exec(text))) {
+        const term = match[0];
+        const definition = byTerm.get(term);
+        const start = match.index;
+        const end = start + term.length;
+        if (!definition || shouldSkipDefinitionTextNode(textNode, definition) || !isTermBoundarySafe(text, start, end)) continue;
+        if (start > lastIndex) fragment.appendChild(document.createTextNode(text.slice(lastIndex, start)));
+        const span = document.createElement('span');
+        span.className = 'egov-ext-defined-term';
+        span.dataset.term = term;
+        span.tabIndex = 0;
+        span.textContent = term;
+        fragment.appendChild(span);
+        lastIndex = end;
+        changed = true;
+        markedCount += 1;
+      }
+      if (!changed) continue;
+      if (lastIndex < text.length) fragment.appendChild(document.createTextNode(text.slice(lastIndex)));
+      textNode.parentNode.replaceChild(fragment, textNode);
+    }
+    return markedCount;
+  }
+
+  function clearDefinitionTooltips() {
+    hideDefinitionTooltip(true);
+    definitionMap = new Map();
+    definitionApplySignature = '';
+    unwrapDefinitionTerms();
+  }
+
+  function getDefinitionApplySignature() {
+    const articles = getAllArticles();
+    const firstId = articles[0]?.id || '';
+    const lastId = articles[articles.length - 1]?.id || '';
+    return `${articles.length}:${firstId}:${lastId}`;
+  }
+
+  async function applyDefinitionTooltips() {
+    definitionApplyScheduled = false;
+    const notify = definitionApplyNotify;
+    definitionApplyNotify = false;
+    if (!defTooltipEnabled) return;
+    try {
+      const ready = await waitForArticles(10000);
+      if (!ready || getAllArticles().length === 0) {
+        if (notify) showPinIndicator('定義用語ガイド: 条文の読み込み完了後にもう一度試してください');
+        return;
+      }
+      const signature = getDefinitionApplySignature();
+      if (!notify && signature && signature === definitionApplySignature && document.querySelector('.egov-ext-defined-term')) return;
+      clearDefinitionTooltips();
+      const startedAt = performance.now();
+      if (notify) showPinIndicator('定義用語ガイドを解析しています');
+      definitionMap = extractDefinitions();
+      if (!definitionMap.size) {
+        if (notify) showPinIndicator('定義用語ガイド: 定義用語は見つかりませんでした');
+        return;
+      }
+      const markedCount = markDefinedTerms(definitionMap);
+      definitionApplySignature = signature;
+      console.debug(`[e-Gov Enhancer] 定義用語ガイド: extract+mark ${(performance.now() - startedAt).toFixed(1)}ms (${definitionMap.size} terms / ${markedCount} marks)`);
+      if (notify) {
+        showPinIndicator(
+          markedCount > 0
+            ? `定義用語ガイドを有効化しました（${definitionMap.size}語 / ${markedCount}箇所）`
+            : `定義用語は${definitionMap.size}語見つかりましたが、本文中の表示箇所はありませんでした`
+        );
+      }
+    } catch (error) {
+      console.warn('[e-Gov Enhancer] 定義用語ガイドの解析に失敗しました', error);
+      showPinIndicator('定義用語ガイドの解析に失敗しました');
+    }
+  }
+
+  function scheduleApplyDefinitionTooltips({ notify = false } = {}) {
+    if (notify) definitionApplyNotify = true;
+    if (definitionApplyScheduled) return;
+    definitionApplyScheduled = true;
+    runWhenIdle(applyDefinitionTooltips, 1200);
+  }
+
+  function setupDefinitionTooltipInteractions() {
+    if (definitionTooltipInitialized) return;
+    definitionTooltipInitialized = true;
+    document.addEventListener('mouseover', (event) => {
+      const term = event.target.closest?.('.egov-ext-defined-term[data-term]');
+      if (!defTooltipClickOnly && term) scheduleDefinitionTooltip(term);
+    });
+    document.addEventListener('mouseout', (event) => {
+      if (defTooltipClickOnly) return;
+      if (definitionTooltipPinned) return;
+      const term = event.target.closest?.('.egov-ext-defined-term[data-term]');
+      if (!term) return;
+      if (event.relatedTarget?.closest?.('.egov-ext-definition-tooltip, .egov-ext-defined-term[data-term]')) return;
+      hideDefinitionTooltip();
+    });
+    document.addEventListener('focusin', (event) => {
+      const term = event.target.closest?.('.egov-ext-defined-term[data-term]');
+      if (!defTooltipClickOnly && term) scheduleDefinitionTooltip(term);
+    });
+    document.addEventListener('focusout', (event) => {
+      if (defTooltipClickOnly) return;
+      if (definitionTooltipPinned) return;
+      const term = event.target.closest?.('.egov-ext-defined-term[data-term]');
+      if (!term || event.relatedTarget?.closest?.('.egov-ext-definition-tooltip')) return;
+      hideDefinitionTooltip();
+    });
+    document.addEventListener('click', (event) => {
+      const term = event.target.closest?.('.egov-ext-defined-term[data-term]');
+      if (term) {
+        event.preventDefault();
+        event.stopPropagation();
+        clearDefinitionTooltipTimers();
+        showDefinitionTooltip(term);
+        return;
+      }
+      if (activeDefinitionTooltip && !event.target.closest?.('.egov-ext-definition-tooltip')) {
+        hideDefinitionTooltip(true);
+      }
+    });
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape') {
+        hideDefinitionTooltip(true);
+        return;
+      }
+      const term = event.target.closest?.('.egov-ext-defined-term[data-term]');
+      if (term && (event.key === 'Enter' || event.key === ' ')) {
+        event.preventDefault();
+        clearDefinitionTooltipTimers();
+        showDefinitionTooltip(term);
+      }
+    });
+  }
+
   function setProvisionSelectionHighlight(el) {
     if (activeProvisionSelectionEl && activeProvisionSelectionEl !== el) {
       activeProvisionSelectionEl.classList.remove('egov-ext-provision-selected');
@@ -1703,10 +2223,9 @@
       '[id*="-It_"]',
       '[id*="-Sg_"]',
     ];
-    const pattern = /-At_[\d_]+(?:-(?:Co|Pa|Pr)_\d+)?(?:-(?:It|Sg)_\d+)?$/;
     const seen = new Set();
     return [...document.querySelectorAll(selectors.join(','))]
-      .filter((el) => el?.id && pattern.test(el.id))
+      .filter((el) => el?.id && parseProvisionPath(el.id))
       .filter((el) => {
         if (seen.has(el.id)) return false;
         seen.add(el.id);
@@ -2102,7 +2621,7 @@
               el = el.parentElement;
             }
           }
-          highlightAndScroll(target, 0.25);
+          highlightAndScroll(target, 0.25, { showReturnButton: true });
           return true;
         }
       } catch (_) {}
@@ -2115,7 +2634,7 @@
       if (el.children.length > 3) continue;
       const text = el.textContent.trim();
       if (text.length > 60) continue;
-      if (exactPattern.test(text)) { highlightAndScroll(el, 0.25); return true; }
+      if (exactPattern.test(text)) { highlightAndScroll(el, 0.25, { showReturnButton: true }); return true; }
     }
     return false;
   }
@@ -2160,7 +2679,7 @@
 
     if (!paraEl) return false;
 
-    if (!ni) { highlightAndScroll(paraEl, 0.25); return true; }
+    if (!ni) { highlightAndScroll(paraEl, 0.25, { showReturnButton: true }); return true; }
 
     let itemEl = null;
     for (const sel of [
@@ -2194,11 +2713,12 @@
     }
 
     if (!itemEl) return false;
-    highlightAndScroll(itemEl, 0.25);
+    highlightAndScroll(itemEl, 0.25, { showReturnButton: true });
     return true;
   }
 
-  function highlightAndScroll(el, viewportRatio = 0.5) {
+  function highlightAndScroll(el, viewportRatio = 0.5, options = {}) {
+    const returnPosition = options.showReturnButton ? getCurrentJumpReturnPosition() : null;
     clearHighlights();
     const container = getScrollContainer();
     const targetRatio = Math.max(0, Math.min(1, viewportRatio));
@@ -2216,6 +2736,7 @@
     requestAnimationFrame(() => {
       flashElementHighlight(el);
     });
+    if (returnPosition) showJumpReturnButton(returnPosition);
   }
 
   function flashElementHighlight(el) {
@@ -2262,7 +2783,7 @@
     const target = getHashTargetElement(rawHash);
     if (!(target instanceof Element)) return false;
 
-    highlightAndScroll(target, 0.25);
+    highlightAndScroll(target, 0.25, { showReturnButton: true });
     history.replaceState(null, '', rawHash);
 
     // 条文ジャンプ履歴に追加（ポップアップ経由でないスクロール移動のみ）
@@ -3898,7 +4419,71 @@
     }
   }
 
+  function collectSearchTextSegments(searchRoot) {
+    const segments = [];
+    let text = '';
+    const walker = document.createTreeWalker(searchRoot, NodeFilter.SHOW_TEXT, {
+      acceptNode(node) {
+        const el = node.parentElement;
+        if (!el || !node.textContent) return NodeFilter.FILTER_SKIP;
+        if (el.closest('.egov-ext-overlay, #TOC')) return NodeFilter.FILTER_REJECT;
+        const tag = el.tagName.toLowerCase();
+        if (tag === 'script' || tag === 'style' || tag === 'noscript') return NodeFilter.FILTER_REJECT;
+        return NodeFilter.FILTER_ACCEPT;
+      },
+    });
+    let node;
+    while ((node = walker.nextNode())) {
+      const nodeText = node.textContent || '';
+      if (!nodeText) continue;
+      segments.push({ node, start: text.length, text: nodeText });
+      text += nodeText;
+    }
+    return { text, segments };
+  }
+
+  function findSearchSegment(segments, index) {
+    let low = 0;
+    let high = segments.length - 1;
+    while (low <= high) {
+      const mid = Math.floor((low + high) / 2);
+      const segment = segments[mid];
+      const end = segment.start + segment.text.length;
+      if (index < segment.start) high = mid - 1;
+      else if (index >= end) low = mid + 1;
+      else return segment;
+    }
+    return null;
+  }
+
+  function rangeFromSearchOffsets(segments, start, end) {
+    const startSegment = findSearchSegment(segments, start);
+    const endSegment = findSearchSegment(segments, end - 1);
+    if (!startSegment || !endSegment) return null;
+    const range = document.createRange();
+    range.setStart(startSegment.node, start - startSegment.start);
+    range.setEnd(endSegment.node, end - endSegment.start);
+    return range;
+  }
+
   function markText(query) {
+    const ranges = [];
+    const regex = new RegExp(escapeRegex(query), 'gi');
+    const searchRoot = document.querySelector('#provisionview') || document.body;
+    const searchText = collectSearchTextSegments(searchRoot);
+    let match;
+    while ((match = regex.exec(searchText.text)) !== null) {
+      const range = rangeFromSearchOffsets(searchText.segments, match.index, match.index + match[0].length);
+      if (range) ranges.push(range);
+    }
+    if (CSS.highlights) {
+      CSS.highlights.set('egov-search', new Highlight(...ranges));
+      CSS.highlights.set('egov-search-current', new Highlight());
+    }
+    return ranges;
+  }
+
+  function markTextLegacy(query) {
     const ranges = [];
     const queryLower = query.toLowerCase();
     const regex = new RegExp(escapeRegex(query), 'gi');
@@ -4513,6 +5098,7 @@
       requestAnimationFrame(() => {
         articleCacheInvalidationScheduled = false;
         invalidateArticleCache();
+        if (defTooltipEnabled) scheduleApplyDefinitionTooltips();
       });
     });
     articleCacheObserver.observe(articleRoot, { childList: true, subtree: true });
@@ -4533,6 +5119,15 @@
     runWhenIdle(applyDefaultLawSidebarVisibility, 900);
     runWhenIdle(setupFavoriteHeaderBadge, 1200);
     runWhenIdle(setupColorPinFeatures, 1600);
+    setupDefinitionTooltipInteractions();
+    runWhenIdle(() => {
+      // Historical key name: this controls the definition guide in both normal and Lite modes.
+      chrome.storage.local.get(['liteDefTooltipEnabled', 'defTooltipClickOnly'], ({ liteDefTooltipEnabled, defTooltipClickOnly: storedClickOnly }) => {
+        defTooltipEnabled = liteDefTooltipEnabled !== false;
+        defTooltipClickOnly = storedClickOnly !== false;
+        if (defTooltipEnabled) scheduleApplyDefinitionTooltips();
+      });
+    }, 2200);
     setupExternalReferenceInteractions();
     runWhenIdle(() => {
       chrome.storage.local.get(['externalReferencesAutoEnable'], ({ externalReferencesAutoEnable }) => {

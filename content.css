@@ -1159,3 +1159,100 @@ body[data-egov-paren-mode] .egov-ext-muted-paren.egov-ext-muted-paren-link.egov-
   background: transparent !important;
   cursor: pointer !important;
 }
+
+.egov-ext-defined-term {
+  border-bottom: 1px dotted #69788c !important;
+  cursor: help !important;
+  text-decoration: none !important;
+  transition: background-color 0.12s ease, border-color 0.12s ease !important;
+}
+
+.egov-ext-defined-term:hover,
+.egov-ext-defined-term:focus-visible {
+  border-bottom-color: #1d6fd6 !important;
+  background: rgba(29, 111, 214, 0.08) !important;
+  outline: none !important;
+}
+
+.egov-ext-definition-tooltip {
+  position: fixed !important;
+  z-index: 2147483647 !important;
+  display: flex !important;
+  overflow: hidden !important;
+  flex-direction: column !important;
+  width: min(640px, calc(100vw - 20px)) !important;
+  max-height: min(72vh, 680px) !important;
+  border: 1px solid #cfd6e2 !important;
+  border-radius: 8px !important;
+  background: #fff !important;
+  box-shadow: 0 14px 42px rgba(20, 28, 40, 0.22), 0 4px 12px rgba(20, 28, 40, 0.14) !important;
+  color: #243044 !important;
+  font-size: 13px !important;
+}
+
+.egov-ext-definition-tooltip-head {
+  display: flex !important;
+  align-items: baseline !important;
+  justify-content: flex-start !important;
+  gap: 12px !important;
+  padding: 9px 11px !important;
+  border-bottom: 1px solid #dce2ec !important;
+  background: #f4f7fb !important;
+}
+
+#egov-ext-jump-return {
+  position: fixed !important;
+  left: 16px !important;
+  bottom: 16px !important;
+  z-index: 2147483646 !important;
+  border: 1px solid #b9c7da !important;
+  border-radius: 999px !important;
+  background: #ffffff !important;
+  color: #17324d !important;
+  cursor: pointer !important;
+  font: 700 13px/1.3 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
+  padding: 10px 14px !important;
+  box-shadow: 0 10px 30px rgba(20, 28, 40, 0.2), 0 2px 8px rgba(20, 28, 40, 0.14) !important;
+}
+
+#egov-ext-jump-return:hover,
+#egov-ext-jump-return:focus-visible {
+  background: #eef5ff !important;
+  outline: none !important;
+}
+
+.egov-ext-definition-location {
+  flex: none !important;
+  border: 0 !important;
+  border-radius: 6px !important;
+  background: transparent !important;
+  color: #075d8f !important;
+  cursor: pointer !important;
+  font: inherit !important;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  padding: 2px 4px !important;
+  text-align: left !important;
+}
+
+.egov-ext-definition-location:hover,
+.egov-ext-definition-location:focus-visible {
+  background: #e7f1ff !important;
+  outline: none !important;
+}
+
+.egov-ext-definition-body {
+  overflow-y: auto !important;
+  padding: 10px 12px !important;
+  background: #fff !important;
+  line-height: 1.65 !important;
+  white-space: pre-wrap !important;
+}
+
+.egov-ext-definition-term-highlight {
+  border-radius: 3px !important;
+  background: #fff08a !important;
+  color: inherit !important;
+  font-weight: 700 !important;
+  padding: 0 2px !important;
+}

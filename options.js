@@ -8,6 +8,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   const lawRefHoverPopupRow = document.getElementById('lawRefHoverPopupRow');
   const lawRefOtherLawPopupToggle = document.getElementById('lawRefOtherLawPopupToggle');
   const lawRefOtherLawPopupRow = document.getElementById('lawRefOtherLawPopupRow');
+  const liteDefTooltipToggle = document.getElementById('liteDefTooltipToggle');
+  const defTooltipClickOnlyToggle = document.getElementById('defTooltipClickOnlyToggle');
+  const defTooltipClickOnlyRow = document.getElementById('defTooltipClickOnlyRow');
   const externalReferencesAutoEnableToggle = document.getElementById('externalReferencesAutoEnableToggle');
   const exportFavoritesBtn = document.getElementById('exportFavoritesBtn');
   const importFavoritesBtn = document.getElementById('importFavoritesBtn');
@@ -37,6 +40,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   lawRefClickToggle.checked = true;
   lawRefHoverPopupToggle.checked = false;
   lawRefOtherLawPopupToggle.checked = true;
+  liteDefTooltipToggle.checked = true;
+  defTooltipClickOnlyToggle.checked = true;
   externalReferencesAutoEnableToggle.checked = true;
 
   chrome.storage.local.get([
@@ -47,6 +52,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     'lawRefClickEnabled',
     'lawRefHoverPopup',
     'lawRefOtherLawPopup',
+    'liteDefTooltipEnabled',
+    'defTooltipClickOnly',
     'externalReferencesAutoEnable',
   ]).then(({
     scrollBehavior,
@@ -56,6 +63,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     lawRefClickEnabled,
     lawRefHoverPopup,
     lawRefOtherLawPopup,
+    liteDefTooltipEnabled,
+    defTooltipClickOnly,
     externalReferencesAutoEnable,
   }) => {
     smoothToggle.checked = (scrollBehavior === 'smooth');
@@ -65,16 +74,26 @@ document.addEventListener('DOMContentLoaded', async () => {
     lawRefClickToggle.checked = (typeof lawRefClickEnabled === 'boolean') ? lawRefClickEnabled : true;
     lawRefHoverPopupToggle.checked = (typeof lawRefHoverPopup === 'boolean') ? lawRefHoverPopup : false;
     lawRefOtherLawPopupToggle.checked = (typeof lawRefOtherLawPopup === 'boolean') ? lawRefOtherLawPopup : true;
+    liteDefTooltipToggle.checked = (typeof liteDefTooltipEnabled === 'boolean') ? liteDefTooltipEnabled : true;
+    defTooltipClickOnlyToggle.checked = (typeof defTooltipClickOnly === 'boolean') ? defTooltipClickOnly : true;
     externalReferencesAutoEnableToggle.checked = (typeof externalReferencesAutoEnable === 'boolean') ? externalReferencesAutoEnable : true;
     updateLawRefHoverPopupRow();
+    updateDefTooltipClickOnlyRow();
   }).catch((error) => {
     console.warn('[e-Gov Enhancer] 設定の読み込みに失敗しました', error);
     updateLawRefHoverPopupRow();
+    updateDefTooltipClickOnlyRow();
   });
 
   function updateLawRefHoverPopupRow() {
     lawRefHoverPopupRow.classList.toggle('is-disabled', !lawRefClickToggle.checked);
     lawRefOtherLawPopupRow.classList.toggle('is-disabled', !lawRefClickToggle.checked);
+  }
+
+  function updateDefTooltipClickOnlyRow() {
+    const enabled = liteDefTooltipToggle.checked;
+    defTooltipClickOnlyRow.classList.toggle('is-disabled', !enabled);
+    defTooltipClickOnlyToggle.disabled = !enabled;
   }
 
   function createTransferUi(statusEl, summaryEl) {
@@ -627,6 +646,15 @@ document.addEventListener('DOMContentLoaded', async () => {
   lawRefOtherLawPopupToggle.addEventListener('change', () => {
     persistLocal({ lawRefOtherLawPopup: lawRefOtherLawPopupToggle.checked });
     runReloadLawTabs();
+  });
+
+  liteDefTooltipToggle.addEventListener('change', () => {
+    persistLocal({ liteDefTooltipEnabled: liteDefTooltipToggle.checked });
+    updateDefTooltipClickOnlyRow();
+  });
+
+  defTooltipClickOnlyToggle.addEventListener('change', () => {
+    persistLocal({ defTooltipClickOnly: defTooltipClickOnlyToggle.checked });
   });
 
   externalReferencesAutoEnableToggle.addEventListener('change', () => {
