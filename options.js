@@ -27,9 +27,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   const FAVORITES_EXPORT_VERSION = 1;
   const FAVORITES_MAX = 50;
   const REFERENCES_DB_NAME = 'egov-extension-references';
-  const REFERENCES_DB_VERSION = 1;
+  const REFERENCES_DB_VERSION = 2;
   const REFERENCES_LAWS_STORE = 'laws';
   const REFERENCES_META_STORE = 'meta';
+  const REFERENCES_BUNDLED_CACHE_STORE = 'bundled_cache';
   const REFERENCES_CURRENT_META_KEY = 'current';
   const formatProvisionSourcePathFromEgovUrl = globalThis.EgovShared?.formatProvisionSourcePathFromEgovUrl || (() => '');
 
@@ -165,6 +166,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
         if (!db.objectStoreNames.contains(REFERENCES_META_STORE)) {
           db.createObjectStore(REFERENCES_META_STORE, { keyPath: 'key' });
+        }
+        if (!db.objectStoreNames.contains(REFERENCES_BUNDLED_CACHE_STORE)) {
+          db.createObjectStore(REFERENCES_BUNDLED_CACHE_STORE, { keyPath: 'lawId' });
         }
       };
       request.onsuccess = () => resolve(request.result);

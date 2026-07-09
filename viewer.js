@@ -83,7 +83,6 @@
   let defTooltipClickOnly = true;
   let externalReferencesAutoEnable = true;
   let externalReferencesEnabled = false;
-  let referencesDataPromise = null;
   let activeReferencesPopup = null;
   let activeReferenceViewerPopup = null;
   let liteDefinitionMap = new Map();
@@ -1640,41 +1639,17 @@
     window.open(url, '_blank', 'noopener');
   }
 
-  async function loadReferencesData() {
-    try {
-      const response = await fetchWithTimeout(chrome.runtime.getURL('data/references.json'), { cache: 'force-cache' });
-      if (!response.ok) return null;
-      return response.json();
-    } catch (error) {
-      console.warn('[e-Gov Enhancer] 参照データの読み込みに失敗しました', error);
-      return null;
-    }
-  }
-
-  function getReferencesData() {
-    if (!referencesDataPromise) {
-      referencesDataPromise = loadReferencesData().then((data) => {
-        // 取得失敗（null）はキャッシュせず、次回の再取得を許可する
-        if (!data) referencesDataPromise = null;
-        return data;
-      });
-    }
-    return referencesDataPromise;
-  }
-
   async function getLawReferencesData(targetLawId) {
     try {
       const response = await chrome.runtime.sendMessage({
         type: 'egov-get-imported-law-references',
         lawId: targetLawId,
       });
-      if (response?.ok && response.lawReferences && Object.keys(response.lawReferences).length) {
+      if (response?.ok && response.lawReferences && typeof response.lawReferences === 'object') {
         return response.lawReferences;
       }
     } catch (_) {}
-
-    const references = await getReferencesData();
-    return references?.[targetLawId] || {};
+    return {};
   }
 
   function clearExternalReferenceLinks() {

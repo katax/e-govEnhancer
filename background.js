@@ -7,6 +7,9 @@ chrome.runtime.onInstalled?.addListener((details) => {
   if (details?.reason === 'install') {
     chrome.runtime.openOptionsPage().catch(() => {});
   }
+  if (details?.reason === 'update') {
+    clearReferencesCache().catch(() => {});
+  }
 });
 
 function getLawUrl(lawId) {
@@ -31,9 +34,15 @@ function getViewerUrl({ lawId, lawName = '', sourceUrl = '' }) {
 }
 
 const REFERENCES_DB_NAME = 'egov-extension-references';
-const REFERENCES_DB_VERSION = 1;
+const REFERENCES_DB_VERSION = 2;
 const REFERENCES_LAWS_STORE = 'laws';
 const REFERENCES_META_STORE = 'meta';
+const REFERENCES_BUNDLED_CACHE_STORE = 'bundled_cache';
+let bundledReferencesParsePromise = null;
+
+function isPlainObject(value) {
+  return !!value && typeof value === 'object' && !Array.isArray(value);
+}
 
 function openReferencesDb() {
   return new Promise((resolve, reject) => {
@@ -45,6 +54,9 @@ function openReferencesDb() {
       }
       if (!db.objectStoreNames.contains(REFERENCES_META_STORE)) {
         db.createObjectStore(REFERENCES_META_STORE, { keyPath: 'key' });
+      }
+      if (!db.objectStoreNames.contains(REFERENCES_BUNDLED_CACHE_STORE)) {
+        db.createObjectStore(REFERENCES_BUNDLED_CACHE_STORE, { keyPath: 'lawId' });
       }
     };
     request.onsuccess = () => resolve(request.result);
@@ -59,17 +71,82 @@ function idbRequest(request) {
   });
 }
 
+async function clearReferencesCache() {
+  const db = await openReferencesDb();
+  try {
+    const tx = db.transaction(REFERENCES_BUNDLED_CACHE_STORE, 'readwrite');
+    await idbRequest(tx.objectStore(REFERENCES_BUNDLED_CACHE_STORE).clear());
+  } finally {
+    db.close();
+  }
+}
+
 async function getImportedLawReferences(lawId) {
-  if (!lawId) return null;
+  if (!lawId) return {};
+  try {
+    const cached = await readCachedLawReferences(lawId);
+    if (cached) return cached.references;
+  } catch (error) {
+    console.warn('[e-Gov Enhancer] 参照キャッシュの読み込みに失敗しました', error);
+  }
+
+  const referencesData = await getBundledReferencesData();
+  const references = isPlainObject(referencesData?.[lawId]) ? referencesData[lawId] : {};
+  try {
+    await saveBundledReferencesData(referencesData);
+  } catch (error) {
+    console.warn('[e-Gov Enhancer] 参照キャッシュの保存に失敗しました', error);
+  }
+  return references;
+}
+
+async function readCachedLawReferences(lawId) {
   const db = await openReferencesDb();
   try {
     const metaTx = db.transaction(REFERENCES_META_STORE, 'readonly');
     const meta = await idbRequest(metaTx.objectStore(REFERENCES_META_STORE).get('current'));
-    if (!meta) return null;
+    if (meta) {
+      const lawTx = db.transaction(REFERENCES_LAWS_STORE, 'readonly');
+      const record = await idbRequest(lawTx.objectStore(REFERENCES_LAWS_STORE).get(lawId));
+      return { references: isPlainObject(record?.references) ? record.references : {} };
+    }
 
-    const lawTx = db.transaction(REFERENCES_LAWS_STORE, 'readonly');
-    const record = await idbRequest(lawTx.objectStore(REFERENCES_LAWS_STORE).get(lawId));
-    return record?.references && typeof record.references === 'object' ? record.references : {};
+    const bundledTx = db.transaction(REFERENCES_BUNDLED_CACHE_STORE, 'readonly');
+    const record = await idbRequest(bundledTx.objectStore(REFERENCES_BUNDLED_CACHE_STORE).get(lawId));
+    return record ? { references: isPlainObject(record.references) ? record.references : {} } : null;
+  } finally {
+    db.close();
+  }
+}
+
+function getBundledReferencesData() {
+  if (!bundledReferencesParsePromise) {
+    bundledReferencesParsePromise = (async () => {
+      const response = await fetch(chrome.runtime.getURL('data/references.json'));
+      if (!response.ok) throw new Error(`References fetch failed: HTTP ${response.status}`);
+      return response.json();
+    })().finally(() => {
+      bundledReferencesParsePromise = null;
+    });
+  }
+  return bundledReferencesParsePromise;
+}
+
+async function saveBundledReferencesData(referencesData) {
+  if (!isPlainObject(referencesData)) return;
+  const db = await openReferencesDb();
+  try {
+    const tx = db.transaction(REFERENCES_BUNDLED_CACHE_STORE, 'readwrite');
+    const store = tx.objectStore(REFERENCES_BUNDLED_CACHE_STORE);
+    for (const [lawId, references] of Object.entries(referencesData)) {
+      if (!isPlainObject(references) || !Object.keys(references).length) continue;
+      store.put({ lawId, references });
+    }
+    await new Promise((resolve, reject) => {
+      tx.oncomplete = () => resolve();
+      tx.onabort = () => reject(tx.error || new Error('IndexedDB transaction aborted'));
+      tx.onerror = () => reject(tx.error || new Error('IndexedDB transaction failed'));
+    });
   } finally {
     db.close();
   }

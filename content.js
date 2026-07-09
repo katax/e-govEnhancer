@@ -7,7 +7,8 @@
  *   n / p  : 次/前の条文を画面上端に表示
  *   d / u  : 下/上へ80%スクロール
  *   s      : ページ内検索
- *   r      : 現在の法令名で法令検索
+ *   r      : ジャンプ前の位置に戻る
+ *   Alt+R  : 現在の法令名で法令検索
  *   c      : 条文番号の漢数字/アラビア数字の切り替え
  *   Esc    : ダイアログを閉じる
  */
@@ -101,11 +102,11 @@
   let definitionTooltipShowTimer = 0;
   let definitionTooltipHideTimer = 0;
   let jumpReturnButtonTimer = 0;
+  let activeJumpReturnPosition = null;
   let lawRevisionAreaExpanded = false;
   let lawRevisionAreaOriginalStyle = null;
   let articleLinkCopyLastSelection = '';
   let externalReferencesEnabled = false;
-  let referencesDataPromise = null;
   let activeReferencesPopup = null;
   let inyoDialogBridgeInjected = false;
   let inyoDialogBridgeReadyPromise = null;
@@ -1384,6 +1385,12 @@
       openLightweightViewerFromPage();
       return;
     }
+    if (e.altKey && !e.ctrlKey && !e.metaKey && (e.key === 'r' || e.key === 'R' || e.code === 'KeyR')) {
+      e.preventDefault();
+      closeDialog();
+      showLawSearchDialog();
+      return;
+    }
     if (guideTooltipPinned) {
       hideShortcutGuideTooltip();
       e.preventDefault();
@@ -1417,6 +1424,7 @@
     // ショートカット無効中はここで止める
     if (!extensionEnabled) return;
 
+    const lowerKey = e.key.toLowerCase();
     if (e.ctrlKey || e.altKey || e.metaKey) return;
     if (e.key.length > 1) return;
     if (activeDialog && e.target instanceof Element && (
@@ -1426,7 +1434,6 @@
 
     // ダイアログ非表示時のみ有効なキー
     if (!activeDialog) {
-      const lowerKey = e.key.toLowerCase();
       if (e.shiftKey && lowerKey === 'g') { e.preventDefault(); toggleParenthesesMute('nested'); return; }
       if (e.shiftKey && PIN_SLOT_ORDER.includes(lowerKey)) { e.preventDefault(); forceRemoveColorPinSlot(lowerKey); return; }
       if (e.shiftKey && lowerKey === 'h') { e.preventDefault(); convertKatakanaToHiragana(); return; }
@@ -1442,6 +1449,7 @@
       if (e.key === 'p') { e.preventDefault(); navigateArticle(-1); return; }
       if (e.key === 'f') { e.preventDefault(); showFavoriteDialog(); return; }
       if (e.key === 'c') { e.preventDefault(); toggleNumberMode(); return; }
+      if (e.key === 'r') { e.preventDefault(); returnToJumpStart(); return; }
       if (lowerKey === 'e') { e.preventDefault(); toggleExternalReferenceLinks(); return; }
       if (e.key === 'a') { e.preventDefault(); showArticleLinkCopyDialog(); return; }
       if (e.key === 't') { e.preventDefault(); showLawTocDialog(); return; }
@@ -1452,7 +1460,6 @@
     }
 
     const wasTocDialog = !!(activeDialog && activeDialog.classList.contains('egov-ext-toc-mode'));
-    const lowerKey = e.key.toLowerCase();
     e.preventDefault();
     closeDialog();
 
@@ -1461,7 +1468,7 @@
     } else if (e.key === 's') {
       showSearchDialog();
     } else if (e.key === 'r') {
-      showLawSearchDialog();
+      returnToJumpStart();
     } else if (lowerKey === 't') {
       if (wasTocDialog) return;
       showLawTocDialog({ initialFocus: e.shiftKey ? 'natural' : 'top' });
@@ -1743,19 +1750,27 @@
   function hideJumpReturnButton() {
     clearTimeout(jumpReturnButtonTimer);
     jumpReturnButtonTimer = 0;
+    activeJumpReturnPosition = null;
     document.getElementById('egov-ext-jump-return')?.remove();
+  }
+
+  function returnToJumpStart() {
+    if (!activeJumpReturnPosition) return false;
+    scrollToJumpReturnPosition(activeJumpReturnPosition);
+    hideJumpReturnButton();
+    return true;
   }
 
   function showJumpReturnButton(position) {
     if (!position) return;
     hideJumpReturnButton();
+    activeJumpReturnPosition = position;
     const button = document.createElement('button');
     button.type = 'button';
     button.id = 'egov-ext-jump-return';
     button.textContent = `ジャンプ前の位置に戻る${position.guide ? `（${position.guide}）` : ''}`;
     button.addEventListener('click', () => {
-      scrollToJumpReturnPosition(position);
-      hideJumpReturnButton();
+      returnToJumpStart();
     });
     document.body.appendChild(button);
     jumpReturnButtonTimer = setTimeout(hideJumpReturnButton, 10 * 60 * 1000);
@@ -3209,35 +3224,18 @@
     anchor.remove();
   }
 
-  async function loadReferencesData() {
-    try {
-      const url = chrome.runtime.getURL('data/references.json');
-      const response = await fetch(url, { cache: 'force-cache' });
-      if (!response.ok) return null;
-      return response.json();
-    } catch (_) {
-      return null;
-    }
-  }
-
-  function getReferencesData() {
-    if (!referencesDataPromise) referencesDataPromise = loadReferencesData();
-    return referencesDataPromise;
-  }
-
   async function getLawReferencesData(lawId) {
     try {
       const response = await chrome.runtime.sendMessage({
         type: 'egov-get-imported-law-references',
         lawId,
       });
-      if (response?.ok && response.lawReferences && Object.keys(response.lawReferences).length) {
+      if (response?.ok && response.lawReferences && typeof response.lawReferences === 'object') {
         return response.lawReferences;
       }
     } catch (_) {}
 
-    const references = await getReferencesData();
-    return references?.[lawId] || {};
+    return {};
   }
 
   function clearExternalReferenceLinks() {
@@ -4955,6 +4953,8 @@
               <td>ページ内検索<br>
                 <span class="egov-ext-guide-sub">Ctrl+Enter=現在位置から検索</span></td></tr>
           <tr><td><kbd>r</kbd></td>
+              <td>ジャンプ前の位置に戻る</td></tr>
+          <tr><td><kbd>Alt</kbd>+<kbd>R</kbd></td>
               <td>現在の法令名で法令検索（別タブで開く）</td></tr>
           <tr><td><kbd>c</kbd></td>
               <td>条文番号の漢数字/アラビア数字の切り替え<br>
