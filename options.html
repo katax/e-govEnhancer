@@ -13,6 +13,7 @@
         <h1>e-Gov法令検索 Enhancer</h1>
         <p class="options-subtitle">設定と使い方ガイド</p>
       </div>
+      <a id="openManualPageLink" href="docs/user-manual.html" class="ext-link options-manual-link" target="_blank" rel="noopener">マニュアルはこちら</a>
     </header>
 
     <main>
@@ -251,18 +252,28 @@
               <tr><th>キー</th><th>動作</th></tr>
             </thead>
             <tbody>
-              <tr><td><kbd>0</kbd>〜<kbd>9</kbd></td><td>条文ジャンプ入力</td></tr>
+              <tr><td><kbd>0</kbd>〜<kbd>9</kbd></td><td>条文ジャンプ入力（<kbd>.</kbd>で項・号）</td></tr>
               <tr><td><kbd>h</kbd> / <kbd>l</kbd></td><td>条文ジャンプ履歴を前後に移動</td></tr>
-              <tr><td><kbd>n</kbd> / <kbd>p</kbd></td><td>次 / 前の条文をページ中央に表示</td></tr>
-              <tr><td><kbd>d</kbd> / <kbd>u</kbd></td><td>半ページ単位で下 / 上にスクロール</td></tr>
+              <tr><td><kbd>n</kbd> / <kbd>p</kbd></td><td>次 / 前の条文を画面上端に表示</td></tr>
+              <tr><td><kbd>d</kbd> / <kbd>u</kbd></td><td>下 / 上へ80%スクロール</td></tr>
               <tr><td><kbd>w</kbd></td><td>サイドバーを隠して本文を全幅表示 / 元に戻す</td></tr>
-              <tr><td><kbd>s</kbd></td><td>ページ内検索ダイアログを開く</td></tr>
+              <tr><td><kbd>s</kbd></td><td>ページ内検索ダイアログを開く（<kbd>Ctrl</kbd>+<kbd>Enter</kbd>で現在位置から検索）</td></tr>
               <tr><td><kbd>r</kbd></td><td>ジャンプ前の位置に戻る</td></tr>
-              <tr><td><kbd>Alt</kbd>+<kbd>R</kbd></td><td>現在の法令名で法令検索ポップアップを開く</td></tr>
+              <tr><td><kbd>Alt</kbd>+<kbd>R</kbd></td><td>現在の法令名で法令検索を別タブで開く</td></tr>
+              <tr><td><kbd>c</kbd></td><td>条文番号の漢数字 / アラビア数字を切り替える</td></tr>
+              <tr><td><kbd>e</kbd></td><td>外部法令からの参照元リンクを有効化 / 無効化する</td></tr>
+              <tr><td><kbd>g</kbd></td><td>本文中の括弧書きを薄く表示 / 元に戻す</td></tr>
+              <tr><td><kbd>Shift</kbd>+<kbd>G</kbd></td><td>本文中の括弧書きをさらに薄く表示 / 元に戻す</td></tr>
+              <tr><td><kbd>Alt</kbd>+<kbd>H</kbd></td><td>カタカナをひらがなに変換</td></tr>
+              <tr><td><kbd>Alt</kbd>+<kbd>O</kbd></td><td>オプション画面を開く</td></tr>
+              <tr><td><kbd>Alt</kbd>+<kbd>L</kbd></td><td>Liteモードに変更</td></tr>
+              <tr><td><kbd>Alt</kbd>+<kbd>P</kbd></td><td>ショートカット有効 / 無効を切り替える</td></tr>
+              <tr><td><kbd>?</kbd></td><td>操作ガイドを表示</td></tr>
+              <tr><td><kbd>Esc</kbd></td><td>ダイアログを閉じる</td></tr>
+              <tr><td><kbd>Alt</kbd>+<kbd>M</kbd></td><td>マニュアルを開く</td></tr>
               <tr><td><kbd>f</kbd></td><td>現在の法令をお気に入り登録 / 解除</td></tr>
               <tr><td><kbd>a</kbd></td><td>条文リンクをコピー</td></tr>
               <tr><td><kbd>b</kbd></td><td>ピン状態の表示を切り替え</td></tr>
-              <tr><td><kbd>Esc</kbd></td><td>ダイアログを閉じる</td></tr>
               <tr><td><kbd>t</kbd></td><td>目次ダイアログを開く</td></tr>
               <tr><td><kbd>Shift</kbd>+<kbd>T</kbd></td><td>現在位置に合わせて目次ダイアログを開く</td></tr>
             </tbody>
@@ -281,7 +292,7 @@
             <a href="https://laws.e-gov.go.jp/" target="_blank" rel="noopener">e-Gov 法令検索</a>
             をより便利に使うための補助ツールです。
           </p>
-          <p class="version-info">バージョン 2.3.1</p>
+          <p class="version-info">バージョン 2.3.2</p>
         </div>
       </section>
     </main>

@@ -11,6 +11,7 @@
     extractTermBeforeParentheticalDefinition: extractSharedTermBeforeParentheticalDefinition,
     formatProvisionNumber,
     formatProvisionSourcePathFromEgovUrl,
+    getLawReferencesData,
     isTermBoundarySafe: isSharedTermBoundarySafe,
     normalizeLawNameForCopy,
   } = shared;
@@ -1639,19 +1640,6 @@
     window.open(url, '_blank', 'noopener');
   }
 
-  async function getLawReferencesData(targetLawId) {
-    try {
-      const response = await chrome.runtime.sendMessage({
-        type: 'egov-get-imported-law-references',
-        lawId: targetLawId,
-      });
-      if (response?.ok && response.lawReferences && typeof response.lawReferences === 'object') {
-        return response.lawReferences;
-      }
-    } catch (_) {}
-    return {};
-  }
-
   function clearExternalReferenceLinks() {
     hideReferencesPopup();
     contentEl.querySelectorAll('.egov-lite-reference-clickable').forEach((el) => {
@@ -2334,6 +2322,7 @@
       <div class="lite-shortcut-list">
         <div><kbd>Alt+s</kbd><span>並べて表示の切替</span></div>
         <div><kbd>Alt+O</kbd><span>設定画面を開く</span></div>
+        <div><kbd>Alt+M</kbd><span>マニュアルを開く</span></div>
         <div><kbd>s</kbd><span>ページ内検索</span></div>
         <div><kbd>0-9</kbd><span>条文ジャンプダイアログ</span></div>
         <div><kbd>h / l</kbd><span>条文ジャンプ履歴を前後移動</span></div>
@@ -2536,6 +2525,11 @@
     if (event.altKey && !event.ctrlKey && !event.metaKey && lower === 'o' && !activeDialog && !isInputActive()) {
       event.preventDefault();
       chrome.runtime.openOptionsPage();
+      return;
+    }
+    if (event.altKey && !event.ctrlKey && !event.metaKey && lower === 'm' && !activeDialog && !isInputActive()) {
+      event.preventDefault();
+      chrome.runtime.sendMessage({ type: 'egov-open-manual-page' }).catch(() => {});
       return;
     }
     if (event.altKey && !event.ctrlKey && !event.metaKey && (lower === 'l' || event.code === 'KeyL') && !activeDialog) {

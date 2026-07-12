@@ -593,6 +593,7 @@ body.keyboard-nav-hide-cursor * {
   padding: 7px 14px;
   display: flex;
   justify-content: flex-end;
+  gap: 6px;
 }
 
 .footer-btn {

@@ -1,7 +1,7 @@
 ﻿{
   "manifest_version": 3,
   "name": "e-Gov法令検索 Enhancer",
-  "version": "2.3.1",
+  "version": "2.3.2",
   "description": "e-Gov法令検索をもっと便利にします。",
   "permissions": ["storage", "tabs"],
   "host_permissions": ["https://laws.e-gov.go.jp/*"],
@@ -45,6 +45,13 @@
         "mac": "Command+Shift+H"
       },
       "description": "開いた法令履歴画面を開く"
+    },
+    "open_manual_page": {
+      "suggested_key": {
+        "default": "Alt+M",
+        "mac": "Alt+M"
+      },
+      "description": "マニュアルを開く"
     }
   },
   "content_scripts": [

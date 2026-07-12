@@ -26,13 +26,16 @@ document.addEventListener('DOMContentLoaded', async () => {
   const FAVORITES_EXPORT_TYPE = 'egov-extension-favorites';
   const FAVORITES_EXPORT_VERSION = 1;
   const FAVORITES_MAX = 50;
-  const REFERENCES_DB_NAME = 'egov-extension-references';
-  const REFERENCES_DB_VERSION = 2;
-  const REFERENCES_LAWS_STORE = 'laws';
-  const REFERENCES_META_STORE = 'meta';
-  const REFERENCES_BUNDLED_CACHE_STORE = 'bundled_cache';
-  const REFERENCES_CURRENT_META_KEY = 'current';
-  const formatProvisionSourcePathFromEgovUrl = globalThis.EgovShared?.formatProvisionSourcePathFromEgovUrl || (() => '');
+  const {
+    REFERENCES_CURRENT_META_KEY,
+    REFERENCES_LAWS_STORE,
+    REFERENCES_META_STORE,
+    formatProvisionSourcePathFromEgovUrl = () => '',
+    idbRequest,
+    isPlainObject,
+    openReferencesDb,
+    waitForTransaction,
+  } = globalThis.EgovShared || {};
 
   smoothToggle.checked = false;
   liteModeDefaultToggle.checked = false;
@@ -148,47 +151,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     setTimeout(() => URL.revokeObjectURL(url), 0);
   }
 
-  function isPlainObject(value) {
-    return !!value && typeof value === 'object' && !Array.isArray(value);
-  }
-
   function isNonEmptyString(value) {
     return typeof value === 'string' && value.trim() !== '';
-  }
-
-  function openReferencesDb() {
-    return new Promise((resolve, reject) => {
-      const request = indexedDB.open(REFERENCES_DB_NAME, REFERENCES_DB_VERSION);
-      request.onupgradeneeded = () => {
-        const db = request.result;
-        if (!db.objectStoreNames.contains(REFERENCES_LAWS_STORE)) {
-          db.createObjectStore(REFERENCES_LAWS_STORE, { keyPath: 'lawId' });
-        }
-        if (!db.objectStoreNames.contains(REFERENCES_META_STORE)) {
-          db.createObjectStore(REFERENCES_META_STORE, { keyPath: 'key' });
-        }
-        if (!db.objectStoreNames.contains(REFERENCES_BUNDLED_CACHE_STORE)) {
-          db.createObjectStore(REFERENCES_BUNDLED_CACHE_STORE, { keyPath: 'lawId' });
-        }
-      };
-      request.onsuccess = () => resolve(request.result);
-      request.onerror = () => reject(request.error || new Error('IndexedDB を開けませんでした。'));
-    });
-  }
-
-  function waitForTransaction(tx) {
-    return new Promise((resolve, reject) => {
-      tx.oncomplete = () => resolve();
-      tx.onabort = () => reject(tx.error || new Error('IndexedDB の処理が中断されました。'));
-      tx.onerror = () => reject(tx.error || new Error('IndexedDB の処理に失敗しました。'));
-    });
-  }
-
-  function requestToPromise(request) {
-    return new Promise((resolve, reject) => {
-      request.onsuccess = () => resolve(request.result);
-      request.onerror = () => reject(request.error || new Error('IndexedDB の読み込みに失敗しました。'));
-    });
   }
 
   function isReferenceLawId(value) {
@@ -305,7 +269,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         fileSize: file?.size || 0,
         ...validated.summary,
       });
-      await waitForTransaction(tx);
+      await waitForTransaction(tx, {
+        abortMessage: 'IndexedDB の処理が中断されました。',
+        errorMessage: 'IndexedDB の処理に失敗しました。',
+      });
     } finally {
       db.close();
     }
@@ -315,11 +282,17 @@ document.addEventListener('DOMContentLoaded', async () => {
     const db = await openReferencesDb();
     try {
       const metaTx = db.transaction(REFERENCES_META_STORE, 'readonly');
-      const meta = await requestToPromise(metaTx.objectStore(REFERENCES_META_STORE).get(REFERENCES_CURRENT_META_KEY));
+      const meta = await idbRequest(
+        metaTx.objectStore(REFERENCES_META_STORE).get(REFERENCES_CURRENT_META_KEY),
+        'IndexedDB の読み込みに失敗しました。',
+      );
       if (!meta) return null;
 
       const lawTx = db.transaction(REFERENCES_LAWS_STORE, 'readonly');
-      const laws = await requestToPromise(lawTx.objectStore(REFERENCES_LAWS_STORE).getAll());
+      const laws = await idbRequest(
+        lawTx.objectStore(REFERENCES_LAWS_STORE).getAll(),
+        'IndexedDB の読み込みに失敗しました。',
+      );
       const references = {};
       for (const law of laws) {
         if (law?.lawId && law.references) references[law.lawId] = law.references;
@@ -741,4 +714,18 @@ document.addEventListener('DOMContentLoaded', async () => {
     event.preventDefault();
     chrome.tabs.create({ url: 'chrome://extensions/shortcuts' });
   });
+  const manualLink = document.getElementById('openManualPageLink');
+  if (manualLink) {
+    manualLink.href = chrome.runtime.getURL('docs/user-manual.html');
+    manualLink.addEventListener('click', (event) => {
+      event.preventDefault();
+      chrome.tabs.create({ url: manualLink.href });
+    });
+    document.addEventListener('keydown', (event) => {
+      if (event.altKey && !event.ctrlKey && !event.metaKey && (event.key === 'm' || event.key === 'M')) {
+        event.preventDefault();
+        chrome.tabs.create({ url: manualLink.href });
+      }
+    });
+  }
 });

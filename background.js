@@ -1,3 +1,5 @@
+importScripts('shared/egov-shared.js');
+
 chrome.runtime.onStartup?.addListener(() => {
   chrome.storage.session.setAccessLevel({ accessLevel: 'TRUSTED_AND_UNTRUSTED_CONTEXTS' }).catch(() => {});
 });
@@ -33,43 +35,24 @@ function getViewerUrl({ lawId, lawName = '', sourceUrl = '' }) {
   return chrome.runtime.getURL(`viewer.html?${params.toString()}`);
 }
 
-const REFERENCES_DB_NAME = 'egov-extension-references';
-const REFERENCES_DB_VERSION = 2;
-const REFERENCES_LAWS_STORE = 'laws';
-const REFERENCES_META_STORE = 'meta';
-const REFERENCES_BUNDLED_CACHE_STORE = 'bundled_cache';
+async function openManualPage() {
+  return chrome.tabs.create({
+    url: chrome.runtime.getURL('docs/user-manual.html'),
+    active: true,
+  });
+}
+
+const {
+  REFERENCES_BUNDLED_CACHE_STORE,
+  REFERENCES_CURRENT_META_KEY,
+  REFERENCES_LAWS_STORE,
+  REFERENCES_META_STORE,
+  idbRequest,
+  isPlainObject,
+  openReferencesDb,
+  waitForTransaction,
+} = globalThis.EgovShared;
 let bundledReferencesParsePromise = null;
-
-function isPlainObject(value) {
-  return !!value && typeof value === 'object' && !Array.isArray(value);
-}
-
-function openReferencesDb() {
-  return new Promise((resolve, reject) => {
-    const request = indexedDB.open(REFERENCES_DB_NAME, REFERENCES_DB_VERSION);
-    request.onupgradeneeded = () => {
-      const db = request.result;
-      if (!db.objectStoreNames.contains(REFERENCES_LAWS_STORE)) {
-        db.createObjectStore(REFERENCES_LAWS_STORE, { keyPath: 'lawId' });
-      }
-      if (!db.objectStoreNames.contains(REFERENCES_META_STORE)) {
-        db.createObjectStore(REFERENCES_META_STORE, { keyPath: 'key' });
-      }
-      if (!db.objectStoreNames.contains(REFERENCES_BUNDLED_CACHE_STORE)) {
-        db.createObjectStore(REFERENCES_BUNDLED_CACHE_STORE, { keyPath: 'lawId' });
-      }
-    };
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error || new Error('IndexedDB open failed'));
-  });
-}
-
-function idbRequest(request) {
-  return new Promise((resolve, reject) => {
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error || new Error('IndexedDB request failed'));
-  });
-}
 
 async function clearReferencesCache() {
   const db = await openReferencesDb();
@@ -104,7 +87,7 @@ async function readCachedLawReferences(lawId) {
   const db = await openReferencesDb();
   try {
     const metaTx = db.transaction(REFERENCES_META_STORE, 'readonly');
-    const meta = await idbRequest(metaTx.objectStore(REFERENCES_META_STORE).get('current'));
+    const meta = await idbRequest(metaTx.objectStore(REFERENCES_META_STORE).get(REFERENCES_CURRENT_META_KEY));
     if (meta) {
       const lawTx = db.transaction(REFERENCES_LAWS_STORE, 'readonly');
       const record = await idbRequest(lawTx.objectStore(REFERENCES_LAWS_STORE).get(lawId));
@@ -142,11 +125,7 @@ async function saveBundledReferencesData(referencesData) {
       if (!isPlainObject(references) || !Object.keys(references).length) continue;
       store.put({ lawId, references });
     }
-    await new Promise((resolve, reject) => {
-      tx.oncomplete = () => resolve();
-      tx.onabort = () => reject(tx.error || new Error('IndexedDB transaction aborted'));
-      tx.onerror = () => reject(tx.error || new Error('IndexedDB transaction failed'));
-    });
+    await waitForTransaction(tx);
   } finally {
     db.close();
   }
@@ -198,6 +177,10 @@ function sendJumpWhenReady(tabId, pin) {
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message?.type === 'egov-open-options-page') {
     chrome.runtime.openOptionsPage().then(() => sendResponse({ ok: true })).catch(() => sendResponse({ ok: false }));
+    return true;
+  }
+  if (message?.type === 'egov-open-manual-page') {
+    openManualPage().then((tab) => sendResponse({ ok: true, tabId: tab?.id })).catch(() => sendResponse({ ok: false }));
     return true;
   }
   if (message?.type === 'egov-get-imported-law-references') {
@@ -258,5 +241,9 @@ chrome.commands.onCommand.addListener((command) => {
   }
   if (command === 'open_history_popup') {
     openActionPopup('law').catch(() => {});
+    return;
+  }
+  if (command === 'open_manual_page') {
+    openManualPage().catch(() => {});
   }
 });

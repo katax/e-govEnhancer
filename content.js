@@ -25,6 +25,7 @@
     extractTermBeforeParentheticalDefinition: extractSharedTermBeforeParentheticalDefinition,
     formatProvisionNumber: formatSharedProvisionNumber,
     formatProvisionSourcePathFromEgovUrl,
+    getLawReferencesData,
     getLawFields,
     isTermBoundarySafe: isSharedTermBoundarySafe,
     normalizeLawNameForCopy,
@@ -237,9 +238,14 @@
   function numToDisplay(raw) {
     if (!raw) return '';
     const parts = raw.split('.');
-    let s = '第' + parts[0].replace(/[-－‐ー_]/g, 'の').replace(/のの+/g, 'の') + '条';
-    if (parts[1]) s += '第' + parts[1] + '項';
-    if (parts[2]) s += '第' + parts[2] + '号';
+    // 枝番号は「第3条の2」「第3号の2」の順で表示する（単位の後に「の2」）
+    const branch = (value, unit) => {
+      const [base, ...suffixes] = String(value).split(/[-－‐ー_]/).filter(Boolean);
+      return base ? `第${base}${unit}${suffixes.map((s) => `の${s}`).join('')}` : '';
+    };
+    let s = branch(parts[0], '条');
+    if (parts[1]) s += branch(parts[1], '項');
+    if (parts[2]) s += branch(parts[2], '号');
     return s;
   }
 
@@ -1380,6 +1386,16 @@
       chrome.runtime.sendMessage({ type: 'egov-open-options-page' }).catch(() => {});
       return;
     }
+    if (e.altKey && !e.ctrlKey && !e.metaKey && (e.key === 'm' || e.key === 'M')) {
+      e.preventDefault();
+      chrome.runtime.sendMessage({ type: 'egov-open-manual-page' }).catch(() => {});
+      return;
+    }
+    if (e.altKey && !e.ctrlKey && !e.metaKey && (e.key === 'h' || e.key === 'H') && !activeDialog) {
+      e.preventDefault();
+      convertKatakanaToHiragana();
+      return;
+    }
     if (e.altKey && !e.ctrlKey && !e.metaKey && (e.key === 'l' || e.key === 'L' || e.code === 'KeyL') && !activeDialog) {
       e.preventDefault();
       openLightweightViewerFromPage();
@@ -1436,7 +1452,6 @@
     if (!activeDialog) {
       if (e.shiftKey && lowerKey === 'g') { e.preventDefault(); toggleParenthesesMute('nested'); return; }
       if (e.shiftKey && PIN_SLOT_ORDER.includes(lowerKey)) { e.preventDefault(); forceRemoveColorPinSlot(lowerKey); return; }
-      if (e.shiftKey && lowerKey === 'h') { e.preventDefault(); convertKatakanaToHiragana(); return; }
       if (e.shiftKey && lowerKey === 't') { e.preventDefault(); showLawTocDialog({ initialFocus: 'natural' }); return; }
       if (e.key === 'g') { e.preventDefault(); toggleParenthesesMute('flat'); return; }
       if (e.key === 'h') { e.preventDefault(); navigateJumpHistory(-1); return; }
@@ -1535,7 +1550,8 @@
     // so that structural prefixes like "-Pa_1" (Part/編) are not mistaken for paragraphs.
     const suffix = rawId.slice((articleMatch.index ?? 0) + articleMatch[0].length);
     const paragraph = suffix.match(/^-(?:Co|Pa|Pr)_(\d+)/)?.[1] || '';
-    const item = suffix.match(/-(?:It|Sg)_(\d+)/)?.[1] || '';
+    // 号は枝番号を保持する（It_3_2 → "3_2"。「第3号の2」と「第3号」を区別するため）
+    const item = suffix.match(/-(?:It|Sg)_([\d_]+)/)?.[1] || '';
     return { article, paragraph, item };
   }
 
@@ -1631,6 +1647,91 @@
       .replace(/\r/g, '\n');
   }
 
+  const PROVISION_SUB_BLOCK_SELECTOR = [
+    '.item',
+    '.list',
+    '.portion',
+    '.subitem',
+    '[id*="-It_"]',
+    '[id*="-Sg_"]',
+    '[class*="ItemSentence"]',
+    '[class*="Subitem"]',
+  ].join(',');
+
+  function getDirectProvisionSubBlocks(root) {
+    if (!(root instanceof Element)) return [];
+    return [...root.querySelectorAll(PROVISION_SUB_BLOCK_SELECTOR)].filter((sub) => {
+      let ancestor = sub.parentElement;
+      while (ancestor && ancestor !== root) {
+        if (ancestor.matches(PROVISION_SUB_BLOCK_SELECTOR)) return false;
+        ancestor = ancestor.parentElement;
+      }
+      return ancestor === root;
+    });
+  }
+
+  function getProvisionOwnLineText(block) {
+    if (!(block instanceof Element)) return '';
+    const subBlocks = getDirectProvisionSubBlocks(block);
+    const titleEl = block.querySelector(':scope > .paragraphtitle, :scope > .itemtitle, :scope > .listtitle, :scope > .portiontitle');
+    if (titleEl) {
+      const title = getTextWithoutRubyAnnotations(titleEl).replace(/[\r\n\t]+/g, '');
+      // 定義型の号などで用語と定義が .column に分かれている場合は全角空白で区切る
+      // （例: 「四　不利益処分　行政庁が…」）。
+      const columns = [...block.querySelectorAll(':scope > .column')];
+      if (columns.length && !subBlocks.some((sub) => columns.some((col) => col.contains(sub)))) {
+        const columnParts = columns
+          .map((col) => normalizeProvisionText(getTextWithoutRubyAnnotations(col)))
+          .filter(Boolean);
+        return [title, columnParts.join('　')].join('');
+      }
+      const sentenceParts = [...block.querySelectorAll('.sentence, .itemsentence, .listsentence')]
+        .filter((node) => !subBlocks.some((sub) => sub.contains(node)))
+        .map((node) => normalizeProvisionText(getTextWithoutRubyAnnotations(node)))
+        .filter(Boolean);
+      return [title, ...sentenceParts].join('');
+    }
+
+    const clone = block.cloneNode(true);
+    removeRubyAnnotations(clone);
+    clone.querySelectorAll(PROVISION_SUB_BLOCK_SELECTOR).forEach((node) => node.remove());
+    return String(clone.textContent || '').replace(/[\r\n\t]+/g, '').trim();
+  }
+
+  function buildProvisionBlockLines(root) {
+    if (!(root instanceof Element)) return [];
+    const lines = [];
+    const ownLine = getProvisionOwnLineText(root);
+    if (ownLine) lines.push(ownLine);
+    for (const subBlock of getDirectProvisionSubBlocks(root)) {
+      lines.push(...buildProvisionBlockLines(subBlock));
+    }
+    return lines;
+  }
+
+  // parseProvisionPath は号の枝番号（It_3_2 → 「3」）を切り捨てるため、
+  // 号同士の境界判定にはIDの生トークン（「3_2」を保持）を使う。
+  function getProvisionItemIdToken(id) {
+    return String(id || '').match(/-(?:It|Sg)_([\d_]+)/)?.[1] || '';
+  }
+
+  function collectFollowingProvisionSiblingLines(el, parts) {
+    if (!(el instanceof Element) || !parts) return [];
+    const lines = [];
+    let sibling = el.nextElementSibling;
+    while (sibling instanceof Element && sibling.matches(PROVISION_SUB_BLOCK_SELECTOR)) {
+      const siblingParts = parseProvisionPath(sibling.id || '');
+      if (siblingParts) {
+        if (siblingParts.article !== parts.article) break;
+        if (siblingParts.paragraph !== parts.paragraph) break;
+        if (parts.item && getProvisionItemIdToken(sibling.id) !== getProvisionItemIdToken(el.id)) break;
+      }
+      lines.push(...buildProvisionBlockLines(sibling));
+      sibling = sibling.nextElementSibling;
+    }
+    return lines;
+  }
+
   function buildArticleBodyText(articleEl) {
     if (!(articleEl instanceof Element)) return '';
 
@@ -1647,26 +1748,20 @@
       }
 
       // New rendering paragraphs: ._div_ArticleTitle = 第1項, ._div_ParagraphSentence = 第2項以降.
-      // textContent already contains 　 between number and text as a text node, so trim() suffices.
       if (child.matches('._div_ArticleTitle, ._div_ParagraphSentence')) {
-        const line = getTextWithoutRubyAnnotations(child).trim();
-        if (line) blocks.push(line);
+        blocks.push(...buildProvisionBlockLines(child));
         continue;
       }
 
       // Old rendering paragraphs. [id*="-Pr_"] is intentionally omitted here to avoid
       // false matches on new-rendering ._div_ArticleTitle whose ID also contains "-Pr_".
       if (child.matches('.paragraph, [id*="-Pa_"], [id*="-Co_"]')) {
-        // Preserve 　 in the title: normalizeProvisionText collapses \u3000 into a regular
-        // space and trim() then removes it, losing the separator between number and text.
-        const titleEl = child.querySelector('.paragraphtitle, .itemtitle, .listtitle');
-        const title = getTextWithoutRubyAnnotations(titleEl)
-          .replace(/[\r\n\t]+/g, '');
-        const sentenceParts = [...child.querySelectorAll('.sentence, .itemsentence, .listsentence')]
-          .map((node) => normalizeProvisionText(getTextWithoutRubyAnnotations(node)))
-          .filter(Boolean);
-        const line = [title, ...sentenceParts].join('');
-        if (line) blocks.push(line);
+        blocks.push(...buildProvisionBlockLines(child));
+        continue;
+      }
+
+      if (child.matches(PROVISION_SUB_BLOCK_SELECTOR)) {
+        blocks.push(...buildProvisionBlockLines(child));
       }
     }
 
@@ -2222,9 +2317,19 @@
   function getProvisionBodyText(item) {
     if (!item) return '';
     if (typeof item.bodyText === 'string') return item.bodyText;
-    const bodyText = item.parts?.article && !item.parts.paragraph && !item.parts.item
-      ? buildArticleBodyText(item.articleEl)
-      : normalizeProvisionMultilineText(extractProvisionText(item.articleEl, item.parts));
+    const isWholeArticle = item.parts?.article && !item.parts.paragraph && !item.parts.item;
+    let bodyText;
+    if (isWholeArticle) {
+      bodyText = buildArticleBodyText(item.articleEl);
+    } else {
+      const lines = [
+        ...buildProvisionBlockLines(item.articleEl),
+        ...collectFollowingProvisionSiblingLines(item.articleEl, item.parts),
+      ];
+      bodyText = lines.length > 1
+        ? lines.join('\n')
+        : normalizeProvisionMultilineText(extractProvisionText(item.articleEl, item.parts));
+    }
     item.bodyText = bodyText;
     return bodyText;
   }
@@ -3222,20 +3327,6 @@
 
     openLawReferenceTarget(anchor);
     anchor.remove();
-  }
-
-  async function getLawReferencesData(lawId) {
-    try {
-      const response = await chrome.runtime.sendMessage({
-        type: 'egov-get-imported-law-references',
-        lawId,
-      });
-      if (response?.ok && response.lawReferences && typeof response.lawReferences === 'object') {
-        return response.lawReferences;
-      }
-    } catch (_) {}
-
-    return {};
   }
 
   function clearExternalReferenceLinks() {
@@ -4857,7 +4948,7 @@
   }
 
   // ==================
-  // カタカナをひらがなに変換（k キー / 一方通行）
+  // カタカナをひらがなに変換（Alt+H / 一方通行）
   // ==================
   function convertKatakanaToHiragana() {
     if (kanaConverted) return; // 既に変換済み
@@ -4965,7 +5056,7 @@
               <td>本文中の括弧書きを薄く表示 / 元に戻す</td></tr>
           <tr><td><kbd>Shift</kbd>+<kbd>G</kbd></td>
               <td>本文中の括弧書きをさらに薄く表示 / 元に戻す</td></tr>
-          <tr><td><kbd>Shift</kbd>+<kbd>H</kbd></td>
+          <tr><td><kbd>Alt</kbd>+<kbd>H</kbd></td>
               <td>カタカナをひらがなに変換</td></tr>
           <tr><td><kbd>Alt</kbd>+<kbd>O</kbd></td>
               <td>オプション画面を開く</td></tr>
@@ -4978,6 +5069,8 @@
               <td>操作ガイドを表示</td></tr>
           <tr><td><kbd>Esc</kbd></td>
               <td>ダイアログを閉じる</td></tr>
+          <tr><td><kbd>Alt</kbd>+<kbd>M</kbd></td>
+              <td>マニュアルを開く</td></tr>
         </table>
       </div>
     `;

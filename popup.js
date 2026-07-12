@@ -1403,6 +1403,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     chrome.runtime.openOptionsPage();
     window.close();
   });
+  document.getElementById('openManual').addEventListener('click', () => {
+    chrome.runtime.sendMessage({ type: 'egov-open-manual-page' }).finally(() => window.close());
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.altKey && !e.ctrlKey && !e.metaKey && (e.key === 'm' || e.key === 'M')) {
+      e.preventDefault();
+      chrome.runtime.sendMessage({ type: 'egov-open-manual-page' }).finally(() => window.close());
+    }
+  });
 
   // ================================================
   // フォーカス移動（↑↓キー・検索結果）

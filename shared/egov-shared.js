@@ -2,6 +2,12 @@
   'use strict';
 
   const LAW_BASE_URL = 'https://laws.e-gov.go.jp';
+  const REFERENCES_DB_NAME = 'egov-extension-references';
+  const REFERENCES_DB_VERSION = 2;
+  const REFERENCES_LAWS_STORE = 'laws';
+  const REFERENCES_META_STORE = 'meta';
+  const REFERENCES_BUNDLED_CACHE_STORE = 'bundled_cache';
+  const REFERENCES_CURRENT_META_KEY = 'current';
 
   function escapeHtml(str) {
     return String(str)
@@ -9,6 +15,10 @@
       .replace(/</g, '&lt;')
       .replace(/>/g, '&gt;')
       .replace(/"/g, '&quot;');
+  }
+
+  function isPlainObject(value) {
+    return !!value && typeof value === 'object' && !Array.isArray(value);
   }
 
   function formatLawNameHtml(name, mutedClassName = 'law-name-muted') {
@@ -78,9 +88,9 @@
       !isArticleLevel &&
       !(omitSingleParagraphFirst && parts.paragraph === '1' && !parts.item)
     ) {
-      text += `第${parts.paragraph}項`;
+      text += formatProvisionBranch(parts.paragraph, '項');
     }
-    if (parts.item) text += `第${parts.item}号`;
+    if (parts.item) text += formatProvisionBranch(parts.item, '号');
     return text;
   }
 
@@ -188,8 +198,69 @@
     return extractLaws(data);
   }
 
+  function openReferencesDb({ openErrorMessage = 'IndexedDB open failed' } = {}) {
+    return new Promise((resolve, reject) => {
+      const request = indexedDB.open(REFERENCES_DB_NAME, REFERENCES_DB_VERSION);
+      request.onupgradeneeded = () => {
+        const db = request.result;
+        if (!db.objectStoreNames.contains(REFERENCES_LAWS_STORE)) {
+          db.createObjectStore(REFERENCES_LAWS_STORE, { keyPath: 'lawId' });
+        }
+        if (!db.objectStoreNames.contains(REFERENCES_META_STORE)) {
+          db.createObjectStore(REFERENCES_META_STORE, { keyPath: 'key' });
+        }
+        if (!db.objectStoreNames.contains(REFERENCES_BUNDLED_CACHE_STORE)) {
+          db.createObjectStore(REFERENCES_BUNDLED_CACHE_STORE, { keyPath: 'lawId' });
+        }
+      };
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error || new Error(openErrorMessage));
+    });
+  }
+
+  function idbRequest(request, errorMessage = 'IndexedDB request failed') {
+    return new Promise((resolve, reject) => {
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error || new Error(errorMessage));
+    });
+  }
+
+  function waitForTransaction(
+    tx,
+    {
+      abortMessage = 'IndexedDB transaction aborted',
+      errorMessage = 'IndexedDB transaction failed',
+    } = {}
+  ) {
+    return new Promise((resolve, reject) => {
+      tx.oncomplete = () => resolve();
+      tx.onabort = () => reject(tx.error || new Error(abortMessage));
+      tx.onerror = () => reject(tx.error || new Error(errorMessage));
+    });
+  }
+
+  async function getLawReferencesData(lawId, runtime = global.chrome?.runtime) {
+    if (!lawId || !runtime?.sendMessage) return {};
+    try {
+      const response = await runtime.sendMessage({
+        type: 'egov-get-imported-law-references',
+        lawId,
+      });
+      if (response?.ok && isPlainObject(response.lawReferences)) {
+        return response.lawReferences;
+      }
+    } catch (_) {}
+    return {};
+  }
+
   global.EgovShared = Object.freeze({
     LAW_BASE_URL,
+    REFERENCES_BUNDLED_CACHE_STORE,
+    REFERENCES_CURRENT_META_KEY,
+    REFERENCES_DB_NAME,
+    REFERENCES_DB_VERSION,
+    REFERENCES_LAWS_STORE,
+    REFERENCES_META_STORE,
     buildLawUrl,
     buildProvisionCopyPayload,
     cloneDefinitionPatterns,
@@ -203,14 +274,19 @@
     formatProvisionNumber,
     formatProvisionSourcePath,
     formatProvisionSourcePathFromEgovUrl,
+    getLawReferencesData,
     getLawFields,
+    idbRequest,
     isAllowedDefinitionBoundaryChar,
     isJapaneseWordChar,
+    isPlainObject,
     isTermBoundarySafe,
     normalizeLawNameForCopy,
+    openReferencesDb,
     parseProvisionHash,
     parseProvisionPathFromEgovUrl,
     searchLawsByTitle,
     stripPriorDefinitionParentheses,
+    waitForTransaction,
   });
 })(globalThis);
