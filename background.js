@@ -9,7 +9,8 @@ chrome.runtime.onInstalled?.addListener((details) => {
   if (details?.reason === 'install') {
     chrome.runtime.openOptionsPage().catch(() => {});
   }
-  if (details?.reason === 'update') {
+  // 未パッケージ拡張の「再読み込み」でも update が発火するため、実際にバージョンが変わったときだけクリアする
+  if (details?.reason === 'update' && details.previousVersion !== chrome.runtime.getManifest().version) {
     clearReferencesCache().catch(() => {});
   }
 });
@@ -27,14 +28,6 @@ function getLawIdFromUrl(url) {
   }
 }
 
-function getViewerUrl({ lawId, lawName = '', sourceUrl = '' }) {
-  const params = new URLSearchParams();
-  params.set('lawId', lawId);
-  if (lawName) params.set('lawName', lawName);
-  if (sourceUrl) params.set('sourceUrl', sourceUrl);
-  return chrome.runtime.getURL(`viewer.html?${params.toString()}`);
-}
-
 async function openManualPage() {
   return chrome.tabs.create({
     url: chrome.runtime.getURL('docs/user-manual.html'),
@@ -47,12 +40,82 @@ const {
   REFERENCES_CURRENT_META_KEY,
   REFERENCES_LAWS_STORE,
   REFERENCES_META_STORE,
+  cacheLiteLawXml,
+  getLiteLawDataUrl,
   idbRequest,
   isPlainObject,
   openReferencesDb,
   waitForTransaction,
 } = globalThis.EgovShared;
 let bundledReferencesParsePromise = null;
+let bundledReferencesReaderCount = 0;
+const EGOV_API_V2_BASE = 'https://laws.e-gov.go.jp/api/2';
+const liteLawLoadPromises = new Map();
+
+function getLiteLawRevisionStorageKey(lawId) {
+  return `liteLawCurrentRevision:${lawId}`;
+}
+
+async function fetchLiteLawRevisions(lawId) {
+  const response = await fetch(`${EGOV_API_V2_BASE}/law_revisions/${encodeURIComponent(lawId)}?response_format=json`);
+  if (!response.ok) throw new Error(`Revision fetch failed: HTTP ${response.status}`);
+  const data = await response.json();
+  return Array.isArray(data.revisions) ? data.revisions : [];
+}
+
+function findCurrentLiteLawRevisionId(revisions) {
+  const current = revisions.find((revision) => revision.current_revision_status === 'CurrentEnforced') || revisions[0];
+  return current?.law_revision_id || '';
+}
+
+async function fetchLiteLawXml(target) {
+  const response = await fetch(getLiteLawDataUrl(target), { cache: 'no-store' });
+  if (!response.ok) throw new Error(`Law fetch failed: HTTP ${response.status}`);
+  const xmlText = await response.text();
+  if (!xmlText.trim()) throw new Error('Law fetch returned an empty response');
+  return xmlText;
+}
+
+async function loadAndCacheLiteLaw(lawId, revisionId = '') {
+  const promiseKey = `${lawId}:${revisionId || 'current'}`;
+  if (liteLawLoadPromises.has(promiseKey)) return liteLawLoadPromises.get(promiseKey);
+
+  const loadPromise = (async () => {
+    const revisionStorageKey = getLiteLawRevisionStorageKey(lawId);
+    const stored = await chrome.storage.local.get([revisionStorageKey]).catch(() => ({}));
+    const storedRevisionId = typeof stored[revisionStorageKey] === 'string' ? stored[revisionStorageKey] : '';
+    const initialTarget = revisionId || storedRevisionId || lawId;
+
+    // 改正履歴と本文を同時に開始し、従来の直列待ちをなくす。
+    const revisionsPromise = fetchLiteLawRevisions(lawId).catch(() => []);
+    const initialXmlPromise = fetchLiteLawXml(initialTarget)
+      .then((xmlText) => ({ xmlText, error: null }))
+      .catch((error) => ({ xmlText: '', error }));
+    const [revisions, initialResult] = await Promise.all([revisionsPromise, initialXmlPromise]);
+    const currentRevisionId = findCurrentLiteLawRevisionId(revisions) || storedRevisionId;
+    const resolvedTarget = revisionId || currentRevisionId || initialTarget;
+
+    let xmlText = initialResult.xmlText;
+    // 保存済みの現行改正IDが古くなっていた場合と、法令IDでの取得に失敗した場合だけ再取得する。
+    if ((!xmlText || (initialTarget !== lawId && initialTarget !== resolvedTarget)) && resolvedTarget !== initialTarget) {
+      xmlText = await fetchLiteLawXml(resolvedTarget);
+    } else if (!xmlText) {
+      throw initialResult.error || new Error('Law XML could not be loaded');
+    }
+
+    const cacheTarget = resolvedTarget || initialTarget;
+    await cacheLiteLawXml(cacheTarget, xmlText);
+    if (!revisionId && currentRevisionId) {
+      await chrome.storage.local.set({ [revisionStorageKey]: currentRevisionId }).catch(() => {});
+    }
+    return { cacheTarget, currentRevisionId, revisions };
+  })().finally(() => {
+    liteLawLoadPromises.delete(promiseKey);
+  });
+
+  liteLawLoadPromises.set(promiseKey, loadPromise);
+  return loadPromise;
+}
 
 async function clearReferencesCache() {
   const db = await openReferencesDb();
@@ -73,14 +136,35 @@ async function getImportedLawReferences(lawId) {
     console.warn('[e-Gov Enhancer] 参照キャッシュの読み込みに失敗しました', error);
   }
 
-  const referencesData = await getBundledReferencesData();
-  const references = isPlainObject(referencesData?.[lawId]) ? referencesData[lawId] : {};
+  bundledReferencesReaderCount += 1;
   try {
-    await saveBundledReferencesData(referencesData);
-  } catch (error) {
-    console.warn('[e-Gov Enhancer] 参照キャッシュの保存に失敗しました', error);
+    const referencesData = await getBundledReferencesData();
+    const references = isPlainObject(referencesData?.[lawId]) ? referencesData[lawId] : {};
+    // 要求された法令は参照ゼロ（空オブジェクト）でも保存し、次回以降の再パースを防ぐ
+    try {
+      await saveBundledCacheRecord(lawId, references);
+    } catch (error) {
+      console.warn('[e-Gov Enhancer] 参照キャッシュの保存に失敗しました', error);
+    }
+    return references;
+  } finally {
+    bundledReferencesReaderCount -= 1;
+    if (bundledReferencesReaderCount === 0) bundledReferencesParsePromise = null;
   }
-  return references;
+}
+
+async function saveBundledCacheRecord(lawId, references) {
+  const db = await openReferencesDb();
+  try {
+    const tx = db.transaction(REFERENCES_BUNDLED_CACHE_STORE, 'readwrite');
+    tx.objectStore(REFERENCES_BUNDLED_CACHE_STORE).put({
+      lawId,
+      references: isPlainObject(references) ? references : {},
+    });
+    await waitForTransaction(tx);
+  } finally {
+    db.close();
+  }
 }
 
 async function readCachedLawReferences(lawId) {
@@ -108,27 +192,9 @@ function getBundledReferencesData() {
       const response = await fetch(chrome.runtime.getURL('data/references.json'));
       if (!response.ok) throw new Error(`References fetch failed: HTTP ${response.status}`);
       return response.json();
-    })().finally(() => {
-      bundledReferencesParsePromise = null;
-    });
+    })();
   }
   return bundledReferencesParsePromise;
-}
-
-async function saveBundledReferencesData(referencesData) {
-  if (!isPlainObject(referencesData)) return;
-  const db = await openReferencesDb();
-  try {
-    const tx = db.transaction(REFERENCES_BUNDLED_CACHE_STORE, 'readwrite');
-    const store = tx.objectStore(REFERENCES_BUNDLED_CACHE_STORE);
-    for (const [lawId, references] of Object.entries(referencesData)) {
-      if (!isPlainObject(references) || !Object.keys(references).length) continue;
-      store.put({ lawId, references });
-    }
-    await waitForTransaction(tx);
-  } finally {
-    db.close();
-  }
 }
 
 async function openActionPopup(mode = '') {
@@ -174,7 +240,7 @@ function sendJumpWhenReady(tabId, pin) {
   }, 15000);
 }
 
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   if (message?.type === 'egov-open-options-page') {
     chrome.runtime.openOptionsPage().then(() => sendResponse({ ok: true })).catch(() => sendResponse({ ok: false }));
     return true;
@@ -189,22 +255,14 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       .catch((error) => sendResponse({ ok: false, error: error?.message || String(error || '') }));
     return true;
   }
-  if (message?.type === 'egov-open-law-reference-tab' && message.url) {
-    chrome.tabs.create({ url: message.url, active: true })
-      .then((tab) => sendResponse({ ok: true, tabId: tab?.id }))
-      .catch(() => sendResponse({ ok: false }));
+  if ((message?.type === 'egov-prefetch-lite-law' || message?.type === 'egov-load-lite-law') && message.lawId) {
+    loadAndCacheLiteLaw(message.lawId, message.revisionId || '')
+      .then((result) => sendResponse({ ok: true, ...result }))
+      .catch((error) => sendResponse({ ok: false, error: error?.message || String(error || '') }));
     return true;
   }
-  if (message?.type === 'egov-open-lightweight-viewer' && message.lawId) {
-    const url = getViewerUrl({
-      lawId: message.lawId,
-      lawName: message.lawName || '',
-      sourceUrl: message.sourceUrl || sender?.tab?.url || '',
-    });
-    const openPromise = sender?.tab?.id
-      ? chrome.tabs.update(sender.tab.id, { url, active: true })
-      : chrome.tabs.create({ url, active: true });
-    openPromise
+  if (message?.type === 'egov-open-law-reference-tab' && message.url) {
+    chrome.tabs.create({ url: message.url, active: true })
       .then((tab) => sendResponse({ ok: true, tabId: tab?.id }))
       .catch(() => sendResponse({ ok: false }));
     return true;
@@ -242,8 +300,5 @@ chrome.commands.onCommand.addListener((command) => {
   if (command === 'open_history_popup') {
     openActionPopup('law').catch(() => {});
     return;
-  }
-  if (command === 'open_manual_page') {
-    openManualPage().catch(() => {});
   }
 });

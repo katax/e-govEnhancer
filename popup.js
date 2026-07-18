@@ -1,4 +1,4 @@
-document.addEventListener('DOMContentLoaded', async () => {
+document.addEventListener('DOMContentLoaded', () => {
   function syncPopupHeight() {
     const screenHeight = window.screen?.availHeight || window.screen?.height;
     if (!screenHeight) return;

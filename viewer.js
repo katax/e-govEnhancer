@@ -3,8 +3,12 @@
 
   const shared = globalThis.EgovShared;
   const {
+    applyReferenceLinksInBatches,
     buildProvisionCopyPayload: buildSharedProvisionCopyPayload,
+    cacheLiteLawXml,
     cloneDefinitionPatterns,
+    collectSearchTextSegments,
+    configureReferenceClickable,
     escapeHtml,
     extractInlineAliasDefinition: extractSharedInlineAliasDefinition,
     extractLaws,
@@ -12,8 +16,11 @@
     formatProvisionNumber,
     formatProvisionSourcePathFromEgovUrl,
     getLawReferencesData,
+    getLiteLawDataUrl,
     isTermBoundarySafe: isSharedTermBoundarySafe,
-    normalizeLawNameForCopy,
+    rangeFromSearchOffsets,
+    readCachedLiteLawXml,
+    sortReferenceSources,
   } = shared;
   const params = new URLSearchParams(location.search);
   const lawId = params.get('lawId') || '';
@@ -60,6 +67,7 @@
   let anchorCounts = new Map();
   let tocItems = [];
   let articleIndex = new Map();
+  let articleElementsCache = [];
   let articleHistory = [];
   let searchHistory = [];
   let articleJumpHistory = [];
@@ -71,6 +79,7 @@
   let parenSeq = 0;
   let activeParenGroup = '';
   let parenGroups = new Map();
+  let parenthesesWrapped = false;
   let selectedProvisionEl = null;
   let scrollBehavior = 'instant';
   let compareMode = false;
@@ -120,6 +129,11 @@
   });
   function openNormalMode() {
     location.href = sourceUrl || `https://laws.e-gov.go.jp/law/${encodeURIComponent(lawId)}`;
+  }
+
+  function openManualPageFromShortcut() {
+    chrome.runtime.sendMessage({ type: 'egov-open-manual-page' })
+      .catch(() => {});
   }
 
   normalModeButton.addEventListener('click', openNormalMode);
@@ -215,6 +229,10 @@
     const timer = setTimeout(() => controller.abort(), timeoutMs);
     return fetch(url, { ...options, signal: controller.signal })
       .finally(() => clearTimeout(timer));
+  }
+
+  function getLiteLawRevisionStorageKey(targetLawId = lawId) {
+    return `liteLawCurrentRevision:${targetLawId}`;
   }
 
   // href に安全なスキームのみ許可（javascript: 等を排除）。相対 URL・フラグメントは許可。
@@ -611,11 +629,6 @@
     return null;
   }
 
-  function trimDefinitionText(value, maxLength = 220) {
-    const text = normalizeCopyText(value);
-    return text.length > maxLength ? `${text.slice(0, maxLength)}...` : text;
-  }
-
   function getDefinitionTargetElement(el) {
     if (!(el instanceof Element)) return null;
     return el.closest('.law-subitem, .law-item, .law-paragraph, .law-article');
@@ -862,8 +875,13 @@
     document.title = lawTitleText;
     metaEl.textContent = lawNumText;
     contentEl.innerHTML = content || '<p class="viewer-error">表示できる条文が見つかりませんでした。</p>';
+    parenthesesWrapped = false;
+    parenSeq = 0;
+    activeParenGroup = '';
+    parenGroups = new Map();
+    document.body.removeAttribute('data-paren-mode');
+    articleElementsCache = Array.from(contentEl.querySelectorAll('.law-article'));
     rebuildArticleIndex();
-    wrapParentheses();
     scheduleApplyLiteDefinitionTooltips();
   }
 
@@ -903,36 +921,101 @@
     if (currentRevisionId) revisionSelect.value = currentRevisionId;
   }
 
+  function renderLawXml(xmlText) {
+    const doc = new DOMParser().parseFromString(xmlText, 'application/xml');
+    if (doc.querySelector('parsererror')) throw new Error('XML parse error');
+    const law = parseLawFromResponse(doc);
+    if (!law) throw new Error('Law XML was not found');
+    renderLaw(law, doc);
+  }
+
+  async function loadLiteLawDirectly() {
+    // バックグラウンドが旧版のままでも表示できるよう、従来の安全な取得順を残す。
+    await loadRevisions();
+    const target = currentRevisionId || lawId;
+    const response = await fetchWithTimeout(getLiteLawDataUrl(target), { cache: 'no-store' });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const xmlText = await response.text();
+    if (!xmlText.trim()) throw new Error('Law XML was empty');
+    await cacheLiteLawXml(target, xmlText);
+    if (!revisionIdParam && currentRevisionId) {
+      const revisionStorageKey = getLiteLawRevisionStorageKey();
+      await chrome.storage.local.set({ [revisionStorageKey]: currentRevisionId }).catch(() => {});
+    }
+    return { ok: true, cacheTarget: target, currentRevisionId, revisions };
+  }
+
+  async function finishLawLoad() {
+    if (externalReferencesEnabled) {
+      applyExternalReferenceLinksForLaw(await getLawReferencesData(lawId));
+    } else {
+      const stored = await chrome.storage.local.get([EXTERNAL_REFERENCES_AUTO_ENABLE_KEY]).catch(() => ({}));
+      if (stored[EXTERNAL_REFERENCES_AUTO_ENABLE_KEY] !== false && externalReferencesAutoEnable) {
+        runWhenIdle(() => enableExternalReferenceLinks(), 600);
+      }
+    }
+    await refreshFavoriteButton();
+  }
+
   async function loadLaw() {
     if (!lawId) {
+      articleElementsCache = [];
       contentEl.innerHTML = '<p class="viewer-error">法令IDが指定されていません。</p>';
       return;
     }
+    articleElementsCache = [];
     contentEl.innerHTML = '<p class="viewer-status">e-Gov APIから条文XMLを読み込んでいます...</p>';
+    let renderedTarget = '';
     try {
-      await loadRevisions();
-      const target = currentRevisionId || lawId;
-      const url = `${API_V2_BASE}/law_data/${encodeURIComponent(target)}?response_format=xml&law_full_text_format=xml`;
-      const response = await fetchWithTimeout(url, { cache: 'force-cache' });
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      const xmlText = await response.text();
-      const doc = new DOMParser().parseFromString(xmlText, 'application/xml');
-      if (doc.querySelector('parsererror')) throw new Error('XML parse error');
-      const law = parseLawFromResponse(doc);
-      if (!law) throw new Error('Law XML was not found');
-      renderLaw(law, doc);
-      jumpToInitialHash();
-      if (externalReferencesEnabled) {
-        applyExternalReferenceLinksForLaw(await getLawReferencesData(lawId));
-      } else {
-        const stored = await chrome.storage.local.get([EXTERNAL_REFERENCES_AUTO_ENABLE_KEY]).catch(() => ({}));
-        if (stored[EXTERNAL_REFERENCES_AUTO_ENABLE_KEY] !== false && externalReferencesAutoEnable) {
-          runWhenIdle(() => enableExternalReferenceLinks(), 600);
+      // 先行取得と同じバックグラウンド処理に合流させ、改正履歴と本文を並列取得する。
+      const liveLoadPromise = chrome.runtime.sendMessage({
+        type: 'egov-load-lite-law',
+        lawId,
+        revisionId: revisionIdParam,
+      }).catch((error) => ({ ok: false, error: error?.message || String(error || '') }));
+
+      // 保存済みXMLがあれば、ネットワーク確認を待たずに即座に表示する。
+      const revisionStorageKey = getLiteLawRevisionStorageKey();
+      const stored = await chrome.storage.local.get([revisionStorageKey]).catch(() => ({}));
+      const cachedTarget = revisionIdParam || stored[revisionStorageKey] || lawId;
+      const cachedXml = await readCachedLiteLawXml(cachedTarget);
+      if (cachedXml) {
+        renderLawXml(cachedXml);
+        renderedTarget = cachedTarget;
+        jumpToInitialHash();
+      }
+
+      let result = await liveLoadPromise;
+      if (!result?.ok) {
+        try {
+          result = await loadLiteLawDirectly();
+        } catch (fallbackError) {
+          if (!renderedTarget) {
+            throw new Error(result?.error || fallbackError?.message || 'Law XML could not be loaded');
+          }
         }
       }
-      await refreshFavoriteButton();
+      if (!result?.ok) {
+        if (!renderedTarget) throw new Error(result?.error || 'Law XML could not be loaded');
+      } else {
+        revisions = Array.isArray(result.revisions) ? result.revisions : [];
+        currentRevisionId = revisionIdParam || result.currentRevisionId || currentRevisionId;
+        renderRevisionSelect();
+        if (!renderedTarget || renderedTarget !== result.cacheTarget) {
+          const freshXml = await readCachedLiteLawXml(result.cacheTarget);
+          if (!freshXml) throw new Error('Cached law XML could not be read');
+          renderLawXml(freshXml);
+          renderedTarget = result.cacheTarget;
+          jumpToInitialHash();
+        }
+      }
+
+      await finishLawLoad();
     } catch (error) {
-      contentEl.innerHTML = `<p class="viewer-error">条文の読み込みに失敗しました。${escapeHtml(error.message || '')}</p>`;
+      if (!renderedTarget) {
+        articleElementsCache = [];
+        contentEl.innerHTML = `<p class="viewer-error">条文の読み込みに失敗しました。${escapeHtml(error.message || '')}</p>`;
+      }
     }
   }
 
@@ -1371,16 +1454,18 @@
     return ensureReferenceNumberElement(numberRoot || target, parts);
   }
 
-  function formatReferenceBranchNumber(value) {
-    return String(value || '').split(/[-_]/).filter(Boolean).join('の');
+  function formatReferenceBranchLabel(value, unit) {
+    const [number, ...branches] = String(value || '').split(/[-_]/).filter(Boolean);
+    if (!number) return '';
+    return `第${number}${unit}${branches.map((branch) => `の${branch}`).join('')}`;
   }
 
   function getReferenceTargetLabel(targetKey) {
     const parts = splitReferenceTargetKey(targetKey);
     if (!parts.article) return targetKey;
-    let label = `第${formatReferenceBranchNumber(parts.article)}条`;
-    if (parts.paragraph) label += `第${formatReferenceBranchNumber(parts.paragraph)}項`;
-    if (parts.item) label += `第${formatReferenceBranchNumber(parts.item)}号`;
+    let label = formatReferenceBranchLabel(parts.article, '条');
+    if (parts.paragraph) label += formatReferenceBranchLabel(parts.paragraph, '項');
+    if (parts.item) label += formatReferenceBranchLabel(parts.item, '号');
     return label;
   }
 
@@ -1388,31 +1473,6 @@
     const title = String(source?.sourceLawTitle || source?.sourceLawId || '').trim();
     const path = formatProvisionSourcePathFromEgovUrl(source?.sourceUrl, location.href);
     return [title, path].filter(Boolean).join(' ');
-  }
-
-  function getReferenceSourceSortInfo(source, index) {
-    const cleanName = typeof normalizeLawNameForCopy === 'function' ? normalizeLawNameForCopy : (value) => String(value || '').trim();
-    const currentTitle = cleanName(lawTitleText);
-    const currentPrefix = currentTitle.slice(0, 5);
-    const sourceTitle = cleanName(source?.sourceLawTitle || '');
-    const sourcePrefix = sourceTitle.slice(0, 5);
-    return {
-      source,
-      index,
-      isRelated: !!(
-        (currentPrefix && sourceTitle.includes(currentPrefix)) ||
-        (sourcePrefix && currentTitle.includes(sourcePrefix))
-      ),
-    };
-  }
-
-  function sortReferenceSources(sources) {
-    return sources
-      .map(getReferenceSourceSortInfo)
-      .sort((a, b) => {
-        if (a.isRelated !== b.isRelated) return a.isRelated ? -1 : 1;
-        return a.index - b.index;
-      });
   }
 
   function hideReferencesPopup() {
@@ -1527,7 +1587,7 @@
   function showReferencesPopup({ targetKey, sources, point }) {
     const list = Array.isArray(sources) ? sources : [];
     if (!list.length) return;
-    const rows = sortReferenceSources(list);
+    const rows = sortReferenceSources(list, lawTitleText);
     hideReferencesPopup();
 
     const popup = document.createElement('div');
@@ -1654,55 +1714,26 @@
     if (!(target instanceof Element) || !sources?.length) return;
     const clickable = findLiteReferenceClickableElement(target, targetKey);
     if (!(clickable instanceof Element)) return;
-    clickable.classList.add('egov-lite-reference-clickable');
-    clickable.tabIndex = clickable.tabIndex >= 0 ? clickable.tabIndex : 0;
-    clickable.title = `外部法令からの参照元 ${sources.length}件`;
-    clickable.dataset.egovReferenceTargetKey = targetKey;
-    externalReferencesByElement.set(clickable, sources);
-    if (clickable.dataset.egovReferenceBound === 'true') return;
-    clickable.dataset.egovReferenceBound = 'true';
-    clickable.addEventListener('click', (event) => {
-      if (!externalReferencesEnabled) return;
-      event.preventDefault();
-      event.stopPropagation();
-      showReferencesPopup({
-        targetKey: clickable.dataset.egovReferenceTargetKey,
-        sources: externalReferencesByElement.get(clickable),
-        point: { x: event.clientX, y: event.clientY },
-      });
-    });
-    clickable.addEventListener('keydown', (event) => {
-      if (!externalReferencesEnabled) return;
-      if (event.key !== 'Enter' && event.key !== ' ') return;
-      event.preventDefault();
-      const rect = clickable.getBoundingClientRect();
-      showReferencesPopup({
-        targetKey: clickable.dataset.egovReferenceTargetKey,
-        sources: externalReferencesByElement.get(clickable),
-        point: { x: rect.left, y: rect.bottom },
-      });
+    configureReferenceClickable({
+      clickable,
+      className: 'egov-lite-reference-clickable',
+      targetKey,
+      sources,
+      sourceMap: externalReferencesByElement,
+      isEnabled: () => externalReferencesEnabled,
+      showPopup: showReferencesPopup,
     });
   }
 
   function applyExternalReferenceLinksForLaw(lawReferences) {
     clearExternalReferenceLinks();
-    const entries = Object.entries(lawReferences || {});
-    let index = 0;
-    const step = () => {
-      if (!externalReferencesEnabled) return;
-      const end = Math.min(entries.length, index + 160);
-      for (; index < end; index += 1) {
-        if (!externalReferencesEnabled) return;
-        const [targetKey, value] = entries[index];
-        const sources = Array.isArray(value?.externalLawSources) ? value.externalLawSources : [];
-        if (!sources.length) continue;
-        const target = findLiteReferenceTargetElement(targetKey);
-        if (!(target instanceof Element)) continue;
-        makeReferenceClickable(target, targetKey, sources);
-      }
-      if (index < entries.length) runWhenIdle(step, 250);
-    };
-    step();
+    applyReferenceLinksInBatches(lawReferences, {
+      isEnabled: () => externalReferencesEnabled,
+      findTarget: findLiteReferenceTargetElement,
+      makeClickable: makeReferenceClickable,
+      schedule: (step) => runWhenIdle(step, 250),
+      batchSize: 160,
+    });
   }
 
   async function enableExternalReferenceLinks({ silent = false } = {}) {
@@ -1832,22 +1863,28 @@
     window.scrollTo({ top: Math.max(0, window.scrollY + delta), behavior: scrollBehavior });
   }
 
-  function getArticleAtViewportRatio(ratio = 0.25) {
-    const articles = Array.from(contentEl.querySelectorAll('.law-article'));
+  function getArticleAtViewportRatio(ratio = 0.25, articles = articleElementsCache) {
     if (!articles.length) return null;
     const viewportTop = compareMode ? leftPaneEl.getBoundingClientRect().top : 0;
     const normalizedRatio = Math.max(0, Math.min(1, Number(ratio) || 0));
     const y = viewportTop + (compareMode ? leftPaneEl.clientHeight : window.innerHeight) * normalizedRatio;
-    let current = articles[0];
-    for (const article of articles) {
-      if (article.getBoundingClientRect().top <= y) current = article;
-      else break;
+    let low = 0;
+    let high = articles.length - 1;
+    let currentIndex = 0;
+    while (low <= high) {
+      const mid = (low + high) >> 1;
+      if (articles[mid].getBoundingClientRect().top <= y) {
+        currentIndex = mid;
+        low = mid + 1;
+      } else {
+        high = mid - 1;
+      }
     }
-    return current;
+    return articles[currentIndex];
   }
 
-  function getArticleAtViewport() {
-    return getArticleAtViewportRatio(0.25);
+  function getArticleAtViewport(articles = articleElementsCache) {
+    return getArticleAtViewportRatio(0.25, articles);
   }
 
   function formatArabicArticleLabelFromTitle(title) {
@@ -1876,9 +1913,9 @@
   }
 
   function navigateArticle(delta) {
-    const articles = Array.from(contentEl.querySelectorAll('.law-article'));
+    const articles = articleElementsCache;
     if (!articles.length) return;
-    const current = getArticleAtViewport();
+    const current = getArticleAtViewport(articles);
     const idx = Math.max(0, articles.indexOf(current));
     const next = articles[Math.max(0, Math.min(articles.length - 1, idx + delta))];
     if (next) {
@@ -1984,50 +2021,6 @@
       selection?.addRange(current.cloneRange());
     }
     scrollRangeToView(current);
-  }
-
-  function collectSearchTextSegments(searchRoot) {
-    const segments = [];
-    let text = '';
-    const walker = document.createTreeWalker(searchRoot, NodeFilter.SHOW_TEXT, {
-      acceptNode(node) {
-        if (!node.nodeValue) return NodeFilter.FILTER_REJECT;
-        if (node.parentElement?.closest('script, style')) return NodeFilter.FILTER_REJECT;
-        return NodeFilter.FILTER_ACCEPT;
-      }
-    });
-    let node;
-    while ((node = walker.nextNode())) {
-      const nodeText = node.nodeValue || '';
-      if (!nodeText) continue;
-      segments.push({ node, start: text.length, text: nodeText });
-      text += nodeText;
-    }
-    return { text, segments };
-  }
-
-  function findSearchSegment(segments, index) {
-    let low = 0;
-    let high = segments.length - 1;
-    while (low <= high) {
-      const mid = Math.floor((low + high) / 2);
-      const segment = segments[mid];
-      const end = segment.start + segment.text.length;
-      if (index < segment.start) high = mid - 1;
-      else if (index >= end) low = mid + 1;
-      else return segment;
-    }
-    return null;
-  }
-
-  function rangeFromSearchOffsets(segments, start, end) {
-    const startSegment = findSearchSegment(segments, start);
-    const endSegment = findSearchSegment(segments, end - 1);
-    if (!startSegment || !endSegment) return null;
-    const range = document.createRange();
-    range.setStart(startSegment.node, start - startSegment.start);
-    range.setEnd(endSegment.node, end - endSegment.start);
-    return range;
   }
 
   function findInPage(query) {
@@ -2397,6 +2390,10 @@
   }
 
   function toggleParenMode(mode) {
+    if (!parenthesesWrapped) {
+      wrapParentheses();
+      parenthesesWrapped = true;
+    }
     document.body.dataset.parenMode = document.body.dataset.parenMode === mode ? '' : mode;
     if (!document.body.dataset.parenMode) document.body.removeAttribute('data-paren-mode');
   }
@@ -2527,9 +2524,9 @@
       chrome.runtime.openOptionsPage();
       return;
     }
-    if (event.altKey && !event.ctrlKey && !event.metaKey && lower === 'm' && !activeDialog && !isInputActive()) {
+    if (event.altKey && !event.ctrlKey && !event.metaKey && (lower === 'm' || event.code === 'KeyM') && !activeDialog && !isInputActive()) {
       event.preventDefault();
-      chrome.runtime.sendMessage({ type: 'egov-open-manual-page' }).catch(() => {});
+      openManualPageFromShortcut();
       return;
     }
     if (event.altKey && !event.ctrlKey && !event.metaKey && (lower === 'l' || event.code === 'KeyL') && !activeDialog) {

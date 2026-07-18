@@ -8,6 +8,8 @@
   const REFERENCES_META_STORE = 'meta';
   const REFERENCES_BUNDLED_CACHE_STORE = 'bundled_cache';
   const REFERENCES_CURRENT_META_KEY = 'current';
+  const LITE_LAW_CACHE_NAME = 'egov-lite-law-xml-v1';
+  const LITE_LAW_CACHE_MAX_ENTRIES = 100;
 
   function escapeHtml(str) {
     return String(str)
@@ -77,6 +79,90 @@
     return formatProvisionSourcePath(parseProvisionPathFromEgovUrl(url, base));
   }
 
+  function sortReferenceSources(sources, currentLawTitle, normalize = normalizeLawNameForCopy) {
+    const currentTitle = normalize(currentLawTitle || '');
+    const currentPrefix = currentTitle.slice(0, 5);
+    return (Array.isArray(sources) ? sources : [])
+      .map((source, index) => {
+        const sourceTitle = normalize(source?.sourceLawTitle || '');
+        const sourcePrefix = sourceTitle.slice(0, 5);
+        return {
+          source,
+          index,
+          isRelated: !!(
+            (currentPrefix && sourceTitle.includes(currentPrefix)) ||
+            (sourcePrefix && currentTitle.includes(sourcePrefix))
+          ),
+        };
+      })
+      .sort((a, b) => {
+        if (a.isRelated !== b.isRelated) return a.isRelated ? -1 : 1;
+        return a.index - b.index;
+      });
+  }
+
+  function configureReferenceClickable({
+    clickable,
+    className,
+    targetKey,
+    sources,
+    sourceMap,
+    isEnabled,
+    showPopup,
+  }) {
+    if (!clickable || !sources?.length) return;
+    clickable.classList.add(className);
+    clickable.tabIndex = clickable.tabIndex >= 0 ? clickable.tabIndex : 0;
+    clickable.title = `外部法令からの参照元 ${sources.length}件`;
+    clickable.dataset.egovReferenceTargetKey = targetKey;
+    sourceMap.set(clickable, sources);
+    if (clickable.dataset.egovReferenceBound === 'true') return;
+    clickable.dataset.egovReferenceBound = 'true';
+
+    const open = (point) => showPopup({
+      targetKey: clickable.dataset.egovReferenceTargetKey,
+      sources: sourceMap.get(clickable),
+      point,
+    });
+    clickable.addEventListener('click', (event) => {
+      if (!isEnabled()) return;
+      event.preventDefault();
+      event.stopPropagation();
+      open({ x: event.clientX, y: event.clientY });
+    });
+    clickable.addEventListener('keydown', (event) => {
+      if (!isEnabled() || (event.key !== 'Enter' && event.key !== ' ')) return;
+      event.preventDefault();
+      const rect = clickable.getBoundingClientRect();
+      open({ x: rect.left, y: rect.bottom });
+    });
+  }
+
+  function applyReferenceLinksInBatches(lawReferences, {
+    isEnabled,
+    findTarget,
+    makeClickable,
+    schedule,
+    batchSize = 120,
+  }) {
+    const entries = Object.entries(lawReferences || {});
+    let index = 0;
+    const step = () => {
+      if (!isEnabled()) return;
+      const end = Math.min(entries.length, index + batchSize);
+      for (; index < end; index += 1) {
+        if (!isEnabled()) return;
+        const [targetKey, value] = entries[index];
+        const sources = Array.isArray(value?.externalLawSources) ? value.externalLawSources : [];
+        if (!sources.length) continue;
+        const target = findTarget(targetKey);
+        if (target) makeClickable(target, targetKey, sources);
+      }
+      if (index < entries.length) schedule(step);
+    };
+    step();
+  }
+
   function formatProvisionNumber(parts, {
     isArticleLevel = false,
     omitSingleParagraphFirst = false,
@@ -131,7 +217,11 @@
     const sentenceTail = before.split(/[。；;]/).pop() || before;
     const clauseTail = sentenceTail.split(/[、，]/).pop() || sentenceTail;
     const match = normalize(clauseTail).match(/([^ 　、。，．；;（）()「」『』]{2,40})$/);
-    return match?.[1] || '';
+    const term = match?.[1] || '';
+    // 「株式会社がその発行済株式（…をいう。以下同じ。）」のような文では、
+    // 括弧直前の主語句ではなく、指示語に続く語だけを定義用語として扱う。
+    const scopedTerm = term.match(/^.+?[はがも](?:その|当該)(.{2,40})$/);
+    return scopedTerm?.[1] || term;
   }
 
   function extractInlineAliasDefinition(text, matchIndex, cleanupPatterns = [], normalize = (value) => String(value || '')) {
@@ -198,6 +288,95 @@
     return extractLaws(data);
   }
 
+  function collectSearchTextSegments(searchRoot, { excludeSelector = '' } = {}) {
+    const segments = [];
+    let text = '';
+    const walker = document.createTreeWalker(searchRoot, NodeFilter.SHOW_TEXT, {
+      acceptNode(node) {
+        const el = node.parentElement;
+        if (!el || !node.textContent) return NodeFilter.FILTER_SKIP;
+        if (excludeSelector && el.closest(excludeSelector)) return NodeFilter.FILTER_REJECT;
+        const tag = el.tagName.toLowerCase();
+        if (tag === 'script' || tag === 'style' || tag === 'noscript') return NodeFilter.FILTER_REJECT;
+        return NodeFilter.FILTER_ACCEPT;
+      },
+    });
+    let node;
+    while ((node = walker.nextNode())) {
+      const nodeText = node.textContent || '';
+      if (!nodeText) continue;
+      segments.push({ node, start: text.length, text: nodeText });
+      text += nodeText;
+    }
+    return { text, segments };
+  }
+
+  function findSearchSegment(segments, index) {
+    let low = 0;
+    let high = segments.length - 1;
+    while (low <= high) {
+      const mid = Math.floor((low + high) / 2);
+      const segment = segments[mid];
+      const end = segment.start + segment.text.length;
+      if (index < segment.start) high = mid - 1;
+      else if (index >= end) low = mid + 1;
+      else return segment;
+    }
+    return null;
+  }
+
+  function rangeFromSearchOffsets(segments, start, end) {
+    const startSegment = findSearchSegment(segments, start);
+    const endSegment = findSearchSegment(segments, end - 1);
+    if (!startSegment || !endSegment) return null;
+    const range = document.createRange();
+    range.setStart(startSegment.node, start - startSegment.start);
+    range.setEnd(endSegment.node, end - endSegment.start);
+    return range;
+  }
+
+  function getLiteLawDataUrl(target) {
+    return `${LAW_BASE_URL}/api/2/law_data/${encodeURIComponent(target)}?response_format=xml&law_full_text_format=xml`;
+  }
+
+  async function readCachedLiteLawXml(target, cachesApi = global.caches) {
+    if (!target || !cachesApi) return '';
+    try {
+      const cache = await cachesApi.open(LITE_LAW_CACHE_NAME);
+      const response = await cache.match(getLiteLawDataUrl(target));
+      return response ? response.text() : '';
+    } catch (_) {
+      return '';
+    }
+  }
+
+  async function trimLiteLawCache(cache) {
+    const requests = await cache.keys();
+    if (requests.length <= LITE_LAW_CACHE_MAX_ENTRIES) return;
+    const entries = await Promise.all(requests.map(async (request) => {
+      const response = await cache.match(request);
+      return {
+        request,
+        cachedAt: Number(response?.headers.get('X-Egov-Cached-At')) || 0,
+      };
+    }));
+    entries.sort((a, b) => a.cachedAt - b.cachedAt);
+    const deleteCount = entries.length - LITE_LAW_CACHE_MAX_ENTRIES;
+    await Promise.all(entries.slice(0, deleteCount).map(({ request }) => cache.delete(request)));
+  }
+
+  async function cacheLiteLawXml(target, xmlText, cachesApi = global.caches) {
+    if (!target || !xmlText || !cachesApi) return;
+    const cache = await cachesApi.open(LITE_LAW_CACHE_NAME);
+    await cache.put(getLiteLawDataUrl(target), new Response(xmlText, {
+      headers: {
+        'Content-Type': 'application/xml; charset=utf-8',
+        'X-Egov-Cached-At': String(Date.now()),
+      },
+    }));
+    await trimLiteLawCache(cache);
+  }
+
   function openReferencesDb({ openErrorMessage = 'IndexedDB open failed' } = {}) {
     return new Promise((resolve, reject) => {
       const request = indexedDB.open(REFERENCES_DB_NAME, REFERENCES_DB_VERSION);
@@ -261,9 +440,13 @@
     REFERENCES_DB_VERSION,
     REFERENCES_LAWS_STORE,
     REFERENCES_META_STORE,
+    applyReferenceLinksInBatches,
     buildLawUrl,
     buildProvisionCopyPayload,
+    cacheLiteLawXml,
     cloneDefinitionPatterns,
+    collectSearchTextSegments,
+    configureReferenceClickable,
     DEFINITION_PATTERNS,
     escapeHtml,
     extractInlineAliasDefinition,
@@ -275,6 +458,7 @@
     formatProvisionSourcePath,
     formatProvisionSourcePathFromEgovUrl,
     getLawReferencesData,
+    getLiteLawDataUrl,
     getLawFields,
     idbRequest,
     isAllowedDefinitionBoundaryChar,
@@ -285,7 +469,10 @@
     openReferencesDb,
     parseProvisionHash,
     parseProvisionPathFromEgovUrl,
+    rangeFromSearchOffsets,
+    readCachedLiteLawXml,
     searchLawsByTitle,
+    sortReferenceSources,
     stripPriorDefinitionParentheses,
     waitForTransaction,
   });
