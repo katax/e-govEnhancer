@@ -114,6 +114,7 @@
   let lawRevisionAreaOriginalStyle = null;
   let articleLinkCopyLastSelection = '';
   let externalReferencesEnabled = false;
+  let externalReferencesLoading = false;
   let activeReferencesPopup = null;
   let inyoDialogBridgeInjected = false;
   let inyoDialogBridgeReadyPromise = null;
@@ -165,6 +166,7 @@
         defTooltipEnabled = changes.liteDefTooltipEnabled.newValue !== false;
         if (defTooltipEnabled && postLoadEnrichmentReady) scheduleApplyDefinitionTooltips({ notify: true });
         else clearDefinitionTooltips();
+        updateHeaderToggleButtonStates();
       }
       if (changes.defTooltipClickOnly) {
         defTooltipClickOnly = changes.defTooltipClickOnly.newValue !== false;
@@ -610,6 +612,7 @@
     if (!parenthesesMutingInitialized) setupBodyParenthesesMuting();
     parenthesesMuteMode = parenthesesMuteMode === mode ? 'off' : mode;
     applyParenthesesMuteMode();
+    updateHeaderToggleButtonStates();
   }
 
   function getCurrentLawIdFromUrl() {
@@ -708,29 +711,112 @@
     return badge;
   }
 
+  function setHeaderToggleButtonState(button, active, title) {
+    if (!button) return;
+    button.classList.toggle('is-active', active);
+    button.setAttribute('aria-pressed', String(active));
+    button.title = title;
+    button.setAttribute('aria-label', title);
+  }
+
+  function updateHeaderToggleButtonStates() {
+    setHeaderToggleButtonState(
+      document.getElementById('egov-ext-wide-button'),
+      lawRevisionAreaExpanded,
+      lawRevisionAreaExpanded ? 'ワイド表示を解除' : 'ワイド表示に切り替え'
+    );
+    setHeaderToggleButtonState(
+      document.getElementById('egov-ext-paren-button'),
+      parenthesesMuteMode === 'nested',
+      parenthesesMuteMode === 'nested' ? 'かっこ消しを解除' : 'かっこをほぼ非表示にする'
+    );
+    const externalButton = document.getElementById('egov-ext-external-references-button');
+    setHeaderToggleButtonState(
+      externalButton,
+      externalReferencesEnabled,
+      externalReferencesEnabled ? '外部法令からの逆リンクを無効化' : '外部法令からの逆リンクを有効化'
+    );
+    if (externalButton) {
+      externalButton.disabled = externalReferencesLoading;
+      externalButton.setAttribute('aria-busy', String(externalReferencesLoading));
+    }
+    setHeaderToggleButtonState(
+      document.getElementById('egov-ext-definition-button'),
+      defTooltipEnabled,
+      defTooltipEnabled ? '定義語リンクを無効化' : '定義語リンクを有効化'
+    );
+  }
+
+  function toggleDefinitionHeaderLinks() {
+    defTooltipEnabled = !defTooltipEnabled;
+    if (defTooltipEnabled && postLoadEnrichmentReady) scheduleApplyDefinitionTooltips({ notify: true });
+    else clearDefinitionTooltips();
+    updateHeaderToggleButtonStates();
+    chrome.storage.local.set({ liteDefTooltipEnabled: defTooltipEnabled }).catch(() => {});
+  }
+
+  function ensureHeaderToggleButtons() {
+    const host = ensureHeaderControlHost();
+    if (!host) return [];
+    const configs = [
+      { id: 'egov-ext-wide-button', label: 'ワイド', onClick: () => toggleLawRevisionArea() },
+      { id: 'egov-ext-paren-button', label: 'かっこ', onClick: () => toggleParenthesesMute('nested') },
+      { id: 'egov-ext-external-references-button', label: '逆リンク', onClick: () => toggleExternalReferenceLinks() },
+      { id: 'egov-ext-definition-button', label: '定義', onClick: toggleDefinitionHeaderLinks },
+    ];
+    const buttons = configs.map(({ id, label, onClick }) => {
+      let button = document.getElementById(id);
+      if (button) return button;
+      button = document.createElement('button');
+      button.id = id;
+      button.type = 'button';
+      button.className = 'egov-ext-lightweight-viewer-button egov-ext-header-toggle-button';
+      button.textContent = label;
+      button.setAttribute('aria-pressed', 'false');
+      button.addEventListener('click', (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        onClick();
+      });
+      return button;
+    });
+
+    let anchor = document.getElementById('egov-ext-favorite-header-badge');
+    buttons.forEach((button) => {
+      if (anchor?.parentElement === host) anchor.insertAdjacentElement('afterend', button);
+      else host.appendChild(button);
+      anchor = button;
+    });
+    updateHeaderToggleButtonStates();
+    return buttons;
+  }
+
   function ensureLightweightViewerButton() {
     const host = ensureHeaderControlHost();
     if (!host) return null;
 
     let button = document.getElementById('egov-ext-lightweight-viewer-button');
-    if (button) return button;
+    if (!button) {
+      button = document.createElement('button');
+      button.id = 'egov-ext-lightweight-viewer-button';
+      button.type = 'button';
+      button.className = 'egov-ext-lightweight-viewer-button';
+      button.textContent = 'Lite';
+      button.title = 'Liteモードで開く';
+      button.setAttribute('aria-label', button.title);
+      button.addEventListener('click', async (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (!e.isTrusted) return;
+        await openLightweightViewerFromPage();
+      });
+    }
 
-    button = document.createElement('button');
-    button.id = 'egov-ext-lightweight-viewer-button';
-    button.type = 'button';
-    button.className = 'egov-ext-lightweight-viewer-button';
-    button.textContent = 'Lite';
-    button.title = 'Liteモードで開く';
-    button.setAttribute('aria-label', button.title);
-    button.addEventListener('click', async (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      if (!e.isTrusted) return;
-      await openLightweightViewerFromPage();
-    });
-
+    const toggles = ensureHeaderToggleButtons();
+    const lastToggle = toggles[toggles.length - 1];
     const favorite = document.getElementById('egov-ext-favorite-header-badge');
-    if (favorite?.parentElement === host) favorite.insertAdjacentElement('afterend', button);
+    if (lastToggle?.parentElement === host) lastToggle.insertAdjacentElement('afterend', button);
+    else if (favorite?.parentElement === host) favorite.insertAdjacentElement('afterend', button);
     else host.appendChild(button);
     return button;
   }
@@ -775,6 +861,7 @@
 
   function setupFavoriteHeaderBadge() {
     if (ensureFavoriteHeaderBadge()) {
+      ensureHeaderToggleButtons();
       ensureLightweightViewerButton();
       refreshFavoriteHeaderBadge();
       return;
@@ -782,6 +869,7 @@
 
     const observer = new MutationObserver(() => {
       if (!ensureFavoriteHeaderBadge()) return;
+      ensureHeaderToggleButtons();
       ensureLightweightViewerButton();
       observer.disconnect();
       refreshFavoriteHeaderBadge();
@@ -1323,6 +1411,7 @@
     }
 
     lawRevisionAreaExpanded = expanded;
+    updateHeaderToggleButtonStates();
     return true;
   }
 
@@ -1812,7 +1901,7 @@
     const button = document.createElement('button');
     button.type = 'button';
     button.id = 'egov-ext-jump-return';
-    button.textContent = `ジャンプ前の位置に戻る${position.guide ? `（${position.guide}）` : ''}`;
+    button.textContent = `Rでジャンプ前の位置に戻る${position.guide ? `（${position.guide}）` : ''}`;
     button.addEventListener('click', () => {
       returnToJumpStart();
     });
@@ -3301,28 +3390,37 @@
 
   async function enableExternalReferenceLinks({ silent = false } = {}) {
     if (externalReferencesEnabled) return true;
-    const ready = await waitForArticles(10000);
-    if (!ready) {
-      if (!silent) showPinIndicator('条文の読み込み完了後にもう一度試してください');
-      return false;
-    }
+    if (externalReferencesLoading) return false;
+    externalReferencesLoading = true;
+    updateHeaderToggleButtonStates();
+    try {
+      const ready = await waitForArticles(10000);
+      if (!ready) {
+        if (!silent) showPinIndicator('条文の読み込み完了後にもう一度試してください');
+        return false;
+      }
 
-    const lawReferences = await getLawReferencesData(getCurrentLawIdFromUrl());
-    if (!Object.keys(lawReferences).length) {
-      if (!silent) showPinIndicator('外部法令からの参照元リンクはありません');
-      return false;
-    }
+      const lawReferences = await getLawReferencesData(getCurrentLawIdFromUrl());
+      if (!Object.keys(lawReferences).length) {
+        if (!silent) showPinIndicator('外部法令からの参照元リンクはありません');
+        return false;
+      }
 
-    externalReferencesEnabled = true;
-    applyExternalReferenceLinksForLaw(lawReferences);
-    if (!silent) showPinIndicator('外部法令からの参照元リンクを有効化しました');
-    return true;
+      externalReferencesEnabled = true;
+      applyExternalReferenceLinksForLaw(lawReferences);
+      if (!silent) showPinIndicator('外部法令からの参照元リンクを有効化しました');
+      return true;
+    } finally {
+      externalReferencesLoading = false;
+      updateHeaderToggleButtonStates();
+    }
   }
 
   function disableExternalReferenceLinks({ silent = false } = {}) {
     if (!externalReferencesEnabled) return;
     externalReferencesEnabled = false;
     clearExternalReferenceLinks();
+    updateHeaderToggleButtonStates();
     if (!silent) showPinIndicator('外部法令からの参照元リンクを無効化しました');
   }
 
@@ -5027,6 +5125,8 @@
         defTooltipEnabled = liteDefTooltipEnabled !== false;
         defTooltipClickOnly = storedClickOnly !== false;
         if (defTooltipEnabled) scheduleApplyDefinitionTooltips();
+        else clearDefinitionTooltips();
+        updateHeaderToggleButtonStates();
       });
       chrome.storage.local.get(['externalReferencesAutoEnable'], ({ externalReferencesAutoEnable }) => {
         if (externalReferencesAutoEnable !== false) autoEnableExternalReferenceLinks();

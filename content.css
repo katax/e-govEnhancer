@@ -706,6 +706,23 @@ mark.egov-ext-mark-current {
   transform: translateY(-1px) !important;
 }
 
+.egov-ext-header-toggle-button.is-active {
+  border-color: #1565c0 !important;
+  background: #1565c0 !important;
+  color: #fff !important;
+}
+
+.egov-ext-header-toggle-button.is-active:hover {
+  border-color: #0d47a1 !important;
+  background: #0d47a1 !important;
+  color: #fff !important;
+}
+
+.egov-ext-header-toggle-button[aria-busy="true"] {
+  cursor: progress !important;
+  opacity: 0.7 !important;
+}
+
 .egov-ext-color-pin {
   position: relative !important;
 }

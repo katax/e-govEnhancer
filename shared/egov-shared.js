@@ -8,7 +8,9 @@
   const REFERENCES_META_STORE = 'meta';
   const REFERENCES_BUNDLED_CACHE_STORE = 'bundled_cache';
   const REFERENCES_CURRENT_META_KEY = 'current';
-  const LITE_LAW_CACHE_NAME = 'egov-lite-law-xml-v1';
+  const LITE_LAW_LEGACY_CACHE_NAMES = ['egov-lite-law-xml-v1', 'egov-lite-law-xml-v2'];
+  // 旧キャッシュには法令IDの取得結果が現行改正IDとして保存されている可能性があるため、再利用しない。
+  const LITE_LAW_CACHE_NAME = 'egov-lite-law-xml-v3';
   const LITE_LAW_CACHE_MAX_ENTRIES = 100;
 
   function escapeHtml(str) {
@@ -335,8 +337,43 @@
     return range;
   }
 
-  function getLiteLawDataUrl(target) {
-    return `${LAW_BASE_URL}/api/2/law_data/${encodeURIComponent(target)}?response_format=xml&law_full_text_format=xml`;
+  function getJapanDateString(date = new Date()) {
+    const parts = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'Asia/Tokyo',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).formatToParts(date);
+    const values = Object.fromEntries(parts.map(({ type, value }) => [type, value]));
+    return `${values.year}-${values.month}-${values.day}`;
+  }
+
+  function findCurrentLawRevisionId(revisions, today = getJapanDateString()) {
+    const list = Array.isArray(revisions) ? revisions : [];
+    const current = list.find((revision) => revision?.current_revision_status === 'CurrentEnforced');
+    if (current?.law_revision_id) return current.law_revision_id;
+
+    const enforced = list
+      .filter((revision) => {
+        if (!revision?.law_revision_id || revision.current_revision_status === 'UnEnforced') return false;
+        const date = revision.amendment_enforcement_date || revision.amendment_scheduled_enforcement_date || '';
+        return date && date <= today;
+      })
+      .sort((a, b) => {
+        const aDate = a.amendment_enforcement_date || a.amendment_scheduled_enforcement_date || '';
+        const bDate = b.amendment_enforcement_date || b.amendment_scheduled_enforcement_date || '';
+        return bDate.localeCompare(aDate);
+      });
+    if (enforced[0]?.law_revision_id) return enforced[0].law_revision_id;
+
+    return list.find((revision) => (
+      revision?.current_revision_status === 'PreviousEnforced' && revision.law_revision_id
+    ))?.law_revision_id || '';
+  }
+
+  function getLiteLawDataUrl(target, asOf = '') {
+    const asOfParam = asOf ? `&asof=${encodeURIComponent(asOf)}` : '';
+    return `${LAW_BASE_URL}/api/2/law_data/${encodeURIComponent(target)}?response_format=xml&law_full_text_format=xml${asOfParam}`;
   }
 
   async function readCachedLiteLawXml(target, cachesApi = global.caches) {
@@ -375,6 +412,9 @@
       },
     }));
     await trimLiteLawCache(cache);
+    if (typeof cachesApi.delete === 'function') {
+      await Promise.all(LITE_LAW_LEGACY_CACHE_NAMES.map((name) => cachesApi.delete(name).catch(() => false)));
+    }
   }
 
   function openReferencesDb({ openErrorMessage = 'IndexedDB open failed' } = {}) {
@@ -457,6 +497,8 @@
     formatProvisionNumber,
     formatProvisionSourcePath,
     formatProvisionSourcePathFromEgovUrl,
+    findCurrentLawRevisionId,
+    getJapanDateString,
     getLawReferencesData,
     getLiteLawDataUrl,
     getLawFields,

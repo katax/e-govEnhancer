@@ -13,8 +13,10 @@
     extractInlineAliasDefinition: extractSharedInlineAliasDefinition,
     extractLaws,
     extractTermBeforeParentheticalDefinition: extractSharedTermBeforeParentheticalDefinition,
+    findCurrentLawRevisionId,
     formatProvisionNumber,
     formatProvisionSourcePathFromEgovUrl,
+    getJapanDateString,
     getLawReferencesData,
     getLiteLawDataUrl,
     isTermBoundarySafe: isSharedTermBoundarySafe,
@@ -55,6 +57,9 @@
   const revisionSelect = document.getElementById('revision-select');
   const fontSizeSelect = document.getElementById('font-size-select');
   const contentWidthSelect = document.getElementById('content-width-select');
+  const parenModeButton = document.getElementById('paren-mode-button');
+  const externalReferencesButton = document.getElementById('external-references-button');
+  const definitionLinksButton = document.getElementById('definition-links-button');
   const normalModeButton = document.getElementById('normal-mode-button');
   const compareModeButton = document.getElementById('compare-mode-button');
   const favoriteButton = document.getElementById('favorite-button');
@@ -93,6 +98,7 @@
   let defTooltipClickOnly = true;
   let externalReferencesAutoEnable = true;
   let externalReferencesEnabled = false;
+  let externalReferencesLoading = false;
   let activeReferencesPopup = null;
   let activeReferenceViewerPopup = null;
   let liteDefinitionMap = new Map();
@@ -107,6 +113,29 @@
   document.body.dataset.contentWidth = 'full';
   if (embeddedMode) document.body.dataset.embedded = 'true';
 
+  function setViewerToggleButtonState(button, active, title) {
+    button.classList.toggle('is-active', active);
+    button.setAttribute('aria-pressed', String(active));
+    button.title = title;
+  }
+
+  function syncViewerToggleButtons() {
+    const parenHidden = document.body.dataset.parenMode === 'nested';
+    setViewerToggleButtonState(parenModeButton, parenHidden, parenHidden ? 'かっこ消しを解除' : 'かっこを薄くして本文を表示');
+    setViewerToggleButtonState(
+      externalReferencesButton,
+      externalReferencesEnabled,
+      externalReferencesEnabled ? '外部法令からの逆リンクを無効化' : '外部法令からの逆リンクを有効化'
+    );
+    externalReferencesButton.setAttribute('aria-busy', String(externalReferencesLoading));
+    externalReferencesButton.disabled = externalReferencesLoading;
+    setViewerToggleButtonState(
+      definitionLinksButton,
+      liteDefTooltipEnabled,
+      liteDefTooltipEnabled ? '定義語リンクを無効化' : '定義語リンクを有効化'
+    );
+  }
+
   function applyFontSize(value) {
     const next = VALID_FONT_SIZES.has(String(value)) ? String(value) : '2';
     document.body.dataset.fontSize = next;
@@ -117,6 +146,15 @@
     const next = VALID_CONTENT_WIDTHS.has(String(value)) ? String(value) : 'full';
     document.body.dataset.contentWidth = next;
     contentWidthSelect.value = next;
+    syncViewerToggleButtons();
+  }
+
+  function toggleDefinitionLinks() {
+    liteDefTooltipEnabled = !liteDefTooltipEnabled;
+    if (liteDefTooltipEnabled) applyLiteDefinitionTooltips();
+    else clearLiteDefinitionTooltips();
+    syncViewerToggleButtons();
+    persistLocal({ [LITE_DEF_TOOLTIP_ENABLED_KEY]: liteDefTooltipEnabled });
   }
 
   fontSizeSelect.addEventListener('change', () => {
@@ -137,6 +175,9 @@
   }
 
   normalModeButton.addEventListener('click', openNormalMode);
+  parenModeButton.addEventListener('click', () => toggleParenMode('nested'));
+  externalReferencesButton.addEventListener('click', toggleExternalReferenceLinks);
+  definitionLinksButton.addEventListener('click', toggleDefinitionLinks);
   compareModeButton.addEventListener('click', () => toggleCompareMode());
   favoriteButton.addEventListener('click', () => toggleFavorite());
   shortcutButton.addEventListener('click', () => showShortcutDialog());
@@ -148,6 +189,7 @@
     next.searchParams.set('lawId', lawId);
     location.href = next.toString();
   });
+  syncViewerToggleButtons();
 
   chrome.storage.local.get([
     'scrollBehavior',
@@ -168,6 +210,7 @@
     defTooltipClickOnly = stored[DEF_TOOLTIP_CLICK_ONLY_KEY] !== false;
     if (!liteDefTooltipEnabled) clearLiteDefinitionTooltips();
     externalReferencesAutoEnable = stored[EXTERNAL_REFERENCES_AUTO_ENABLE_KEY] !== false;
+    syncViewerToggleButtons();
   }).catch(() => {});
   chrome.storage.onChanged.addListener((changes, area) => {
     if (area === 'local' && changes.scrollBehavior) {
@@ -178,12 +221,16 @@
     if (area === 'local' && changes.lawRefClickEnabled) lawRefClickEnabled = changes.lawRefClickEnabled.newValue !== false;
     if (area === 'local' && changes.lawRefOtherLawPopup) lawRefOtherLawPopupEnabled = changes.lawRefOtherLawPopup.newValue !== false;
     if (area === 'local' && changes[LITE_DEF_TOOLTIP_ENABLED_KEY]) {
-      liteDefTooltipEnabled = changes[LITE_DEF_TOOLTIP_ENABLED_KEY].newValue !== false;
-      if (liteDefTooltipEnabled) {
-        applyLiteDefinitionTooltips();
-      } else {
-        clearLiteDefinitionTooltips();
+      const nextEnabled = changes[LITE_DEF_TOOLTIP_ENABLED_KEY].newValue !== false;
+      if (liteDefTooltipEnabled !== nextEnabled) {
+        liteDefTooltipEnabled = nextEnabled;
+        if (liteDefTooltipEnabled) {
+          applyLiteDefinitionTooltips();
+        } else {
+          clearLiteDefinitionTooltips();
+        }
       }
+      syncViewerToggleButtons();
     }
     if (area === 'local' && changes[DEF_TOOLTIP_CLICK_ONLY_KEY]) {
       defTooltipClickOnly = changes[DEF_TOOLTIP_CLICK_ONLY_KEY].newValue !== false;
@@ -880,6 +927,7 @@
     activeParenGroup = '';
     parenGroups = new Map();
     document.body.removeAttribute('data-paren-mode');
+    syncViewerToggleButtons();
     articleElementsCache = Array.from(contentEl.querySelectorAll('.law-article'));
     rebuildArticleIndex();
     scheduleApplyLiteDefinitionTooltips();
@@ -894,8 +942,7 @@
       const data = await response.json();
       revisions = Array.isArray(data.revisions) ? data.revisions : [];
       if (!currentRevisionId) {
-        const current = revisions.find((rev) => rev.current_revision_status === 'CurrentEnforced') || revisions[0];
-        currentRevisionId = current?.law_revision_id || '';
+        currentRevisionId = findCurrentLawRevisionId(revisions);
       }
       renderRevisionSelect();
     } catch (_) {
@@ -911,9 +958,10 @@
       revisionSelect.disabled = true;
       return;
     }
+    const enforcedRevisionId = findCurrentLawRevisionId(revisions);
     revisionSelect.innerHTML = revisions.map((rev) => {
       const date = rev.amendment_enforcement_date || rev.amendment_scheduled_enforcement_date || '';
-      const status = rev.current_revision_status === 'CurrentEnforced' ? ' 現行' : rev.current_revision_status === 'UnEnforced' ? ' 未施行' : '';
+      const status = rev.law_revision_id === enforcedRevisionId ? ' 現行' : rev.current_revision_status === 'UnEnforced' ? ' 未施行' : '';
       const label = `${date || '日付不明'}${status} / ${rev.amendment_law_num || rev.amendment_law_title || rev.law_revision_id}`;
       return `<option value="${escapeHtml(rev.law_revision_id)}">${escapeHtml(label)}</option>`;
     }).join('');
@@ -933,7 +981,8 @@
     // バックグラウンドが旧版のままでも表示できるよう、従来の安全な取得順を残す。
     await loadRevisions();
     const target = currentRevisionId || lawId;
-    const response = await fetchWithTimeout(getLiteLawDataUrl(target), { cache: 'no-store' });
+    const asOf = currentRevisionId ? '' : getJapanDateString();
+    const response = await fetchWithTimeout(getLiteLawDataUrl(target, asOf), { cache: 'no-store' });
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     const xmlText = await response.text();
     if (!xmlText.trim()) throw new Error('Law XML was empty');
@@ -1738,26 +1787,35 @@
 
   async function enableExternalReferenceLinks({ silent = false } = {}) {
     if (externalReferencesEnabled) return true;
+    if (externalReferencesLoading) return false;
     if (!contentEl.querySelector('.law-article')) {
       if (!silent) showToast('条文の読み込み完了後にもう一度試してください');
       return false;
     }
-    if (!silent) showToast('外部法令からの参照元リンクを読み込んでいます');
-    const lawReferences = await getLawReferencesData(lawId);
-    if (!Object.keys(lawReferences).length) {
-      if (!silent) showToast('外部法令からの参照元リンクはありません');
-      return false;
+    externalReferencesLoading = true;
+    syncViewerToggleButtons();
+    try {
+      if (!silent) showToast('外部法令からの参照元リンクを読み込んでいます');
+      const lawReferences = await getLawReferencesData(lawId);
+      if (!Object.keys(lawReferences).length) {
+        if (!silent) showToast('外部法令からの参照元リンクはありません');
+        return false;
+      }
+      externalReferencesEnabled = true;
+      applyExternalReferenceLinksForLaw(lawReferences);
+      if (!silent) showToast('外部法令からの参照元リンクを有効化しました');
+      return true;
+    } finally {
+      externalReferencesLoading = false;
+      syncViewerToggleButtons();
     }
-    externalReferencesEnabled = true;
-    applyExternalReferenceLinksForLaw(lawReferences);
-    if (!silent) showToast('外部法令からの参照元リンクを有効化しました');
-    return true;
   }
 
   function disableExternalReferenceLinks({ silent = false } = {}) {
     if (!externalReferencesEnabled) return;
     externalReferencesEnabled = false;
     clearExternalReferenceLinks();
+    syncViewerToggleButtons();
     if (!silent) showToast('外部法令からの参照元リンクを無効化しました');
   }
 
@@ -1821,7 +1879,7 @@
     const button = document.createElement('button');
     button.type = 'button';
     button.id = 'lite-jump-return';
-    button.textContent = `ジャンプ前の位置に戻る${position.guide ? `（${position.guide}）` : ''}`;
+    button.textContent = `Rでジャンプ前の位置に戻る${position.guide ? `（${position.guide}）` : ''}`;
     button.addEventListener('click', () => {
       scrollToJumpReturnPosition(position);
       hideJumpReturnButton();
@@ -2396,6 +2454,7 @@
     }
     document.body.dataset.parenMode = document.body.dataset.parenMode === mode ? '' : mode;
     if (!document.body.dataset.parenMode) document.body.removeAttribute('data-paren-mode');
+    syncViewerToggleButtons();
   }
 
   function setParenHover(group) {

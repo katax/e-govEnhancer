@@ -41,6 +41,8 @@ const {
   REFERENCES_LAWS_STORE,
   REFERENCES_META_STORE,
   cacheLiteLawXml,
+  findCurrentLawRevisionId,
+  getJapanDateString,
   getLiteLawDataUrl,
   idbRequest,
   isPlainObject,
@@ -63,13 +65,8 @@ async function fetchLiteLawRevisions(lawId) {
   return Array.isArray(data.revisions) ? data.revisions : [];
 }
 
-function findCurrentLiteLawRevisionId(revisions) {
-  const current = revisions.find((revision) => revision.current_revision_status === 'CurrentEnforced') || revisions[0];
-  return current?.law_revision_id || '';
-}
-
-async function fetchLiteLawXml(target) {
-  const response = await fetch(getLiteLawDataUrl(target), { cache: 'no-store' });
+async function fetchLiteLawXml(target, asOf = '') {
+  const response = await fetch(getLiteLawDataUrl(target, asOf), { cache: 'no-store' });
   if (!response.ok) throw new Error(`Law fetch failed: HTTP ${response.status}`);
   const xmlText = await response.text();
   if (!xmlText.trim()) throw new Error('Law fetch returned an empty response');
@@ -82,22 +79,21 @@ async function loadAndCacheLiteLaw(lawId, revisionId = '') {
 
   const loadPromise = (async () => {
     const revisionStorageKey = getLiteLawRevisionStorageKey(lawId);
-    const stored = await chrome.storage.local.get([revisionStorageKey]).catch(() => ({}));
-    const storedRevisionId = typeof stored[revisionStorageKey] === 'string' ? stored[revisionStorageKey] : '';
-    const initialTarget = revisionId || storedRevisionId || lawId;
+    const initialTarget = revisionId || lawId;
 
     // 改正履歴と本文を同時に開始し、従来の直列待ちをなくす。
     const revisionsPromise = fetchLiteLawRevisions(lawId).catch(() => []);
-    const initialXmlPromise = fetchLiteLawXml(initialTarget)
+    // 法令IDだけの取得は未施行版になり得るため、改正ID未指定時は今日時点を明示する。
+    const initialXmlPromise = fetchLiteLawXml(initialTarget, revisionId ? '' : getJapanDateString())
       .then((xmlText) => ({ xmlText, error: null }))
       .catch((error) => ({ xmlText: '', error }));
     const [revisions, initialResult] = await Promise.all([revisionsPromise, initialXmlPromise]);
-    const currentRevisionId = findCurrentLiteLawRevisionId(revisions) || storedRevisionId;
+    const currentRevisionId = findCurrentLawRevisionId(revisions);
     const resolvedTarget = revisionId || currentRevisionId || initialTarget;
 
     let xmlText = initialResult.xmlText;
-    // 保存済みの現行改正IDが古くなっていた場合と、法令IDでの取得に失敗した場合だけ再取得する。
-    if ((!xmlText || (initialTarget !== lawId && initialTarget !== resolvedTarget)) && resolvedTarget !== initialTarget) {
+    // 法令IDの取得結果は未施行版を含むことがあるため、現行改正IDが判明したら必ずそのIDで取得し直す。
+    if (resolvedTarget !== initialTarget) {
       xmlText = await fetchLiteLawXml(resolvedTarget);
     } else if (!xmlText) {
       throw initialResult.error || new Error('Law XML could not be loaded');

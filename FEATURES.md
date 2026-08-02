@@ -140,12 +140,16 @@
 法令ページ見出し付近に操作ボタンを追加。
 
 - お気に入りボタン
+- `ワイド`、`かっこ`、`逆リンク`、`定義` の状態表示付きトグルボタン
 - Liteボタン
+
+トグルボタンはお気に入りボタンとLiteボタンの間に配置し、Liteボタンと同じ体裁で表示する。`ワイド` は `w`、`かっこ` は `Shift+G`、`逆リンク` は `e` と同じ処理を実行し、`定義` は定義語ガイド設定を切り替える。
 
 主な処理:
 
 - `ensureHeaderControlHost()`
 - `ensureFavoriteHeaderBadge()`
+- `ensureHeaderToggleButtons()`
 - `ensureLightweightViewerButton()`
 
 ### 5.2 Liteモードへの切り替え
@@ -392,12 +396,15 @@
 
 - フォントサイズ選択。
 - 本文幅選択。
-- 設定は local storage に保存。
+- 上部メニューの `かっこ`、`逆リンク`、`定義` ボタンで、Shift+G相当の括弧内表示抑制、外部法令からの逆参照リンク、定義語ガイドを切り替える。
+- 各トグルボタンは有効時にアクティブ表示となり、選択欄・ショートカット・設定画面からの変更にも追従する。
+- フォントサイズ、本文幅、定義語ガイドの設定は local storage に保存。
 
 保存キー:
 
 - `liteFontSize`
 - `liteContentWidth`
+- `liteDefTooltipEnabled`
 
 ### 7.4 改正時点選択
 
