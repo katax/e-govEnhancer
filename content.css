@@ -894,13 +894,36 @@ mark.egov-ext-mark-current {
   display: block !important;
 }
 
+.egov-ext-guide-header {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 16px !important;
+  margin-bottom: 10px !important;
+  padding-bottom: 8px !important;
+  border-bottom: 1px solid #e0e0e0 !important;
+}
+
 .egov-ext-guide-title {
   font-weight: 700 !important;
   font-size: 13px !important;
   color: #1565C0 !important;
-  margin-bottom: 10px !important;
-  padding-bottom: 8px !important;
-  border-bottom: 1px solid #e0e0e0 !important;
+}
+
+.egov-ext-guide-manual-button {
+  appearance: none !important;
+  border: 1px solid #1565c0 !important;
+  border-radius: 6px !important;
+  background: #fff !important;
+  color: #1565c0 !important;
+  cursor: pointer !important;
+  font: 600 12px/1 -apple-system, BlinkMacSystemFont, 'Hiragino Sans', 'Yu Gothic UI', sans-serif !important;
+  padding: 6px 10px !important;
+}
+
+.egov-ext-guide-manual-button:hover,
+.egov-ext-guide-manual-button:focus-visible {
+  background: #eaf3fb !important;
 }
 
 .egov-ext-guide-table {

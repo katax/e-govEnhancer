@@ -169,7 +169,7 @@
     location.href = sourceUrl || `https://laws.e-gov.go.jp/law/${encodeURIComponent(lawId)}`;
   }
 
-  function openManualPageFromShortcut() {
+  function openManualPageFromGuide() {
     chrome.runtime.sendMessage({ type: 'egov-open-manual-page' })
       .catch(() => {});
   }
@@ -2369,14 +2369,20 @@
 
   function showShortcutDialog() {
     const dialog = createDialog('Liteショートカット', { wide: true });
+    const manualButton = document.createElement('button');
+    manualButton.type = 'button';
+    manualButton.className = 'lite-manual-button';
+    manualButton.textContent = 'マニュアル';
+    manualButton.addEventListener('click', openManualPageFromGuide);
+    dialog.querySelector('.lite-close').before(manualButton);
     dialog.querySelector('.lite-dialog-body').innerHTML = `
       <div class="lite-shortcut-list">
         <div><kbd>Alt+s</kbd><span>並べて表示の切替</span></div>
         <div><kbd>Alt+O</kbd><span>設定画面を開く</span></div>
-        <div><kbd>Alt+M</kbd><span>マニュアルを開く</span></div>
         <div><kbd>s</kbd><span>ページ内検索</span></div>
         <div><kbd>0-9</kbd><span>条文ジャンプダイアログ</span></div>
         <div><kbd>h / l</kbd><span>条文ジャンプ履歴を前後移動</span></div>
+        <div><kbd>r</kbd><span>ジャンプ前の位置に戻る</span></div>
         <div><kbd>n / p</kbd><span>次/前の条へ移動</span></div>
         <div><kbd>d / u</kbd><span>下/上へ80%スクロール</span></div>
         <div><kbd>g / Shift+g</kbd><span>括弧内の表示切替</span></div>
@@ -2583,11 +2589,6 @@
       chrome.runtime.openOptionsPage();
       return;
     }
-    if (event.altKey && !event.ctrlKey && !event.metaKey && (lower === 'm' || event.code === 'KeyM') && !activeDialog && !isInputActive()) {
-      event.preventDefault();
-      openManualPageFromShortcut();
-      return;
-    }
     if (event.altKey && !event.ctrlKey && !event.metaKey && (lower === 'l' || event.code === 'KeyL') && !activeDialog) {
       event.preventDefault();
       openNormalMode();
@@ -2633,6 +2634,14 @@
     if (lower === 'p') { event.preventDefault(); navigateArticle(-1); return; }
     if (lower === 'd') { event.preventDefault(); scrollPage(0.8); return; }
     if (lower === 'u') { event.preventDefault(); scrollPage(-0.8); return; }
+    if (lower === 'r' && !activeDialog) {
+      const returnButton = document.getElementById('lite-jump-return');
+      if (returnButton) {
+        event.preventDefault();
+        returnButton.click();
+      }
+      return;
+    }
     if (lower === 'g' && event.shiftKey) { event.preventDefault(); toggleParenMode('nested'); return; }
     if (lower === 'g') { event.preventDefault(); toggleParenMode('flat'); return; }
     if (lower === 'e') { event.preventDefault(); toggleExternalReferenceLinks(); return; }

@@ -1419,7 +1419,7 @@
     return setLawRevisionAreaExpanded(!lawRevisionAreaExpanded);
   }
 
-  function openManualPageFromShortcut() {
+  function openManualPageFromGuide() {
     chrome.runtime.sendMessage({ type: 'egov-open-manual-page' })
       .catch(() => {});
   }
@@ -1439,11 +1439,6 @@
     if (e.altKey && !e.ctrlKey && !e.metaKey && (e.key === 'o' || e.key === 'O')) {
       e.preventDefault();
       chrome.runtime.sendMessage({ type: 'egov-open-options-page' }).catch(() => {});
-      return;
-    }
-    if (e.altKey && !e.ctrlKey && !e.metaKey && (e.key === 'm' || e.key === 'M' || e.code === 'KeyM')) {
-      e.preventDefault();
-      openManualPageFromShortcut();
       return;
     }
     if (e.altKey && !e.ctrlKey && !e.metaKey && (e.key === 'h' || e.key === 'H') && !activeDialog) {
@@ -4931,7 +4926,10 @@
     guide.innerHTML = `
       <button class="egov-ext-guide-btn" title="クリックでショートカット有効/無効を切り替え" aria-label="キーボードショートカット一覧">⌨️</button>
       <div class="egov-ext-guide-tooltip" role="tooltip">
-        <div class="egov-ext-guide-title">キーボードショートカット</div>
+        <div class="egov-ext-guide-header">
+          <div class="egov-ext-guide-title">キーボードショートカット</div>
+          <button type="button" class="egov-ext-guide-manual-button">マニュアル</button>
+        </div>
         <table class="egov-ext-guide-table">
           <tr><td><kbd>0</kbd>〜<kbd>9</kbd></td>
               <td>条文ジャンプ<br>
@@ -4973,8 +4971,6 @@
               <td>操作ガイドを表示</td></tr>
           <tr><td><kbd>Esc</kbd></td>
               <td>ダイアログを閉じる</td></tr>
-          <tr><td><kbd>Alt</kbd>+<kbd>M</kbd></td>
-              <td>マニュアルを開く</td></tr>
         </table>
       </div>
     `;
@@ -5024,6 +5020,11 @@
       e.stopPropagation();
       extensionEnabled = !extensionEnabled;
       updateGuideButtonState();
+    });
+    guide.querySelector('.egov-ext-guide-manual-button').addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      openManualPageFromGuide();
     });
   }
 
