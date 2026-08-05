@@ -25,7 +25,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   const FAVORITES_EXPORT_TYPE = 'egov-extension-favorites';
   const FAVORITES_EXPORT_VERSION = 1;
-  const FAVORITES_MAX = 50;
+  const { FAVORITES_MAX, persistLocal: persistSharedLocal } = globalThis.EgovApp;
+  const persistLocal = (items) => persistSharedLocal(items, { errorLabel: '設定の保存' });
   const {
     REFERENCES_CURRENT_META_KEY,
     REFERENCES_LAWS_STORE,
@@ -126,12 +127,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   const setReferencesTransferStatus = (message, tone) => referencesUi.setStatus(message, tone);
   const clearReferencesTransferStatus = () => referencesUi.clearStatus();
   const setReferencesTransferSummary = (message) => referencesUi.setSummary(message);
-
-  function persistLocal(items) {
-    chrome.storage.local.set(items).catch((error) => {
-      console.warn('[e-Gov Enhancer] 設定の保存に失敗しました', error);
-    });
-  }
 
   function runReloadLawTabs() {
     reloadLawTabsIfConfirmed().catch((error) => {

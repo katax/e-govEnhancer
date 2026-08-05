@@ -16,11 +16,13 @@
   'use strict';
 
   const shared = globalThis.EgovShared;
+  const app = globalThis.EgovApp;
   const {
     applyReferenceLinksInBatches,
     buildLawUrl,
     buildProvisionCopyPayload: buildSharedProvisionCopyPayload,
     cloneDefinitionPatterns,
+    cleanLawNameForSearch,
     collectSearchTextSegments,
     configureReferenceClickable,
     escapeHtml,
@@ -30,11 +32,31 @@
     formatProvisionSourcePathFromEgovUrl,
     getLawReferencesData,
     getLawFields,
+    getReferenceDomParts,
     isTermBoundarySafe: isSharedTermBoundarySafe,
     normalizeLawNameForCopy,
     rangeFromSearchOffsets,
     sortReferenceSources,
+    splitReferenceTargetKey,
   } = shared;
+  const {
+    FAVORITES_MAX,
+    createFavoritesStore,
+    createReferencePopup,
+    getReferenceTargetLabel,
+    persistLocal,
+    pushHistory: pushSharedHistory,
+    readFavorites,
+    runWhenIdle,
+    toggleFavoriteRecord,
+  } = app;
+  const favoritesStore = createFavoritesStore();
+  const {
+    observeArticleChanges,
+    runAfterPageLoadWhenIdle,
+    shouldInvalidateArticleCache,
+    startWhenDomReady,
+  } = globalThis.EgovContentController;
   const formatLawNameHtml = (name) => shared.formatLawNameHtml(name, 'egov-ext-law-name-muted');
 
   // ==================
@@ -71,8 +93,6 @@
   let activeFlashTransitionTimer = null;
   let favoriteScrollSaveTimer = null;
   let favoriteScrollRestored = false;
-  let favoritesCache = null;
-  let favoritesCachePromise = null;
   let pinIndicatorTimer = null;
   let pinToastVisible = false;
   let pinToastPinned = false;
@@ -139,7 +159,7 @@
     if (area === 'local') {
       if (changes.scrollBehavior) scrollBehavior = changes.scrollBehavior.newValue;
       if (changes.favorites) {
-        favoritesCache = Array.isArray(changes.favorites.newValue) ? changes.favorites.newValue : [];
+        favoritesStore.replace(changes.favorites.newValue);
         refreshFavoriteHeaderBadge();
       }
       if (changes.pinToastDefaultVisible) {
@@ -185,32 +205,11 @@
   window.addEventListener('resize', () => { if (pinToastVisible) schedulePinToastRender(); });
   window.addEventListener('scroll', () => { if (pinToastVisible) schedulePinToastRender(); }, { passive: true });
 
-  function runWhenIdle(callback, timeout = 1500) {
-    if (typeof requestIdleCallback === 'function') {
-      requestIdleCallback(callback, { timeout });
-      return;
-    }
-    setTimeout(callback, Math.min(timeout, 250));
-  }
-
-  function runAfterPageLoadWhenIdle(callback, timeout = 2500) {
-    const schedule = () => runWhenIdle(callback, timeout);
-    if (document.readyState === 'complete') {
-      schedule();
-      return;
-    }
-    window.addEventListener('load', schedule, { once: true });
-  }
-
   // ==================
   // 履歴ユーティリティ
   // ==================
   function pushHistory(history, value) {
-    if (!value) return;
-    const idx = history.indexOf(value);
-    if (idx !== -1) history.splice(idx, 1);
-    history.unshift(value);
-    if (history.length > HISTORY_MAX) history.length = HISTORY_MAX;
+    pushSharedHistory(history, value, HISTORY_MAX);
   }
 
   function pushJumpHistory(num) {
@@ -650,12 +649,12 @@
 
     if (shouldFavorite) {
       favorites.unshift(law);
-      if (favorites.length > 50) favorites.length = 50;
+      if (favorites.length > FAVORITES_MAX) favorites.length = FAVORITES_MAX;
     } else {
       favorites.splice(idx, 1);
     }
 
-    favoritesCache = favorites;
+    favoritesStore.replace(favorites);
     await saveFavoritesCache();
     return shouldFavorite;
   }
@@ -2944,18 +2943,6 @@
     return true;
   }
 
-  function splitReferenceTargetKey(key) {
-    const [article = '', paragraph = '', item = ''] = String(key || '').split('.');
-    return { article, paragraph, item };
-  }
-
-  function getReferenceDomParts(parts) {
-    if (parts?.article && parts.paragraph === '1' && !parts.item) {
-      return { article: parts.article, paragraph: '', item: '' };
-    }
-    return parts;
-  }
-
   function referenceKeyPartToIdToken(value) {
     return String(value || '').trim().replace(/-/g, '_');
   }
@@ -3145,21 +3132,6 @@
     return ensureReferenceNumberElement(target, parts);
   }
 
-  function getReferenceTargetLabel(targetKey) {
-    const parts = splitReferenceTargetKey(targetKey);
-    if (!parts.article) return targetKey;
-    let label = formatReferenceBranchLabel(parts.article, '条');
-    if (parts.paragraph) label += formatReferenceBranchLabel(parts.paragraph, '項');
-    if (parts.item) label += formatReferenceBranchLabel(parts.item, '号');
-    return label;
-  }
-
-  function formatReferenceBranchLabel(value, unit) {
-    const [number, ...branches] = String(value || '').split(/[-_]/).filter(Boolean);
-    if (!number) return '';
-    return `第${number}${unit}${branches.map((branch) => `の${branch}`).join('')}`;
-  }
-
   function getReferenceSourceLabel(source) {
     const lawTitle = String(source?.sourceLawTitle || source?.sourceLawId || '').trim();
     const path = formatProvisionSourcePathFromEgovUrl(source?.sourceUrl, location.href);
@@ -3172,58 +3144,20 @@
     activeReferencesPopup = null;
   }
 
-  function positionReferencesPopup(popup, point) {
-    const margin = 10;
-    const rect = popup.getBoundingClientRect();
-    const x = Math.min(
-      Math.max(margin, (point?.x ?? window.innerWidth / 2) + 10),
-      Math.max(margin, window.innerWidth - rect.width - margin)
-    );
-    const y = Math.min(
-      Math.max(margin, (point?.y ?? window.innerHeight / 2) + 10),
-      Math.max(margin, window.innerHeight - rect.height - margin)
-    );
-    popup.style.left = `${x}px`;
-    popup.style.top = `${y}px`;
-  }
-
   function showReferencesPopup({ targetKey, sources, point }) {
-    const list = Array.isArray(sources) ? sources : [];
-    if (!list.length) return;
-    const rows = sortReferenceSources(list, getCurrentLawName());
-
+    if (!Array.isArray(sources) || !sources.length) return;
     hideReferencesPopup();
-
-    const popup = document.createElement('div');
-    popup.className = 'egov-ext-reference-popup';
-    popup.setAttribute('role', 'dialog');
-    popup.innerHTML = `
-      <div class="egov-ext-reference-popup-head">
-        <div class="egov-ext-reference-target">${escapeHtml(getReferenceTargetLabel(targetKey))}</div>
-        <button type="button" class="egov-ext-reference-close" aria-label="閉じる">×</button>
-      </div>
-      <div class="egov-ext-reference-list">
-        ${rows.map((row, index) => `
-          <button type="button" class="egov-ext-reference-link${row.isRelated ? ' egov-ext-reference-link-related' : ''}" data-index="${index}">
-            <span class="egov-ext-reference-related-badge">${row.isRelated ? '関連' : ''}</span>
-            <span class="egov-ext-reference-link-title">${escapeHtml(getReferenceSourceLabel(row.source))}</span>
-            <span class="egov-ext-reference-link-url">${escapeHtml(row.source?.sourceUrl || '')}</span>
-          </button>
-        `).join('')}
-      </div>
-    `;
-
-    document.body.appendChild(popup);
-    activeReferencesPopup = popup;
-    positionReferencesPopup(popup, point);
-
-    popup.addEventListener('click', (event) => event.stopPropagation());
-    popup.querySelector('.egov-ext-reference-close')?.addEventListener('click', hideReferencesPopup);
-    popup.querySelectorAll('.egov-ext-reference-link').forEach((button) => {
-      button.addEventListener('click', (event) => {
-        const row = rows[Number(button.dataset.index)];
-        openReferenceSource(row?.source, event);
-      });
+    activeReferencesPopup = createReferencePopup({
+      targetKey,
+      sources,
+      currentLawTitle: getCurrentLawName(),
+      classPrefix: 'egov-ext',
+      point,
+      sortSources: sortReferenceSources,
+      escapeHtml,
+      getSourceLabel: getReferenceSourceLabel,
+      onOpen: openReferenceSource,
+      onClose: hideReferencesPopup,
     });
   }
 
@@ -3467,48 +3401,12 @@
     articleElementsCache = null;
   }
 
-  function hasArticleElementInSubtree(node) {
-    if (!(node instanceof Element)) return false;
-    if (node.id && /\-At_[\d_]+$/.test(node.id)) return true;
-    return !!node.querySelector?.('[id*="-At_"]');
-  }
-
-  function shouldInvalidateArticleCache(mutations) {
-    for (const mutation of mutations) {
-      if (mutation.target instanceof Element && mutation.target.id === 'provisionview') return true;
-      for (const node of mutation.addedNodes) {
-        if (hasArticleElementInSubtree(node)) return true;
-      }
-      for (const node of mutation.removedNodes) {
-        if (hasArticleElementInSubtree(node)) return true;
-      }
-    }
-    return false;
-  }
-
   async function getFavoritesCache() {
-    if (Array.isArray(favoritesCache)) return favoritesCache;
-    if (!favoritesCachePromise) {
-      favoritesCachePromise = chrome.storage.local.get(['favorites'])
-        .then((data) => {
-          favoritesCache = Array.isArray(data.favorites) ? data.favorites : [];
-          favoritesCachePromise = null;
-          return favoritesCache;
-        })
-        .catch(() => {
-          favoritesCache = [];
-          favoritesCachePromise = null;
-          return favoritesCache;
-        });
-    }
-    return favoritesCachePromise;
+    return favoritesStore.get();
   }
 
   async function saveFavoritesCache() {
-    if (!Array.isArray(favoritesCache)) return;
-    try {
-      await chrome.storage.local.set({ favorites: favoritesCache });
-    } catch (_) {}
+    await favoritesStore.save();
   }
 
   function scrollPage(ratio) {
@@ -3631,7 +3529,7 @@
       if ((favorites[idx].lastScrollTop ?? 0) === normalizedTop) return;
 
       favorites[idx] = { ...favorites[idx], lastScrollTop: normalizedTop };
-      favoritesCache = favorites;
+      favoritesStore.replace(favorites);
       await saveFavoritesCache();
     } catch (_) {}
   }
@@ -4537,20 +4435,8 @@
     return m ? m[1].trim() : document.title;
   }
 
-  function cleanLawNameForSearch(name) {
-    // 全角・半角括弧の括弧書きを除去
-    let s = name.replace(/（[^）]*）/g, '').replace(/\([^)]*\)/g, '').trim();
-    // 末尾の「施行規則」「施行令」のみ削除（法・法律は残す）
-    s = s.replace(/(?:施行規則|施行令)$/, '').trim();
-    return s;
-  }
-
   async function showLawSearchDialog() {
-    let favorites = [];
-    try {
-      const data = await chrome.storage.local.get(['favorites']);
-      favorites = Array.isArray(data.favorites) ? data.favorites : [];
-    } catch (_) {}
+    const favorites = await readFavorites();
 
     const initQuery = cleanLawNameForSearch(getCurrentLawName());
 
@@ -4589,14 +4475,12 @@
     function isFav(lawId) { return favorites.some(f => f.lawId === lawId); }
 
     function toggleFav(law) {
-      const idx = favorites.findIndex(f => f.lawId === law.lawId);
-      if (idx !== -1) {
-        favorites.splice(idx, 1);
-      } else {
-        favorites.unshift({ lawId: law.lawId, lawName: law.lawName, lawNum: law.lawNum, lawType: law.lawType, folderId: null });
-        if (favorites.length > 50) favorites.length = 50;
-      }
-      chrome.storage.local.set({ favorites: [...favorites] }).catch(() => {});
+      toggleFavoriteRecord(
+        favorites,
+        { lawId: law.lawId, lawName: law.lawName, lawNum: law.lawNum, lawType: law.lawType, folderId: null },
+        FAVORITES_MAX
+      );
+      persistLocal({ favorites: [...favorites] }, { errorLabel: 'お気に入りの保存' });
     }
 
     function setFocus(idx) {
@@ -5089,17 +4973,14 @@
   async function initializeLawPageFeatures() {
     invalidateArticleCache();
     const articleRoot = document.querySelector('#provisionview') || document.documentElement;
-    let articleCacheInvalidationScheduled = false;
-    const articleCacheObserver = new MutationObserver((mutations) => {
-      if (articleCacheInvalidationScheduled || !shouldInvalidateArticleCache(mutations)) return;
-      articleCacheInvalidationScheduled = true;
-      requestAnimationFrame(() => {
-        articleCacheInvalidationScheduled = false;
+    observeArticleChanges({
+      root: articleRoot,
+      shouldInvalidate: shouldInvalidateArticleCache,
+      onInvalidate() {
         invalidateArticleCache();
         if (defTooltipEnabled && postLoadEnrichmentReady) scheduleApplyDefinitionTooltips();
-      });
+      },
     });
-    articleCacheObserver.observe(articleRoot, { childList: true, subtree: true });
     // 法令参照設定の読み込みを非同期にし、他の初期化をブロックしない
     runWhenIdle(() => {
       chrome.storage.local.get(['lawRefClickEnabled', 'lawRefHoverPopup', 'lawRefOtherLawPopup'], ({
@@ -5144,13 +5025,5 @@
       });
   }
 
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => {
-      initializeLawPageFeatures();
-    });
-  } else {
-    setTimeout(() => {
-      initializeLawPageFeatures();
-    }, 800);
-  }
+  startWhenDomReady(initializeLawPageFeatures);
 })();

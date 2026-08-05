@@ -2,10 +2,12 @@
   'use strict';
 
   const shared = globalThis.EgovShared;
+  const app = globalThis.EgovApp;
   const {
     applyReferenceLinksInBatches,
     buildProvisionCopyPayload: buildSharedProvisionCopyPayload,
     cacheLiteLawXml,
+    cleanLawNameForSearch,
     cloneDefinitionPatterns,
     collectSearchTextSegments,
     configureReferenceClickable,
@@ -19,11 +21,24 @@
     getJapanDateString,
     getLawReferencesData,
     getLiteLawDataUrl,
+    getReferenceDomParts,
     isTermBoundarySafe: isSharedTermBoundarySafe,
     rangeFromSearchOffsets,
     readCachedLiteLawXml,
     sortReferenceSources,
+    splitReferenceTargetKey,
   } = shared;
+  const {
+    createReferencePopup,
+    getReferenceTargetLabel,
+    persistLocal: persistSharedLocal,
+    positionFixedPopup,
+    pushHistory: pushSharedHistory,
+    readFavorites,
+    runWhenIdle,
+    toggleFavoriteRecord,
+  } = app;
+  const persistLocal = (items, options = { errorLabel: '設定の保存' }) => persistSharedLocal(items, options);
   const params = new URLSearchParams(location.search);
   const lawId = params.get('lawId') || '';
   const revisionIdParam = params.get('revisionId') || '';
@@ -255,21 +270,6 @@
     document.head.appendChild(style);
   }
 
-  function runWhenIdle(callback, timeout = 1500) {
-    if (typeof requestIdleCallback === 'function') {
-      requestIdleCallback(callback, { timeout });
-      return;
-    }
-    setTimeout(callback, Math.min(timeout, 250));
-  }
-
-  // chrome.storage.local への保存を共通化（失敗時はログのみ）
-  function persistLocal(items) {
-    chrome.storage.local.set(items).catch((error) => {
-      console.warn('[e-Gov Enhancer] 設定の保存に失敗しました', error);
-    });
-  }
-
   // タイムアウト付き fetch（ハングした e-Gov API 応答で無限待機しないため）
   function fetchWithTimeout(url, options = {}, timeoutMs = 20000) {
     const controller = new AbortController();
@@ -308,19 +308,6 @@
     if (t) text += `${t === 1 ? '' : ones[t]}十`;
     if (o) text += ones[o];
     return text;
-  }
-
-  // extractLaws は EgovShared のものを利用（本ファイル冒頭で分割代入）。
-  // getLawFields は既定値（lawName の未設定時）が共有版と異なるため、ローカル定義を維持する。
-  function getLawFields(law) {
-    const info = law?.law_info || {};
-    const rev = law?.current_revision_info || law?.revision_info || {};
-    return {
-      lawId: info.law_id || law?.law_id || '',
-      lawName: rev.law_title || rev.abbrev || law?.law_title || law?.law_name || '',
-      lawNum: info.law_num || law?.law_num || '',
-      lawType: info.law_type || rev.law_type || '',
-    };
   }
 
   function normalizeText(value) {
@@ -1139,14 +1126,6 @@
     return chrome.runtime.getURL(`viewer.html?${urlParams.toString()}`);
   }
 
-  function cleanLawNameForSearch(name) {
-    return String(name || '')
-      .replace(/（[^）]*）/g, '')
-      .replace(/\([^)]*\)/g, '')
-      .replace(/(?:施行規則|施行令)$/, '')
-      .trim();
-  }
-
   function renderCompareSearch() {
     const initQuery = cleanLawNameForSearch(lawTitleText);
     rightPaneEl.innerHTML = `
@@ -1259,11 +1238,7 @@
   }
 
   function pushHistory(history, value) {
-    if (!value) return;
-    const idx = history.indexOf(value);
-    if (idx !== -1) history.splice(idx, 1);
-    history.unshift(value);
-    if (history.length > 30) history.length = 30;
+    pushSharedHistory(history, value, 30);
   }
 
   function buildHistoryDropdown(input, history, onSelect) {
@@ -1382,18 +1357,6 @@
     return true;
   }
 
-  function splitReferenceTargetKey(key) {
-    const [article = '', paragraph = '', item = ''] = String(key || '').split('.');
-    return { article, paragraph, item };
-  }
-
-  function getReferenceDomParts(parts) {
-    if (parts?.article && parts.paragraph === '1' && !parts.item) {
-      return { article: parts.article, paragraph: '', item: '' };
-    }
-    return parts;
-  }
-
   function getReferenceNumberSegmentVariants(raw) {
     const value = String(raw || '').trim();
     const variants = new Set();
@@ -1503,21 +1466,6 @@
     return ensureReferenceNumberElement(numberRoot || target, parts);
   }
 
-  function formatReferenceBranchLabel(value, unit) {
-    const [number, ...branches] = String(value || '').split(/[-_]/).filter(Boolean);
-    if (!number) return '';
-    return `第${number}${unit}${branches.map((branch) => `の${branch}`).join('')}`;
-  }
-
-  function getReferenceTargetLabel(targetKey) {
-    const parts = splitReferenceTargetKey(targetKey);
-    if (!parts.article) return targetKey;
-    let label = formatReferenceBranchLabel(parts.article, '条');
-    if (parts.paragraph) label += formatReferenceBranchLabel(parts.paragraph, '項');
-    if (parts.item) label += formatReferenceBranchLabel(parts.item, '号');
-    return label;
-  }
-
   function getReferenceSourceLabel(source) {
     const title = String(source?.sourceLawTitle || source?.sourceLawId || '').trim();
     const path = formatProvisionSourcePathFromEgovUrl(source?.sourceUrl, location.href);
@@ -1538,21 +1486,6 @@
       }
     } catch (_) {}
     activeReferenceViewerPopup = null;
-  }
-
-  function positionFixedPopup(popup, point, { offset = 10 } = {}) {
-    const margin = 10;
-    const rect = popup.getBoundingClientRect();
-    const x = Math.min(
-      Math.max(margin, (point?.x ?? window.innerWidth / 2) + offset),
-      Math.max(margin, window.innerWidth - rect.width - margin)
-    );
-    const y = Math.min(
-      Math.max(margin, (point?.y ?? window.innerHeight / 2) + offset),
-      Math.max(margin, window.innerHeight - rect.height - margin)
-    );
-    popup.style.left = `${x}px`;
-    popup.style.top = `${y}px`;
   }
 
   function clearLiteTooltipTimers() {
@@ -1634,39 +1567,19 @@
   }
 
   function showReferencesPopup({ targetKey, sources, point }) {
-    const list = Array.isArray(sources) ? sources : [];
-    if (!list.length) return;
-    const rows = sortReferenceSources(list, lawTitleText);
+    if (!Array.isArray(sources) || !sources.length) return;
     hideReferencesPopup();
-
-    const popup = document.createElement('div');
-    popup.className = 'egov-lite-reference-popup';
-    popup.setAttribute('role', 'dialog');
-    popup.innerHTML = `
-      <div class="egov-lite-reference-popup-head">
-        <div class="egov-lite-reference-target">${escapeHtml(getReferenceTargetLabel(targetKey))}</div>
-        <button type="button" class="egov-lite-reference-close" aria-label="閉じる">×</button>
-      </div>
-      <div class="egov-lite-reference-list">
-        ${rows.map((row, index) => `
-          <button type="button" class="egov-lite-reference-link${row.isRelated ? ' egov-lite-reference-link-related' : ''}" data-index="${index}">
-            <span class="egov-lite-reference-related-badge">${row.isRelated ? '関連' : ''}</span>
-            <span class="egov-lite-reference-link-title">${escapeHtml(getReferenceSourceLabel(row.source))}</span>
-            <span class="egov-lite-reference-link-url">${escapeHtml(row.source?.sourceUrl || '')}</span>
-          </button>
-        `).join('')}
-      </div>
-    `;
-    document.body.appendChild(popup);
-    activeReferencesPopup = popup;
-    positionFixedPopup(popup, point);
-    popup.addEventListener('click', (event) => event.stopPropagation());
-    popup.querySelector('.egov-lite-reference-close')?.addEventListener('click', hideReferencesPopup);
-    popup.querySelectorAll('.egov-lite-reference-link').forEach((button) => {
-      button.addEventListener('click', (event) => {
-        const row = rows[Number(button.dataset.index)];
-        openReferenceSource(row?.source, event);
-      });
+    activeReferencesPopup = createReferencePopup({
+      targetKey,
+      sources,
+      currentLawTitle: lawTitleText,
+      classPrefix: 'egov-lite',
+      point,
+      sortSources: sortReferenceSources,
+      escapeHtml,
+      getSourceLabel: getReferenceSourceLabel,
+      onOpen: openReferenceSource,
+      onClose: hideReferencesPopup,
     });
   }
 
@@ -2548,12 +2461,7 @@
   });
 
   async function getFavorites() {
-    try {
-      const data = await chrome.storage.local.get(['favorites']);
-      return Array.isArray(data.favorites) ? data.favorites : [];
-    } catch (_) {
-      return [];
-    }
+    return readFavorites();
   }
 
   async function refreshFavoriteButton() {
@@ -2566,18 +2474,15 @@
 
   async function toggleFavorite() {
     const favorites = await getFavorites();
-    const idx = favorites.findIndex((fav) => fav.lawId === lawId);
-    if (idx >= 0) {
-      favorites.splice(idx, 1);
-      showToast('お気に入りから削除しました');
-    } else {
-      favorites.unshift({ lawId, lawName: lawTitleText, lawNum: lawNumText, lawType: '', folderId: null });
-      if (favorites.length > 50) favorites.length = 50;
-      showToast('お気に入りに追加しました');
-    }
-    await chrome.storage.local.set({ favorites }).catch((error) => {
-      console.warn('[e-Gov Enhancer] お気に入りの保存に失敗しました', error);
+    const result = toggleFavoriteRecord(favorites, {
+      lawId,
+      lawName: lawTitleText,
+      lawNum: lawNumText,
+      lawType: '',
+      folderId: null,
     });
+    showToast(result.isFavorite ? 'お気に入りに追加しました' : 'お気に入りから削除しました');
+    await persistLocal({ favorites }, { errorLabel: 'お気に入りの保存' });
     refreshFavoriteButton();
   }
 

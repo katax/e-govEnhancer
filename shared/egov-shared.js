@@ -60,6 +60,26 @@
     return { article, paragraph, item };
   }
 
+  function splitReferenceTargetKey(key) {
+    const [article = '', paragraph = '', item = ''] = String(key || '').split('.');
+    return { article, paragraph, item };
+  }
+
+  function getReferenceDomParts(parts) {
+    if (parts?.article && parts.paragraph === '1' && !parts.item) {
+      return { article: parts.article, paragraph: '', item: '' };
+    }
+    return parts;
+  }
+
+  function cleanLawNameForSearch(name) {
+    return String(name || '')
+      .replace(/（[^）]*）/g, '')
+      .replace(/\([^)]*\)/g, '')
+      .replace(/(?:施行規則|施行令)$/, '')
+      .trim();
+  }
+
   function parseProvisionPathFromEgovUrl(url, base = LAW_BASE_URL) {
     try {
       const parsed = new URL(String(url || ''), base);
@@ -484,6 +504,7 @@
     buildLawUrl,
     buildProvisionCopyPayload,
     cacheLiteLawXml,
+    cleanLawNameForSearch,
     cloneDefinitionPatterns,
     collectSearchTextSegments,
     configureReferenceClickable,
@@ -502,6 +523,7 @@
     getLawReferencesData,
     getLiteLawDataUrl,
     getLawFields,
+    getReferenceDomParts,
     idbRequest,
     isAllowedDefinitionBoundaryChar,
     isJapaneseWordChar,
@@ -515,6 +537,7 @@
     readCachedLiteLawXml,
     searchLawsByTitle,
     sortReferenceSources,
+    splitReferenceTargetKey,
     stripPriorDefinitionParentheses,
     waitForTransaction,
   });

@@ -12,6 +12,7 @@ document.addEventListener('DOMContentLoaded', () => {
   window.addEventListener('resize', syncPopupHeight);
 
   const shared = globalThis.EgovShared;
+  const app = globalThis.EgovApp;
   const {
     buildLawUrl,
     escapeHtml,
@@ -19,6 +20,11 @@ document.addEventListener('DOMContentLoaded', () => {
     getLawFields,
     searchLawsByTitle,
   } = shared;
+  const {
+    FAVORITES_MAX,
+    persistLocal,
+    toggleFavoriteRecord,
+  } = app;
   const searchForm    = document.getElementById('searchForm');
   const searchInput   = document.getElementById('searchInput');
   const resultsEl     = document.getElementById('searchResults');
@@ -47,7 +53,7 @@ document.addEventListener('DOMContentLoaded', () => {
   let favorites        = [];   // お気に入り法令（{lawId,lawName,lawNum,lawType,folderId?}）
   let favFolders       = [];   // お気に入りフォルダ（{id,name}）
   const HIST_MAX = 30;
-  const FAV_MAX  = 50;
+  const FAV_MAX  = FAVORITES_MAX;
 
   // パネル状態: null=Mode0, 'law'=Mode2, 'favorites'=Mode3
   let historyMode    = null;
@@ -187,13 +193,6 @@ document.addEventListener('DOMContentLoaded', () => {
   // 描画直後に検索入力へフォーカスを戻す（一覧再描画後の共通処理）
   function refocusSearchInput() {
     setTimeout(() => { searchInput.focus(); }, 0);
-  }
-
-  // chrome.storage.local への保存を共通化（失敗時はログのみ・従来どおり握り潰さない）
-  function persistLocal(items) {
-    chrome.storage.local.set(items).catch((error) => {
-      console.warn('[e-Gov Enhancer] 保存に失敗しました', error);
-    });
   }
 
   // 「e-Govで直接検索する」フォールバックリンクの共通配線
@@ -1520,15 +1519,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const fields = lawOrFields.lawId !== undefined ? lawOrFields : getLawFields(lawOrFields);
     const { lawId, lawName, lawNum, lawType } = fields;
     if (!lawId) return;
-    const idx = favorites.findIndex(f => f.lawId === lawId);
-    if (idx !== -1) {
-      favorites.splice(idx, 1);
-      showToast('お気に入りから削除しました');
-    } else {
-      favorites.unshift({ lawId, lawName, lawNum, lawType, folderId: null });
-      if (favorites.length > FAV_MAX) favorites.length = FAV_MAX;
-      showToast('お気に入りに追加しました');
-    }
+    const result = toggleFavoriteRecord(
+      favorites,
+      { lawId, lawName, lawNum, lawType, folderId: null },
+      FAV_MAX
+    );
+    showToast(result.isFavorite ? 'お気に入りに追加しました' : 'お気に入りから削除しました');
     persistLocal({ favorites });
   }
 
