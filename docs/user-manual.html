@@ -200,7 +200,7 @@
         <li><a href="#normal-kana">カタカナ→ひらがな変換</a></li>
         <li><a href="#normal-sidebar">サイドバー非表示</a></li>
         <li><a href="#normal-def">定義用語ガイド</a></li>
-        <li><a href="#normal-ref">参照元リンク（引用元の表示）</a></li>
+        <li><a href="#normal-ref">逆参照リンク（引用元の表示）</a></li>
         <li><a href="#normal-linkpopup">法令リンクのポップアップ抑止</a></li>
         <li><a href="#normal-guide">ショートカットガイドと有効/無効切替</a></li>
       </ol>
@@ -337,7 +337,7 @@
       <tr><td>ページ上部（法令名の横）</td><td><b>★ボタン</b></td><td>この法令をお気に入りに追加／解除</td></tr>
       <tr><td>ページ上部</td><td><b>ワイド</b></td><td>左サイドバーを隠して本文を全幅表示／復元（<kbd>w</kbd>と同じ）</td></tr>
       <tr><td>ページ上部</td><td><b>かっこ</b></td><td>括弧書きをほぼ非表示にするモードを切替（<kbd>Shift</kbd>+<kbd>G</kbd>と同じ）</td></tr>
-      <tr><td>ページ上部</td><td><b>逆リンク</b></td><td>外部法令からの参照元リンクを有効化／無効化（<kbd>e</kbd>と同じ）</td></tr>
+      <tr><td>ページ上部</td><td><b>逆リンク</b></td><td>逆参照リンクを有効化／無効化（<kbd>e</kbd>と同じ）</td></tr>
       <tr><td>ページ上部</td><td><b>定義</b></td><td>定義語リンクを有効化／無効化</td></tr>
       <tr><td>ページ上部</td><td><b>Liteボタン</b></td><td>Liteモードに切り替え</td></tr>
       <tr><td>ページ上部</td><td><b>ピン状態トースト</b>
@@ -369,7 +369,7 @@
       <tr><td class="key"><kbd>c</kbd></td><td>漢数字⇔アラビア数字</td><td><a href="#normal-num">3.12</a></td></tr>
       <tr><td class="key"><kbd>Alt</kbd>+<kbd>H</kbd></td><td>カタカナ→ひらがな変換</td><td><a href="#normal-kana">3.13</a></td></tr>
       <tr><td class="key"><kbd>w</kbd></td><td>サイドバー非表示／復元</td><td><a href="#normal-sidebar">3.14</a></td></tr>
-      <tr><td class="key"><kbd>e</kbd></td><td>参照元リンクの有効化／無効化</td><td><a href="#normal-ref">3.16</a></td></tr>
+      <tr><td class="key"><kbd>e</kbd></td><td>逆参照リンクの有効化／無効化</td><td><a href="#normal-ref">3.16</a></td></tr>
       <tr><td class="key"><kbd>Alt</kbd>+<kbd>L</kbd></td><td>Liteモードへ切り替え</td><td><a href="#lite">4章</a></td></tr>
       <tr><td class="key"><kbd>Alt</kbd>+<kbd>P</kbd></td><td>ショートカット有効／無効の切替</td><td><a href="#normal-guide">3.18</a></td></tr>
       <tr><td class="key"><kbd>Alt</kbd>+<kbd>O</kbd></td><td>オプション画面を開く</td><td>—</td></tr>
@@ -542,8 +542,9 @@ https://laws.e-gov.go.jp/law/405AC0000000088#Mp-Ch_1-At_2-Pr_1-It_4</pre>
   </section>
 
   <section id="normal-ref">
-    <h3><span class="num">3.16</span>参照元リンク（引用元の表示）</h3>
-    <p><kbd>e</kbd> または上部の「逆リンク」ボタンで有効化すると、<b>他の法令から参照（引用）されている条・項・号</b>の番号がクリック可能になり、クリックすると「どの法令のどの条文から参照されているか」の一覧がポップアップ表示されます。一覧から参照元の法令・条文を開くこともできます。</p>
+    <h3><span class="num">3.16</span>逆参照リンク（引用元の表示）</h3>
+    <p><kbd>e</kbd> または上部の「逆リンク」ボタンで有効化すると、<b>同じ法令内や他の法令から参照（引用）されている条・項・号</b>の番号がクリック可能になり、クリックすると参照元の一覧がポップアップ表示されます。一覧から参照元の条文を開くこともできます。</p>
+    <p>オプションの「逆参照リンクの対象」で、「同一法令内のみ」「他法令からのみ」「同一法令内＆他法令から」を選択できます。</p>
     <p>参照データは拡張機能に同梱されているほか、オプション画面から追加データを取り込むこともできます。</p>
   </section>
 
@@ -598,7 +599,7 @@ https://laws.e-gov.go.jp/law/405AC0000000088#Mp-Ch_1-At_2-Pr_1-It_4</pre>
       <tr><td><b>本文幅</b></td><td>本文エリアの幅を選択（設定は記憶されます）</td></tr>
       <tr><td><b>改正時点の選択</b></td><td>その法令の改正履歴から時点を選び、選択した時点の本文を表示。「現行」「未施行」の表示で状態を確認できます</td></tr>
       <tr><td><b>かっこ</b></td><td><kbd>Shift</kbd>+<kbd>G</kbd>相当の括弧内表示抑制を切替</td></tr>
-      <tr><td><b>逆リンク</b></td><td>外部法令からの参照元リンクを有効化／無効化</td></tr>
+      <tr><td><b>逆リンク</b></td><td>逆参照リンクを有効化／無効化</td></tr>
       <tr><td><b>定義</b></td><td>定義語リンクを有効化／無効化</td></tr>
       <tr><td><b>並べて表示</b></td><td>比較モードのON/OFF（<a href="#lite-compare">4.3</a>）</td></tr>
       <tr><td><b>★お気に入り</b></td><td>お気に入りに追加／解除（メインウィンドウと共通）</td></tr>
@@ -630,7 +631,7 @@ https://laws.e-gov.go.jp/law/405AC0000000088#Mp-Ch_1-At_2-Pr_1-It_4</pre>
       <tr><td class="key"><kbd>t</kbd></td><td>目次ダイアログ</td></tr>
       <tr><td class="key"><kbd>a</kbd></td><td>条文リンクコピー（<kbd>Enter</kbd>=URL / <kbd>Shift</kbd>+<kbd>Enter</kbd>=法令名+条項+URL / <kbd>Ctrl</kbd>+<kbd>Enter</kbd>=本文付き）</td></tr>
       <tr><td class="key"><kbd>g</kbd> / <kbd>Shift</kbd>+<kbd>G</kbd></td><td>括弧内の表示抑制</td></tr>
-      <tr><td class="key"><kbd>e</kbd></td><td>参照元リンクの有効化／無効化</td></tr>
+      <tr><td class="key"><kbd>e</kbd></td><td>逆参照リンクの有効化／無効化</td></tr>
       <tr><td class="key"><kbd>Alt</kbd>+<kbd>S</kbd></td><td>並べて表示の切替</td></tr>
       <tr><td class="key"><kbd>Tab</kbd></td><td>並べて表示中の左右ペイン切替</td></tr>
       <tr><td class="key"><kbd>Alt</kbd>+<kbd>L</kbd></td><td>通常モードへ戻る</td></tr>
@@ -646,7 +647,7 @@ https://laws.e-gov.go.jp/law/405AC0000000088#Mp-Ch_1-At_2-Pr_1-It_4</pre>
     <div class="table-scroll"><table>
       <tr><th>機能</th><th>通常モード</th><th>Liteモード</th></tr>
       <tr><td>条文ジャンプ／目次／ページ内検索／条文リンクコピー</td><td>○</td><td>○</td></tr>
-      <tr><td>定義用語ガイド／参照元リンク</td><td>○</td><td>○</td></tr>
+      <tr><td>定義用語ガイド／逆参照リンク</td><td>○</td><td>○</td></tr>
       <tr><td>括弧内の表示抑制</td><td>○</td><td>○</td></tr>
       <tr><td>上部の状態表示付きボタン</td><td>ワイド／かっこ／逆リンク／定義</td><td>かっこ／逆リンク／定義</td></tr>
       <tr><td>お気に入り</td><td>○（<kbd>f</kbd>／★）</td><td>○（★ボタン）</td></tr>

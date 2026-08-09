@@ -34,12 +34,15 @@
     getLawReferencesData,
     getLawFields,
     getReferenceDomParts,
+    getReverseReferenceScopeFlags,
     isTermBoundarySafe: isSharedTermBoundarySafe,
     mergeLawReferences,
     normalizeLawNameForCopy,
+    normalizeReverseReferenceScope,
     rangeFromSearchOffsets,
     sortReferenceSources,
     splitReferenceTargetKey,
+    REVERSE_REFERENCE_SCOPE_KEY,
   } = shared;
   const {
     FAVORITES_MAX,
@@ -117,6 +120,7 @@
   let lawRefClickEnabled = true;
   let lawRefHoverPopupEnabled = false;
   let lawRefOtherLawPopupEnabled = true;
+  let reverseReferenceScope = 'both';
   let lawReferenceInteractionsInitialized = false;
   let defTooltipEnabled = true;
   let defTooltipClickOnly = true;
@@ -184,6 +188,9 @@
       }
       if (changes.lawRefHoverPopup) {
         lawRefHoverPopupEnabled = changes.lawRefHoverPopup.newValue === true;
+      }
+      if (changes[REVERSE_REFERENCE_SCOPE_KEY]) {
+        reverseReferenceScope = normalizeReverseReferenceScope(changes[REVERSE_REFERENCE_SCOPE_KEY].newValue);
       }
       if (changes.liteDefTooltipEnabled) {
         defTooltipEnabled = changes.liteDefTooltipEnabled.newValue !== false;
@@ -736,7 +743,7 @@
     setHeaderToggleButtonState(
       externalButton,
       externalReferencesEnabled,
-      externalReferencesEnabled ? '外部法令からの逆リンクを無効化' : '外部法令からの逆リンクを有効化'
+      externalReferencesEnabled ? '逆参照リンクを無効化' : '逆参照リンクを有効化'
     );
     if (externalButton) {
       externalButton.disabled = externalReferencesLoading;
@@ -3326,9 +3333,11 @@
 
   function applyExternalReferenceLinksForLaw(lawReferences) {
     const generation = ++referenceAnalysisGeneration;
-    const externalReferences = mergeLawReferences(lawReferences);
+    const { includeInternal, includeExternal } = getReverseReferenceScopeFlags(reverseReferenceScope);
+    const externalReferences = includeExternal ? mergeLawReferences(lawReferences) : {};
     applyReferenceLinksForLaw(externalReferences, { clear: true }).then((applied) => {
       if (!applied || !externalReferencesEnabled || generation !== referenceAnalysisGeneration) return;
+      if (!includeInternal) return;
       runWhenIdle(() => {
         if (!externalReferencesEnabled || generation !== referenceAnalysisGeneration) return;
         const provisionRoot = document.querySelector('#provisionview');
@@ -3368,10 +3377,17 @@
         return false;
       }
 
-      const lawReferences = await getLawReferencesData(getCurrentLawIdFromUrl());
+      const stored = await chrome.storage.local.get([REVERSE_REFERENCE_SCOPE_KEY]).catch(() => ({}));
+      reverseReferenceScope = normalizeReverseReferenceScope(
+        stored[REVERSE_REFERENCE_SCOPE_KEY] ?? reverseReferenceScope
+      );
+      const { includeExternal } = getReverseReferenceScopeFlags(reverseReferenceScope);
+      const lawReferences = includeExternal
+        ? await getLawReferencesData(getCurrentLawIdFromUrl())
+        : {};
       externalReferencesEnabled = true;
       applyExternalReferenceLinksForLaw(lawReferences);
-      if (!silent) showPinIndicator('参照元リンクを有効化しました');
+      if (!silent) showPinIndicator('逆参照リンクを設定しました');
       return true;
     } finally {
       externalReferencesLoading = false;
@@ -3385,7 +3401,7 @@
     referenceAnalysisGeneration += 1;
     clearExternalReferenceLinks();
     updateHeaderToggleButtonStates();
-    if (!silent) showPinIndicator('外部法令からの参照元リンクを無効化しました');
+    if (!silent) showPinIndicator('逆参照リンクを無効化しました');
   }
 
   function toggleExternalReferenceLinks() {
@@ -4872,7 +4888,7 @@
               <td>条文番号の漢数字/アラビア数字の切り替え<br>
                 <span class="egov-ext-guide-sub">号タイトルは丸数字（①②③）</span></td></tr>
           <tr><td><kbd>e</kbd></td>
-              <td>外部法令からの参照元リンクを有効化/無効化する</td></tr>
+              <td>逆参照リンクを有効化/無効化する</td></tr>
           <tr><td><kbd>g</kbd></td>
               <td>本文中の括弧書きを薄く表示 / 元に戻す</td></tr>
           <tr><td><kbd>Shift</kbd>+<kbd>G</kbd></td>
@@ -5018,14 +5034,16 @@
     });
     // 法令参照設定の読み込みを非同期にし、他の初期化をブロックしない
     runWhenIdle(() => {
-      chrome.storage.local.get(['lawRefClickEnabled', 'lawRefHoverPopup', 'lawRefOtherLawPopup'], ({
+      chrome.storage.local.get(['lawRefClickEnabled', 'lawRefHoverPopup', 'lawRefOtherLawPopup', REVERSE_REFERENCE_SCOPE_KEY], ({
         lawRefClickEnabled: storedLawRefClickEnabled,
         lawRefHoverPopup,
         lawRefOtherLawPopup,
+        reverseReferenceScope: storedReverseReferenceScope,
       }) => {
         lawRefClickEnabled = storedLawRefClickEnabled !== false;
         lawRefHoverPopupEnabled = lawRefHoverPopup === true;
         lawRefOtherLawPopupEnabled = lawRefOtherLawPopup !== false;
+        reverseReferenceScope = normalizeReverseReferenceScope(storedReverseReferenceScope);
         setupLawReferenceInteractions();
       });
     }, 1800);
@@ -5045,7 +5063,8 @@
         else clearDefinitionTooltips();
         updateHeaderToggleButtonStates();
       });
-      chrome.storage.local.get(['externalReferencesAutoEnable'], ({ externalReferencesAutoEnable }) => {
+      chrome.storage.local.get(['externalReferencesAutoEnable', REVERSE_REFERENCE_SCOPE_KEY], ({ externalReferencesAutoEnable, reverseReferenceScope: storedReverseReferenceScope }) => {
+        reverseReferenceScope = normalizeReverseReferenceScope(storedReverseReferenceScope);
         if (externalReferencesAutoEnable !== false) autoEnableExternalReferenceLinks();
       });
     }, 2500);

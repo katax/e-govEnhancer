@@ -23,13 +23,16 @@
     getLawReferencesData,
     getLiteLawDataUrl,
     getReferenceDomParts,
+    getReverseReferenceScopeFlags,
     isTermBoundarySafe: isSharedTermBoundarySafe,
     mergeLawReferences,
+    normalizeReverseReferenceScope,
     parseJapaneseReferenceNumber,
     rangeFromSearchOffsets,
     readCachedLiteLawXml,
     sortReferenceSources,
     splitReferenceTargetKey,
+    REVERSE_REFERENCE_SCOPE_KEY,
   } = shared;
   const {
     createReferencePopup,
@@ -112,6 +115,7 @@
   let compareFocusedIndex = -1;
   let lawRefClickEnabled = true;
   let lawRefOtherLawPopupEnabled = true;
+  let reverseReferenceScope = 'both';
   let liteDefTooltipEnabled = true;
   let defTooltipClickOnly = true;
   let externalReferencesAutoEnable = true;
@@ -144,7 +148,7 @@
     setViewerToggleButtonState(
       externalReferencesButton,
       externalReferencesEnabled,
-      externalReferencesEnabled ? '外部法令からの逆リンクを無効化' : '外部法令からの逆リンクを有効化'
+      externalReferencesEnabled ? '逆参照リンクを無効化' : '逆参照リンクを有効化'
     );
     externalReferencesButton.setAttribute('aria-busy', String(externalReferencesLoading));
     externalReferencesButton.disabled = externalReferencesLoading;
@@ -216,6 +220,7 @@
     LITE_CONTENT_WIDTH_KEY,
     'lawRefClickEnabled',
     'lawRefOtherLawPopup',
+    REVERSE_REFERENCE_SCOPE_KEY,
     LITE_DEF_TOOLTIP_ENABLED_KEY,
     DEF_TOOLTIP_CLICK_ONLY_KEY,
     EXTERNAL_REFERENCES_AUTO_ENABLE_KEY,
@@ -225,6 +230,7 @@
     if (stored.scrollBehavior === 'smooth') scrollBehavior = 'smooth';
     lawRefClickEnabled = stored.lawRefClickEnabled !== false;
     lawRefOtherLawPopupEnabled = stored.lawRefOtherLawPopup !== false;
+    reverseReferenceScope = normalizeReverseReferenceScope(stored[REVERSE_REFERENCE_SCOPE_KEY]);
     liteDefTooltipEnabled = stored[LITE_DEF_TOOLTIP_ENABLED_KEY] !== false;
     defTooltipClickOnly = stored[DEF_TOOLTIP_CLICK_ONLY_KEY] !== false;
     if (!liteDefTooltipEnabled) clearLiteDefinitionTooltips();
@@ -239,6 +245,9 @@
     if (area === 'local' && changes[LITE_CONTENT_WIDTH_KEY]) applyContentWidth(changes[LITE_CONTENT_WIDTH_KEY].newValue);
     if (area === 'local' && changes.lawRefClickEnabled) lawRefClickEnabled = changes.lawRefClickEnabled.newValue !== false;
     if (area === 'local' && changes.lawRefOtherLawPopup) lawRefOtherLawPopupEnabled = changes.lawRefOtherLawPopup.newValue !== false;
+    if (area === 'local' && changes[REVERSE_REFERENCE_SCOPE_KEY]) {
+      reverseReferenceScope = normalizeReverseReferenceScope(changes[REVERSE_REFERENCE_SCOPE_KEY].newValue);
+    }
     if (area === 'local' && changes[LITE_DEF_TOOLTIP_ENABLED_KEY]) {
       const nextEnabled = changes[LITE_DEF_TOOLTIP_ENABLED_KEY].newValue !== false;
       if (liteDefTooltipEnabled !== nextEnabled) {
@@ -1122,7 +1131,8 @@
 
   async function finishLawLoad() {
     if (externalReferencesEnabled) {
-      applyExternalReferenceLinksForLaw(await getLawReferencesData(lawId));
+      const { includeExternal } = getReverseReferenceScopeFlags(reverseReferenceScope);
+      applyExternalReferenceLinksForLaw(includeExternal ? await getLawReferencesData(lawId) : {});
     } else {
       const stored = await chrome.storage.local.get([EXTERNAL_REFERENCES_AUTO_ENABLE_KEY]).catch(() => ({}));
       if (stored[EXTERNAL_REFERENCES_AUTO_ENABLE_KEY] !== false && externalReferencesAutoEnable) {
@@ -1855,9 +1865,11 @@
 
   function applyExternalReferenceLinksForLaw(lawReferences) {
     const generation = ++referenceAnalysisGeneration;
-    const externalReferences = mergeLawReferences(lawReferences);
+    const { includeInternal, includeExternal } = getReverseReferenceScopeFlags(reverseReferenceScope);
+    const externalReferences = includeExternal ? mergeLawReferences(lawReferences) : {};
     applyReferenceLinksForLaw(externalReferences, { clear: true }).then((applied) => {
       if (!applied || !externalReferencesEnabled || generation !== referenceAnalysisGeneration) return;
+      if (!includeInternal) return;
       runWhenIdle(() => {
         if (!externalReferencesEnabled || generation !== referenceAnalysisGeneration) return;
         const internalReferences = collectInternalLawReferences(contentEl, {
@@ -1882,11 +1894,16 @@
     externalReferencesLoading = true;
     syncViewerToggleButtons();
     try {
-      if (!silent) showToast('外部法令からの参照元リンクを読み込んでいます');
-      const lawReferences = await getLawReferencesData(lawId);
+      if (!silent) showToast('逆参照リンクを読み込んでいます');
+      const stored = await chrome.storage.local.get([REVERSE_REFERENCE_SCOPE_KEY]).catch(() => ({}));
+      reverseReferenceScope = normalizeReverseReferenceScope(
+        stored[REVERSE_REFERENCE_SCOPE_KEY] ?? reverseReferenceScope
+      );
+      const { includeExternal } = getReverseReferenceScopeFlags(reverseReferenceScope);
+      const lawReferences = includeExternal ? await getLawReferencesData(lawId) : {};
       externalReferencesEnabled = true;
       applyExternalReferenceLinksForLaw(lawReferences);
-      if (!silent) showToast('参照元リンクを有効化しました');
+      if (!silent) showToast('逆参照リンクを設定しました');
       return true;
     } finally {
       externalReferencesLoading = false;
@@ -1900,7 +1917,7 @@
     referenceAnalysisGeneration += 1;
     clearExternalReferenceLinks();
     syncViewerToggleButtons();
-    if (!silent) showToast('外部法令からの参照元リンクを無効化しました');
+    if (!silent) showToast('逆参照リンクを無効化しました');
   }
 
   function toggleExternalReferenceLinks() {
@@ -2470,7 +2487,7 @@
         <div><kbd>n / p</kbd><span>次/前の条へ移動</span></div>
         <div><kbd>d / u</kbd><span>下/上へ80%スクロール</span></div>
         <div><kbd>g / Shift+g</kbd><span>括弧内の表示切替</span></div>
-        <div><kbd>e</kbd><span>外部法令からの参照元リンクを有効化/無効化する</span></div>
+        <div><kbd>e</kbd><span>逆参照リンクを有効化/無効化する</span></div>
         <div><kbd>a</kbd><span>条文リンクコピー</span></div>
         <div><kbd>t</kbd><span>目次</span></div>
         <div><kbd>Tab</kbd><span>並べて表示中の左右ペイン切替</span></div>

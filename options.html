@@ -112,6 +112,18 @@
           </div>
 
           <div class="setting-row">
+            <label class="setting-label" for="reverseReferenceScopeSelect">
+              <span class="setting-title">逆参照リンクの対象</span>
+              <span class="setting-desc">逆参照リンクとして表示する参照元の範囲を選択します。</span>
+            </label>
+            <select class="setting-select" id="reverseReferenceScopeSelect">
+              <option value="internal">同一法令内のみ</option>
+              <option value="external">他法令からのみ</option>
+              <option value="both">同一法令内＆他法令から</option>
+            </select>
+          </div>
+
+          <div class="setting-row">
             <label class="setting-label" for="liteDefTooltipToggle">
               <span class="setting-title">定義用語ガイドの設定</span>
               <span class="setting-desc">法令内で定義されている用語の定義の内容をクリックまたはマウスホバーで表示します。</span>
@@ -261,7 +273,7 @@
               <tr><td><kbd>r</kbd></td><td>ジャンプ前の位置に戻る</td></tr>
               <tr><td><kbd>Alt</kbd>+<kbd>R</kbd></td><td>現在の法令名で法令検索を別タブで開く</td></tr>
               <tr><td><kbd>c</kbd></td><td>条文番号の漢数字 / アラビア数字を切り替える</td></tr>
-              <tr><td><kbd>e</kbd></td><td>外部法令からの参照元リンクを有効化 / 無効化する</td></tr>
+              <tr><td><kbd>e</kbd></td><td>逆参照リンクを有効化 / 無効化する</td></tr>
               <tr><td><kbd>g</kbd></td><td>本文中の括弧書きを薄く表示 / 元に戻す</td></tr>
               <tr><td><kbd>Shift</kbd>+<kbd>G</kbd></td><td>本文中の括弧書きをさらに薄く表示 / 元に戻す</td></tr>
               <tr><td><kbd>Alt</kbd>+<kbd>H</kbd></td><td>カタカナをひらがなに変換</td></tr>

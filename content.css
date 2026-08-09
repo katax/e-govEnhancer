@@ -238,6 +238,12 @@
   white-space: nowrap !important;
 }
 
+.egov-ext-reference-link-body {
+  color: #596577 !important;
+  font-weight: 400 !important;
+  margin-left: 0.35em !important;
+}
+
 .egov-ext-reference-source-proxy {
   position: fixed !important;
   left: -9999px !important;

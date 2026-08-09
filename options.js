@@ -12,6 +12,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const defTooltipClickOnlyToggle = document.getElementById('defTooltipClickOnlyToggle');
   const defTooltipClickOnlyRow = document.getElementById('defTooltipClickOnlyRow');
   const externalReferencesAutoEnableToggle = document.getElementById('externalReferencesAutoEnableToggle');
+  const reverseReferenceScopeSelect = document.getElementById('reverseReferenceScopeSelect');
   const exportFavoritesBtn = document.getElementById('exportFavoritesBtn');
   const importFavoritesBtn = document.getElementById('importFavoritesBtn');
   const importFavoritesInput = document.getElementById('importFavoritesInput');
@@ -31,9 +32,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     REFERENCES_CURRENT_META_KEY,
     REFERENCES_LAWS_STORE,
     REFERENCES_META_STORE,
+    REVERSE_REFERENCE_SCOPE_KEY,
     formatProvisionSourcePathFromEgovUrl = () => '',
     idbRequest,
     isPlainObject,
+    normalizeReverseReferenceScope,
     openReferencesDb,
     waitForTransaction,
   } = globalThis.EgovShared || {};
@@ -48,6 +51,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   liteDefTooltipToggle.checked = true;
   defTooltipClickOnlyToggle.checked = true;
   externalReferencesAutoEnableToggle.checked = true;
+  reverseReferenceScopeSelect.value = 'both';
 
   chrome.storage.local.get([
     'scrollBehavior',
@@ -60,6 +64,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     'liteDefTooltipEnabled',
     'defTooltipClickOnly',
     'externalReferencesAutoEnable',
+    REVERSE_REFERENCE_SCOPE_KEY,
   ]).then(({
     scrollBehavior,
     liteModeDefault,
@@ -71,6 +76,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     liteDefTooltipEnabled,
     defTooltipClickOnly,
     externalReferencesAutoEnable,
+    reverseReferenceScope,
   }) => {
     smoothToggle.checked = (scrollBehavior === 'smooth');
     liteModeDefaultToggle.checked = (typeof liteModeDefault === 'boolean') ? liteModeDefault : false;
@@ -82,6 +88,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     liteDefTooltipToggle.checked = (typeof liteDefTooltipEnabled === 'boolean') ? liteDefTooltipEnabled : true;
     defTooltipClickOnlyToggle.checked = (typeof defTooltipClickOnly === 'boolean') ? defTooltipClickOnly : true;
     externalReferencesAutoEnableToggle.checked = (typeof externalReferencesAutoEnable === 'boolean') ? externalReferencesAutoEnable : true;
+    reverseReferenceScopeSelect.value = normalizeReverseReferenceScope(reverseReferenceScope);
     updateLawRefHoverPopupRow();
     updateDefTooltipClickOnlyRow();
   }).catch((error) => {
@@ -632,6 +639,13 @@ document.addEventListener('DOMContentLoaded', async () => {
   externalReferencesAutoEnableToggle.addEventListener('change', () => {
     persistLocal({ externalReferencesAutoEnable: externalReferencesAutoEnableToggle.checked });
     runReloadLawTabs();
+  });
+
+  reverseReferenceScopeSelect.addEventListener('change', async () => {
+    const saved = await persistLocal({
+      [REVERSE_REFERENCE_SCOPE_KEY]: normalizeReverseReferenceScope(reverseReferenceScopeSelect.value),
+    });
+    if (saved) runReloadLawTabs();
   });
 
   exportFavoritesBtn.addEventListener('click', () => {

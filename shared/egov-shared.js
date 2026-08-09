@@ -8,6 +8,8 @@
   const REFERENCES_META_STORE = 'meta';
   const REFERENCES_BUNDLED_CACHE_STORE = 'bundled_cache';
   const REFERENCES_CURRENT_META_KEY = 'current';
+  const REVERSE_REFERENCE_SCOPE_KEY = 'reverseReferenceScope';
+  const REVERSE_REFERENCE_SCOPES = new Set(['internal', 'external', 'both']);
   const LITE_LAW_LEGACY_CACHE_NAMES = ['egov-lite-law-xml-v1', 'egov-lite-law-xml-v2'];
   // 旧キャッシュには法令IDの取得結果が現行改正IDとして保存されている可能性があるため、再利用しない。
   const LITE_LAW_CACHE_NAME = 'egov-lite-law-xml-v3';
@@ -23,6 +25,18 @@
 
   function isPlainObject(value) {
     return !!value && typeof value === 'object' && !Array.isArray(value);
+  }
+
+  function normalizeReverseReferenceScope(value) {
+    return REVERSE_REFERENCE_SCOPES.has(value) ? value : 'both';
+  }
+
+  function getReverseReferenceScopeFlags(value) {
+    const scope = normalizeReverseReferenceScope(value);
+    return {
+      includeInternal: scope !== 'external',
+      includeExternal: scope !== 'internal',
+    };
   }
 
   function formatLawNameHtml(name, mutedClassName = 'law-name-muted') {
@@ -944,6 +958,7 @@
     REFERENCES_DB_VERSION,
     REFERENCES_LAWS_STORE,
     REFERENCES_META_STORE,
+    REVERSE_REFERENCE_SCOPE_KEY,
     applyReferenceLinksInBatches,
     buildLawUrl,
     buildProvisionCopyPayload,
@@ -971,12 +986,14 @@
     getLiteLawDataUrl,
     getLawFields,
     getReferenceDomParts,
+    getReverseReferenceScopeFlags,
     idbRequest,
     isAllowedDefinitionBoundaryChar,
     isJapaneseWordChar,
     isPlainObject,
     isTermBoundarySafe,
     normalizeLawNameForCopy,
+    normalizeReverseReferenceScope,
     openReferencesDb,
     parseProvisionHash,
     parseJapaneseReferenceNumber,

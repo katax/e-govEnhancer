@@ -660,6 +660,12 @@ body[data-content-width="narrow"] .law-content {
   white-space: nowrap;
 }
 
+.egov-lite-reference-link-body {
+  margin-left: 0.35em;
+  color: #596577;
+  font-weight: 400;
+}
+
 .egov-lite-reference-frame {
   flex: 1;
   min-height: 0;

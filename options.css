@@ -359,6 +359,23 @@ a:hover {
   color: #666;
 }
 
+.setting-select {
+  flex-shrink: 0;
+  min-width: 210px;
+  border: 1px solid #c8ced8;
+  border-radius: 7px;
+  background: #fff;
+  color: #283044;
+  font: inherit;
+  font-size: 13px;
+  padding: 7px 30px 7px 10px;
+}
+
+.setting-select:focus {
+  border-color: #1976d2;
+  outline: 2px solid rgba(25, 118, 210, 0.18);
+}
+
 .setting-row-sub {
   margin-left: 12px;
   padding-left: 12px;
