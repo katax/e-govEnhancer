@@ -606,6 +606,15 @@ body[data-content-width="narrow"] .law-content {
   background: #ffefc2;
 }
 
+.egov-lite-reference-link-internal {
+  background: #e8f5e9;
+}
+
+.egov-lite-reference-link-internal:hover,
+.egov-lite-reference-link-internal:focus-visible {
+  background: #d8efda;
+}
+
 .egov-lite-reference-related-badge {
   display: none;
   margin: 0 0 5px;
@@ -622,20 +631,17 @@ body[data-content-width="narrow"] .law-content {
   display: inline-block;
 }
 
+.egov-lite-reference-link-internal .egov-lite-reference-related-badge {
+  display: inline-block;
+  background: #c8e6c9;
+  color: #1b5e20;
+}
+
 .egov-lite-reference-link-title {
   display: block;
   font-size: 13px;
   font-weight: 700;
   line-height: 1.45;
-}
-
-.egov-lite-reference-link-url {
-  display: block;
-  overflow-wrap: anywhere;
-  margin-top: 3px;
-  color: #657084;
-  font-size: 11px;
-  line-height: 1.35;
 }
 
 .egov-lite-reference-frame {

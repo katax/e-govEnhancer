@@ -171,6 +171,27 @@
     return null;
   }
 
+  function getInternalReferenceSourceTitle(anchor, root, article) {
+    let current = anchor instanceof Element ? anchor : null;
+    while (current && current !== root) {
+      const currentArticle = normalizeReferenceKeyPart(current.dataset?.articleNum);
+      const parsed = current.id ? parseProvisionHash(`#${current.id}`) : null;
+      const parsedArticle = normalizeReferenceKeyPart(parsed?.article);
+      if (currentArticle === article || parsedArticle === article) {
+        const caption = current.querySelector([
+          ':scope > .article-caption',
+          ':scope > .articlecaption',
+          ':scope > ._div_ArticleCaption',
+          ':scope > [class*="ArticleCaption"]',
+        ].join(', '));
+        const title = String(caption?.textContent || '').replace(/\s+/g, ' ').trim();
+        if (title) return title;
+      }
+      current = current.parentElement;
+    }
+    return '';
+  }
+
   function buildInternalReferenceSourceUrl(lawId, parts) {
     if (!lawId || !parts?.article) return '';
     if (parts.id && /(?:^|-)At_[0-9_]+/.test(parts.id)) {
@@ -303,6 +324,8 @@
       if (!sourceParts?.article) return;
       const sourceUrl = buildInternalReferenceSourceUrl(lawId, sourceParts);
       if (!sourceUrl) return;
+      const sourceArticleLabel = formatProvisionSourcePath({ article: sourceParts.article });
+      const sourceProvisionTitle = getInternalReferenceSourceTitle(anchor, root, sourceParts.article);
 
       getInternalReferenceTargetKeys(anchor, targetKey, sourceParts).forEach((resolvedTargetKey) => {
         let seen = seenByTarget.get(resolvedTargetKey);
@@ -318,6 +341,8 @@
           sourceLawId: lawId,
           sourceLawTitle: lawTitle || lawId,
           sourceUrl,
+          sourceArticleLabel,
+          sourceProvisionTitle,
           isInternalLawSource: true,
         });
       });
@@ -774,6 +799,7 @@
     normalizeLawNameForCopy,
     openReferencesDb,
     parseProvisionHash,
+    parseJapaneseReferenceNumber,
     parseProvisionPathFromEgovUrl,
     rangeFromSearchOffsets,
     readCachedLiteLawXml,

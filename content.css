@@ -181,6 +181,15 @@
   background: #ffefc2 !important;
 }
 
+.egov-ext-reference-link-internal {
+  background: #e8f5e9 !important;
+}
+
+.egov-ext-reference-link-internal:hover,
+.egov-ext-reference-link-internal:focus-visible {
+  background: #d8efda !important;
+}
+
 .egov-ext-reference-related-badge {
   background: #ffe0a3 !important;
   border-radius: 999px !important;
@@ -197,20 +206,17 @@
   display: inline-block !important;
 }
 
+.egov-ext-reference-link-internal .egov-ext-reference-related-badge {
+  background: #c8e6c9 !important;
+  color: #1b5e20 !important;
+  display: inline-block !important;
+}
+
 .egov-ext-reference-link-title {
   display: block !important;
   font-size: 13px !important;
   font-weight: 700 !important;
   line-height: 1.45 !important;
-}
-
-.egov-ext-reference-link-url {
-  color: #657084 !important;
-  display: block !important;
-  font-size: 11px !important;
-  line-height: 1.35 !important;
-  margin-top: 3px !important;
-  overflow-wrap: anywhere !important;
 }
 
 .egov-ext-reference-source-proxy {

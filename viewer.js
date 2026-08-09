@@ -25,6 +25,7 @@
     getReferenceDomParts,
     isTermBoundarySafe: isSharedTermBoundarySafe,
     mergeLawReferences,
+    parseJapaneseReferenceNumber,
     rangeFromSearchOffsets,
     readCachedLiteLawXml,
     sortReferenceSources,
@@ -408,7 +409,7 @@
   }
 
   function renderInline(node) {
-    if (node.nodeType === Node.TEXT_NODE) return escapeHtml(node.nodeValue || '');
+    if (node.nodeType === Node.TEXT_NODE) return renderInternalArticleReferenceText(node.nodeValue || '');
     if (node.nodeType !== Node.ELEMENT_NODE) return '';
     const tag = node.tagName;
     if (SKIP_TAGS.has(tag)) return '';
@@ -443,6 +444,49 @@
       return html ? `<span class="law-column">${html}</span>` : '';
     }
     return renderInlineChildren(node);
+  }
+
+  function isExternalLawArticleReference(text, index) {
+    const prefix = String(text || '').slice(Math.max(0, index - 80), index).replace(/\s+/g, '');
+    const lawNamePattern = /(?:法律|法|政令|府令|省令|規則|条例)(?:（[^）]*）)?の?$/;
+    if (!lawNamePattern.test(prefix)) return false;
+    return !/(?:この|本)(?:法律|法|政令|府令|省令|規則|条例)(?:（[^）]*）)?の?$/.test(prefix);
+  }
+
+  function renderInternalArticleReferenceText(text) {
+    const source = String(text || '');
+    if (!lawId || !source.includes('条')) return escapeHtml(source);
+    const number = '[0-9０-９〇零一二三四五六七八九十百千万]+';
+    const pattern = new RegExp(
+      `第(${number})条(?:の(${number}))?` +
+      `(?:(?:第(${number})項)(?:第(${number})号)?|から第?(${number})条(?:の(${number}))?まで)?`,
+      'g'
+    );
+    let html = '';
+    let lastIndex = 0;
+    let match;
+    while ((match = pattern.exec(source))) {
+      html += escapeHtml(source.slice(lastIndex, match.index));
+      const article = parseJapaneseReferenceNumber(match[1]);
+      const branch = match[2] ? parseJapaneseReferenceNumber(match[2]) : 0;
+      const paragraph = match[3] ? parseJapaneseReferenceNumber(match[3]) : 0;
+      const item = match[4] ? parseJapaneseReferenceNumber(match[4]) : 0;
+      const hasInvalidNumber = !Number.isInteger(article) ||
+        (match[2] && !Number.isInteger(branch)) ||
+        (match[3] && !Number.isInteger(paragraph)) ||
+        (match[4] && !Number.isInteger(item));
+      if (hasInvalidNumber || isExternalLawArticleReference(source, match.index)) {
+        html += escapeHtml(match[0]);
+      } else {
+        const articlePath = [article, branch || ''].filter(Boolean).join('_');
+        const paragraphPath = paragraph ? `-Pr_${paragraph}` : '';
+        const itemPath = item ? `-It_${item}` : '';
+        const href = `https://laws.e-gov.go.jp/law/${encodeURIComponent(lawId)}#Mp-At_${articlePath}${paragraphPath}${itemPath}`;
+        html += `<a href="${escapeHtml(href)}" target="_blank" rel="noreferrer">${escapeHtml(match[0])}</a>`;
+      }
+      lastIndex = pattern.lastIndex;
+    }
+    return html + escapeHtml(source.slice(lastIndex));
   }
 
   function renderInlineChildren(el) {
@@ -1470,6 +1514,9 @@
   }
 
   function getReferenceSourceLabel(source) {
+    if (source?.isInternalLawSource) {
+      return [source.sourceArticleLabel, source.sourceProvisionTitle].filter(Boolean).join(' ');
+    }
     const title = String(source?.sourceLawTitle || source?.sourceLawId || '').trim();
     const path = formatProvisionSourcePathFromEgovUrl(source?.sourceUrl, location.href);
     return [title, path].filter(Boolean).join(' ');
