@@ -2972,12 +2972,42 @@
   }
 
   function findReferenceTargetElement(targetKey) {
-    const { article, paragraph, item } = getReferenceDomParts(splitReferenceTargetKey(targetKey));
+    const { scope, article, paragraph, item } = getReferenceDomParts(splitReferenceTargetKey(targetKey));
     if (!article) return null;
 
     const articleToken = escapeAttributeSelectorValue(referenceKeyPartToIdToken(article));
     const paragraphToken = escapeAttributeSelectorValue(referenceKeyPartToIdToken(paragraph || (item ? '1' : '')));
     const itemToken = escapeAttributeSelectorValue(referenceKeyPartToIdToken(item));
+    const scopeToken = escapeAttributeSelectorValue(scope);
+
+    if (scopeToken) {
+      const articleSelector = `[id*="-${scopeToken}-At_${articleToken}"]`;
+      if (item && paragraphToken) {
+        return findElementBySelectors([
+          `${articleSelector}[id*="-Pr_${paragraphToken}"][id*="-It_${itemToken}"]`,
+          `${articleSelector}[id*="-Pr_${paragraphToken}"][id*="-Sg_${itemToken}"]`,
+          `${articleSelector}[id*="-Co_${paragraphToken}"][id*="-It_${itemToken}"]`,
+          `${articleSelector}[id*="-Pa_${paragraphToken}"][id*="-It_${itemToken}"]`,
+        ]);
+      }
+      if (item) {
+        return findElementBySelectors([
+          `${articleSelector}[id*="-It_${itemToken}"]`,
+          `${articleSelector}[id*="-Sg_${itemToken}"]`,
+        ]);
+      }
+      if (paragraphToken) {
+        return findElementBySelectors([
+          `${articleSelector}[id*="-Pr_${paragraphToken}"]`,
+          `${articleSelector}[id*="-Co_${paragraphToken}"]`,
+          `${articleSelector}[id*="-Pa_${paragraphToken}"]`,
+        ]);
+      }
+      return findElementBySelectors([
+        `[id$="-${scopeToken}-At_${articleToken}"]`,
+        articleSelector,
+      ]);
+    }
 
     if (item && paragraphToken) {
       return findElementBySelectors([

@@ -23,6 +23,7 @@
     getLawReferencesData,
     getLiteLawDataUrl,
     getReferenceDomParts,
+    getReferenceTargetKeyFromEgovUrl,
     getReverseReferenceScopeFlags,
     isTermBoundarySafe: isSharedTermBoundarySafe,
     mergeLawReferences,
@@ -409,16 +410,31 @@
     return count === 1 ? base : `${base}-${count}`;
   }
 
-  function getArticleId(num) {
-    return getAnchorId(`article-${safeIdPart(num)}`);
+  function getArticleId(num, scope = '') {
+    const prefix = scope ? `${safeIdPart(scope)}-` : '';
+    return getAnchorId(`${prefix}article-${safeIdPart(num)}`);
   }
 
-  function getChildId(prefix, articleNum, childNum, itemNum = '') {
-    return getAnchorId([prefix, articleNum, childNum, itemNum].filter(Boolean).map(safeIdPart).join('-'));
+  function getChildId(prefix, articleNum, childNum, itemNum = '', scope = '') {
+    return getAnchorId([scope, prefix, articleNum, childNum, itemNum].filter(Boolean).map(safeIdPart).join('-'));
+  }
+
+  function getLiteProvisionScope(element) {
+    const supplementary = element instanceof Element ? element.closest('SupplProvision') : null;
+    if (!supplementary) return '';
+    const provisions = Array.from(supplementary.ownerDocument.querySelectorAll('SupplProvision'));
+    const index = provisions.indexOf(supplementary);
+    return index <= 0 ? 'Sp' : `Sp_${index + 1}`;
+  }
+
+  function getLiteScopeDataAttribute(scope) {
+    return scope ? ` data-reference-scope="${escapeHtml(scope)}"` : '';
   }
 
   function renderInline(node) {
-    if (node.nodeType === Node.TEXT_NODE) return renderInternalArticleReferenceText(node.nodeValue || '');
+    if (node.nodeType === Node.TEXT_NODE) {
+      return renderInternalArticleReferenceText(node.nodeValue || '', node.parentElement);
+    }
     if (node.nodeType !== Node.ELEMENT_NODE) return '';
     const tag = node.tagName;
     if (SKIP_TAGS.has(tag)) return '';
@@ -462,7 +478,7 @@
     return !/(?:この|本)(?:法律|法|政令|府令|省令|規則|条例)(?:（[^）]*）)?の?$/.test(prefix);
   }
 
-  function renderInternalArticleReferenceText(text) {
+  function renderInternalArticleReferenceText(text, contextElement = null) {
     const source = String(text || '');
     if (!lawId || !source.includes('条')) return escapeHtml(source);
     const number = '[0-9０-９〇零一二三四五六七八九十百千万]+';
@@ -488,9 +504,9 @@
         html += escapeHtml(match[0]);
       } else {
         const articlePath = [article, branch || ''].filter(Boolean).join('_');
-        const paragraphPath = paragraph ? `-Pr_${paragraph}` : '';
-        const itemPath = item ? `-It_${item}` : '';
-        const href = `https://laws.e-gov.go.jp/law/${encodeURIComponent(lawId)}#Mp-At_${articlePath}${paragraphPath}${itemPath}`;
+        const prefix = source.slice(Math.max(0, match.index - 12), match.index).replace(/\s+/g, '');
+        const scope = /附則$/.test(prefix) ? (getLiteProvisionScope(contextElement) || 'Sp') : '';
+        const href = buildLiteProvisionHref(articlePath, paragraph, item, scope);
         html += `<a href="${escapeHtml(href)}" target="_blank" rel="noreferrer">${escapeHtml(match[0])}</a>`;
       }
       lastIndex = pattern.lastIndex;
@@ -498,12 +514,13 @@
     return html + escapeHtml(source.slice(lastIndex));
   }
 
-  function buildLiteProvisionHref(article, paragraph = '', item = '') {
+  function buildLiteProvisionHref(article, paragraph = '', item = '', scope = '') {
     if (!article) return '';
     const articlePath = String(article).replace(/-/g, '_');
     const paragraphPath = paragraph ? `-Pr_${String(paragraph).replace(/-/g, '_')}` : '';
     const itemPath = item ? `-It_${String(item).replace(/-/g, '_')}` : '';
-    return `https://laws.e-gov.go.jp/law/${encodeURIComponent(lawId)}#Mp-At_${articlePath}${paragraphPath}${itemPath}`;
+    const pathPrefix = scope ? `${lawId}-${scope}` : 'Mp';
+    return `https://laws.e-gov.go.jp/law/${encodeURIComponent(lawId)}#${pathPrefix}-At_${articlePath}${paragraphPath}${itemPath}`;
   }
 
   function getLitePriorReferenceHref(node, unit, count, articles) {
@@ -511,10 +528,12 @@
     const sourceElement = node.parentElement;
     const sourceArticle = sourceElement?.closest('.law-article[data-article-num]');
     if (!sourceArticle) return '';
+    const scope = sourceArticle.dataset.referenceScope || '';
     if (unit === '条') {
-      const sourceIndex = articles.indexOf(sourceArticle);
-      const target = articles[sourceIndex - count];
-      return buildLiteProvisionHref(target?.dataset?.articleNum || '');
+      const scopedArticles = articles.filter((article) => (article.dataset.referenceScope || '') === scope);
+      const sourceIndex = scopedArticles.indexOf(sourceArticle);
+      const target = scopedArticles[sourceIndex - count];
+      return buildLiteProvisionHref(target?.dataset?.articleNum || '', '', '', scope);
     }
 
     const sourceParagraph = sourceElement.closest('.law-paragraph[data-paragraph-num]');
@@ -526,7 +545,9 @@
       const target = paragraphs[sourceIndex - count];
       return buildLiteProvisionHref(
         sourceArticle.dataset.articleNum,
-        target?.dataset?.paragraphNum || ''
+        target?.dataset?.paragraphNum || '',
+        '',
+        scope
       );
     }
 
@@ -539,7 +560,8 @@
     return buildLiteProvisionHref(
       sourceArticle.dataset.articleNum,
       sourceParagraph.dataset.paragraphNum,
-      target?.dataset?.itemNum || ''
+      target?.dataset?.itemNum || '',
+      scope
     );
   }
 
@@ -603,36 +625,36 @@
     return text ? `<div class="${className}">${escapeHtml(text)}</div>` : '';
   }
 
-  function renderParagraph(paragraph, articleNum) {
+  function renderParagraph(paragraph, articleNum, scope = '') {
     const rawNum = paragraph.getAttribute('Num') || '';
     const num = getNodeText(firstChildOfTag(paragraph, 'ParagraphNum')) || (rawNum && rawNum !== '1' ? rawNum : '');
     const normalizedNum = rawNum || (num ? num : '1');
     const sentence = firstChildOfTag(paragraph, 'ParagraphSentence') || paragraph;
-    const id = getChildId('paragraph', articleNum, normalizedNum);
+    const id = getChildId('paragraph', articleNum, normalizedNum, '', scope);
     const textHtml = renderTextBlock(sentence);
-    const itemHtml = childElements(paragraph, 'Item').map((item) => renderItem(item, articleNum, normalizedNum)).join('');
-    return `<div class="law-paragraph" id="${escapeHtml(id)}" data-article-num="${escapeHtml(articleNum)}" data-paragraph-num="${escapeHtml(normalizedNum)}">${num ? `<div class="law-num">${escapeHtml(num)}</div>` : '<div class="law-num" aria-hidden="true"></div>'}<div>${textHtml}${itemHtml}</div></div>`;
+    const itemHtml = childElements(paragraph, 'Item').map((item) => renderItem(item, articleNum, normalizedNum, scope)).join('');
+    return `<div class="law-paragraph" id="${escapeHtml(id)}" data-article-num="${escapeHtml(articleNum)}" data-paragraph-num="${escapeHtml(normalizedNum)}"${getLiteScopeDataAttribute(scope)}>${num ? `<div class="law-num">${escapeHtml(num)}</div>` : '<div class="law-num" aria-hidden="true"></div>'}<div>${textHtml}${itemHtml}</div></div>`;
   }
 
-  function renderItemLike(el, titleTag, sentenceTag, className, articleNum, paragraphNum, parentPath = '') {
+  function renderItemLike(el, titleTag, sentenceTag, className, articleNum, paragraphNum, parentPath = '', scope = '') {
     const title = getNodeText(firstChildOfTag(el, titleTag)) || el.getAttribute('Num') || '';
     const itemNum = el.getAttribute('Num') || title || parentPath;
-    const id = getChildId('item', articleNum, paragraphNum, itemNum);
+    const id = getChildId('item', articleNum, paragraphNum, itemNum, scope);
     const sentence = firstChildOfTag(el, sentenceTag) || el;
     const children = childElements(el)
       .filter((child) => /^Subitem\d+$/.test(child.tagName))
-      .map((child) => renderSubitem(child, articleNum, paragraphNum, `${itemNum}-${child.getAttribute('Num') || ''}`))
+      .map((child) => renderSubitem(child, articleNum, paragraphNum, `${itemNum}-${child.getAttribute('Num') || ''}`, scope))
       .join('');
-    return `<div class="${className}" id="${escapeHtml(id)}" data-article-num="${escapeHtml(articleNum)}" data-paragraph-num="${escapeHtml(paragraphNum)}" data-item-num="${escapeHtml(itemNum)}">${title ? `<div class="law-num">${escapeHtml(title)}</div>` : '<div class="law-num" aria-hidden="true"></div>'}<div>${renderTextBlock(sentence)}${children}</div></div>`;
+    return `<div class="${className}" id="${escapeHtml(id)}" data-article-num="${escapeHtml(articleNum)}" data-paragraph-num="${escapeHtml(paragraphNum)}" data-item-num="${escapeHtml(itemNum)}"${getLiteScopeDataAttribute(scope)}>${title ? `<div class="law-num">${escapeHtml(title)}</div>` : '<div class="law-num" aria-hidden="true"></div>'}<div>${renderTextBlock(sentence)}${children}</div></div>`;
   }
 
-  function renderItem(item, articleNum, paragraphNum) {
-    return renderItemLike(item, 'ItemTitle', 'ItemSentence', 'law-item', articleNum, paragraphNum);
+  function renderItem(item, articleNum, paragraphNum, scope = '') {
+    return renderItemLike(item, 'ItemTitle', 'ItemSentence', 'law-item', articleNum, paragraphNum, '', scope);
   }
 
-  function renderSubitem(subitem, articleNum, paragraphNum, path) {
+  function renderSubitem(subitem, articleNum, paragraphNum, path, scope = '') {
     const level = subitem.tagName.match(/\d+$/)?.[0] || '';
-    return renderItemLike(subitem, `Subitem${level}Title`, `Subitem${level}Sentence`, 'law-subitem', articleNum, paragraphNum, path);
+    return renderItemLike(subitem, `Subitem${level}Title`, `Subitem${level}Sentence`, 'law-subitem', articleNum, paragraphNum, path, scope);
   }
 
   function renderArticle(article) {
@@ -640,19 +662,20 @@
     const title = firstChildOfTag(article, 'ArticleTitle');
     const caption = firstChildOfTag(article, 'ArticleCaption');
     const titleText = getNodeText(title) || (articleNum ? `Article ${articleNum}` : 'Article');
-    const id = getArticleId(articleNum || titleText);
+    const scope = getLiteProvisionScope(article);
+    const id = getArticleId(articleNum || titleText, scope);
     const captionText = getNodeText(caption);
-    const paragraphs = childElements(article, 'Paragraph').map((paragraph) => renderParagraph(paragraph, articleNum)).join('');
-    return `<section class="law-article" id="${escapeHtml(id)}" data-article-num="${escapeHtml(articleNum)}">${captionText ? `<div class="article-caption">${escapeHtml(captionText)}</div>` : ''}${titleText ? `<div class="article-title">${escapeHtml(titleText)}</div>` : ''}${paragraphs || renderTextBlock(article)}</section>`;
+    const paragraphs = childElements(article, 'Paragraph').map((paragraph) => renderParagraph(paragraph, articleNum, scope)).join('');
+    return `<section class="law-article" id="${escapeHtml(id)}" data-article-num="${escapeHtml(articleNum)}"${getLiteScopeDataAttribute(scope)}>${captionText ? `<div class="article-caption">${escapeHtml(captionText)}</div>` : ''}${titleText ? `<div class="article-title">${escapeHtml(titleText)}</div>` : ''}${paragraphs || renderTextBlock(article)}</section>`;
   }
 
   function renderContainer(el) {
     const tag = el.tagName;
     if (SKIP_TAGS.has(tag) || tag === 'TOC') return '';
     if (tag === 'Article') return renderArticle(el);
-    if (tag === 'Paragraph') return renderParagraph(el, '');
-    if (tag === 'Item') return renderItem(el, '', '');
-    if (/^Subitem\d+$/.test(tag)) return renderSubitem(el, '', '', '');
+    if (tag === 'Paragraph') return renderParagraph(el, '', getLiteProvisionScope(el));
+    if (tag === 'Item') return renderItem(el, '', '', getLiteProvisionScope(el));
+    if (/^Subitem\d+$/.test(tag)) return renderSubitem(el, '', '', '', getLiteProvisionScope(el));
     if (/Title$|Label$/.test(tag)) return renderTitle(el);
     if (tag === 'Sentence' || /Sentence$/.test(tag)) return renderTextBlock(el);
     const childrenHtml = childElements(el)
@@ -671,7 +694,8 @@
       TableStruct: 'law-appdx',
       Preamble: 'law-preamble',
     })[tag] || 'law-block';
-    return `<section class="${className}">${childrenHtml}</section>`;
+    const scope = tag === 'SupplProvision' ? getLiteProvisionScope(el) : '';
+    return `<section class="${className}"${getLiteScopeDataAttribute(scope)}>${childrenHtml}</section>`;
   }
 
   function parseLawFromResponse(doc) {
@@ -720,10 +744,12 @@
   }
 
   function jumpKeyVariants(key) {
-    const parts = String(key || '').trim().split('.');
-    const article = parts.shift() || '';
-    const suffix = parts.join('.');
-    return articleKeyVariants(article).map((variant) => suffix ? `${variant}.${suffix}` : variant);
+    const { scope, article, paragraph, item } = splitReferenceTargetKey(String(key || '').trim());
+    const suffix = [paragraph, item].filter(Boolean).join('.');
+    return articleKeyVariants(article).map((variant) => {
+      const scopedArticle = scope ? `${scope}::${variant}` : variant;
+      return suffix ? `${scopedArticle}.${suffix}` : scopedArticle;
+    });
   }
 
   function articleKeyToDisplay(value) {
@@ -734,10 +760,11 @@
 
   function numToDisplay(raw) {
     if (!raw) return '';
-    const parts = String(raw).split('.');
-    let text = articleKeyToDisplay(parts[0]);
-    if (parts[1]) text += `第${parts[1]}項`;
-    if (parts[2]) text += `第${parts[2]}号`;
+    const { scope, article, paragraph, item } = splitReferenceTargetKey(raw);
+    let text = scope ? '附則' : '';
+    text += articleKeyToDisplay(article);
+    if (paragraph) text += `第${paragraph}項`;
+    if (item) text += `第${item}号`;
     return text;
   }
 
@@ -762,16 +789,19 @@
     articleIndex = new Map();
     contentEl.querySelectorAll('.law-article[data-article-num]').forEach((article) => {
       const num = article.dataset.articleNum || '';
+      const scope = article.dataset.referenceScope || '';
       const keys = articleKeyVariants(num);
       for (const articleKey of keys) {
-        if (!articleIndex.has(articleKey)) articleIndex.set(articleKey, article);
+        const scopedArticleKey = scope ? `${scope}::${articleKey}` : articleKey;
+        if (!articleIndex.has(scopedArticleKey)) articleIndex.set(scopedArticleKey, article);
       }
       article.querySelectorAll('[data-paragraph-num], [data-item-num]').forEach((el) => {
         const para = el.dataset.paragraphNum || '';
         const item = el.dataset.itemNum || '';
         for (const articleKey of keys) {
-          if (para && !articleIndex.has(`${articleKey}.${para}`)) articleIndex.set(`${articleKey}.${para}`, el);
-          if (para && item && !articleIndex.has(`${articleKey}.${para}.${item}`)) articleIndex.set(`${articleKey}.${para}.${item}`, el);
+          const scopedArticleKey = scope ? `${scope}::${articleKey}` : articleKey;
+          if (para && !articleIndex.has(`${scopedArticleKey}.${para}`)) articleIndex.set(`${scopedArticleKey}.${para}`, el);
+          if (para && item && !articleIndex.has(`${scopedArticleKey}.${para}.${item}`)) articleIndex.set(`${scopedArticleKey}.${para}.${item}`, el);
         }
       });
     });
@@ -1432,11 +1462,13 @@
     for (const variant of jumpKeyVariants(key)) {
       if (articleIndex.has(variant)) return articleIndex.get(variant);
     }
-    const parts = String(key || '').trim().split('.');
-    if (parts.length > 1 && articleIndex.has(parts[0])) return articleIndex.get(parts[0]);
-    if (parts.length > 1) {
-      for (const variant of articleKeyVariants(parts[0])) {
-        if (articleIndex.has(variant)) return articleIndex.get(variant);
+    const { scope, article, paragraph, item } = splitReferenceTargetKey(key);
+    if ((paragraph || item) && article) {
+      const articleKey = scope ? `${scope}::${article}` : article;
+      if (articleIndex.has(articleKey)) return articleIndex.get(articleKey);
+      for (const variant of articleKeyVariants(article)) {
+        const scopedVariant = scope ? `${scope}::${variant}` : variant;
+        if (articleIndex.has(scopedVariant)) return articleIndex.get(scopedVariant);
       }
     }
     return null;
@@ -1757,15 +1789,7 @@
   }
 
   function parseProvisionKeyFromEgovUrl(url) {
-    try {
-      const hash = decodeURIComponent(new URL(url, location.href).hash || '').replace(/^#/, '');
-      const article = hash.match(/-At_([\d_]+)/)?.[1] || '';
-      const paragraph = hash.match(/-Pr_([\d_]+)/)?.[1] || '';
-      const item = hash.match(/-(?:It|Sg)_([\d_]+)/)?.[1] || '';
-      return [article, paragraph, item].filter(Boolean).join('.');
-    } catch (_) {
-      return '';
-    }
+    return getReferenceTargetKeyFromEgovUrl(url, location.href);
   }
 
   function buildNormalReferenceSourceUrl(source) {

@@ -109,9 +109,14 @@
   }
 
   function getReferenceTargetLabel(targetKey) {
-    const [article = '', paragraph = '', item = ''] = String(targetKey || '').split('.');
+    const raw = String(targetKey || '');
+    const scopeSeparator = raw.indexOf('::');
+    const scope = scopeSeparator >= 0 ? raw.slice(0, scopeSeparator) : '';
+    const provision = scopeSeparator >= 0 ? raw.slice(scopeSeparator + 2) : raw;
+    const [article = '', paragraph = '', item = ''] = provision.split('.');
     if (!article) return String(targetKey || '');
-    let label = formatReferenceBranchLabel(article, '条');
+    let label = scope ? '附則' : '';
+    label += formatReferenceBranchLabel(article, '条');
     if (paragraph) label += formatReferenceBranchLabel(paragraph, '項');
     if (item) label += formatReferenceBranchLabel(item, '号');
     return label;
