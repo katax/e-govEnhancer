@@ -156,8 +156,8 @@
       </div>
       <div class="${classPrefix}-reference-list">
         ${rows.map((row, index) => `
-          <button type="button" class="${classPrefix}-reference-link${row.isRelated ? ` ${classPrefix}-reference-link-related` : ''}" data-index="${index}">
-            <span class="${classPrefix}-reference-related-badge">${row.isRelated ? '関連' : ''}</span>
+          <button type="button" class="${classPrefix}-reference-link${row.isInternal || row.isRelated ? ` ${classPrefix}-reference-link-related` : ''}" data-index="${index}">
+            <span class="${classPrefix}-reference-related-badge">${row.isInternal ? '同一法令' : row.isRelated ? '関連' : ''}</span>
             <span class="${classPrefix}-reference-link-title">${escapeHtml(getSourceLabel(row.source))}</span>
             <span class="${classPrefix}-reference-link-url">${escapeHtml(row.source?.sourceUrl || '')}</span>
           </button>

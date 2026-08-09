@@ -9,6 +9,7 @@
     cacheLiteLawXml,
     cleanLawNameForSearch,
     cloneDefinitionPatterns,
+    collectInternalLawReferences,
     collectSearchTextSegments,
     configureReferenceClickable,
     escapeHtml,
@@ -23,6 +24,7 @@
     getLiteLawDataUrl,
     getReferenceDomParts,
     isTermBoundarySafe: isSharedTermBoundarySafe,
+    mergeLawReferences,
     rangeFromSearchOffsets,
     readCachedLiteLawXml,
     sortReferenceSources,
@@ -114,6 +116,7 @@
   let externalReferencesAutoEnable = true;
   let externalReferencesEnabled = false;
   let externalReferencesLoading = false;
+  let referenceAnalysisGeneration = 0;
   let activeReferencesPopup = null;
   let activeReferenceViewerPopup = null;
   let liteDefinitionMap = new Map();
@@ -1687,14 +1690,33 @@
     });
   }
 
-  function applyExternalReferenceLinksForLaw(lawReferences) {
-    clearExternalReferenceLinks();
-    applyReferenceLinksInBatches(lawReferences, {
+  function applyReferenceLinksForLaw(lawReferences, { clear = false } = {}) {
+    if (clear) clearExternalReferenceLinks();
+    return applyReferenceLinksInBatches(lawReferences, {
       isEnabled: () => externalReferencesEnabled,
       findTarget: findLiteReferenceTargetElement,
       makeClickable: makeReferenceClickable,
       schedule: (step) => runWhenIdle(step, 250),
       batchSize: 160,
+    });
+  }
+
+  function applyExternalReferenceLinksForLaw(lawReferences) {
+    const generation = ++referenceAnalysisGeneration;
+    const externalReferences = mergeLawReferences(lawReferences);
+    applyReferenceLinksForLaw(externalReferences, { clear: true }).then((applied) => {
+      if (!applied || !externalReferencesEnabled || generation !== referenceAnalysisGeneration) return;
+      runWhenIdle(() => {
+        if (!externalReferencesEnabled || generation !== referenceAnalysisGeneration) return;
+        const internalReferences = collectInternalLawReferences(contentEl, {
+          lawId,
+          lawTitle: lawTitleText,
+          baseUrl: sourceUrl || location.href,
+        });
+        if (!externalReferencesEnabled || generation !== referenceAnalysisGeneration) return;
+        const mergedReferences = mergeLawReferences(externalReferences, internalReferences);
+        applyReferenceLinksForLaw(mergedReferences);
+      }, 250);
     });
   }
 
@@ -1710,13 +1732,9 @@
     try {
       if (!silent) showToast('外部法令からの参照元リンクを読み込んでいます');
       const lawReferences = await getLawReferencesData(lawId);
-      if (!Object.keys(lawReferences).length) {
-        if (!silent) showToast('外部法令からの参照元リンクはありません');
-        return false;
-      }
       externalReferencesEnabled = true;
       applyExternalReferenceLinksForLaw(lawReferences);
-      if (!silent) showToast('外部法令からの参照元リンクを有効化しました');
+      if (!silent) showToast('参照元リンクを有効化しました');
       return true;
     } finally {
       externalReferencesLoading = false;
@@ -1727,6 +1745,7 @@
   function disableExternalReferenceLinks({ silent = false } = {}) {
     if (!externalReferencesEnabled) return;
     externalReferencesEnabled = false;
+    referenceAnalysisGeneration += 1;
     clearExternalReferenceLinks();
     syncViewerToggleButtons();
     if (!silent) showToast('外部法令からの参照元リンクを無効化しました');

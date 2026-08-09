@@ -55,7 +55,7 @@
     if (!article) return null;
 
     const suffix = rawHash.slice((articleMatch.index ?? 0) + articleMatch[0].length);
-    const paragraph = suffix.match(/(?:^|-)(?:Co|Pr)_([0-9_]+)/)?.[1] || '';
+    const paragraph = suffix.match(/(?:^|-)(?:Co|Pa|Pr)_([0-9_]+)/)?.[1] || '';
     const item = suffix.match(/(?:^|-)(?:It|Sg)_([0-9_]+)/)?.[1] || '';
     return { article, paragraph, item };
   }
@@ -111,6 +111,7 @@
         return {
           source,
           index,
+          isInternal: source?.isInternalLawSource === true,
           isRelated: !!(
             (currentPrefix && sourceTitle.includes(currentPrefix)) ||
             (sourcePrefix && currentTitle.includes(sourcePrefix))
@@ -118,9 +119,235 @@
         };
       })
       .sort((a, b) => {
+        if (a.isInternal !== b.isInternal) return a.isInternal ? -1 : 1;
         if (a.isRelated !== b.isRelated) return a.isRelated ? -1 : 1;
         return a.index - b.index;
       });
+  }
+
+  function normalizeReferenceKeyPart(value) {
+    return String(value || '').trim().replace(/_/g, '-');
+  }
+
+  function canonicalizeReferenceTargetKey(key) {
+    const parts = splitReferenceTargetKey(key);
+    const article = normalizeReferenceKeyPart(parts.article);
+    const paragraph = normalizeReferenceKeyPart(parts.paragraph);
+    const item = normalizeReferenceKeyPart(parts.item);
+    if (!article) return '';
+    if (paragraph === '1' && !item) return article;
+    return [article, paragraph, item].filter(Boolean).join('.');
+  }
+
+  function getReferenceTargetKeyFromEgovUrl(url, base = LAW_BASE_URL) {
+    const parts = parseProvisionPathFromEgovUrl(url, base);
+    if (!parts?.article) return '';
+    return canonicalizeReferenceTargetKey([
+      parts.article,
+      parts.paragraph,
+      parts.item,
+    ].filter(Boolean).join('.'));
+  }
+
+  function getInternalReferenceSourceParts(anchor, root) {
+    let current = anchor instanceof Element ? anchor : null;
+    while (current && current !== root) {
+      const article = normalizeReferenceKeyPart(current.dataset?.articleNum);
+      const paragraph = normalizeReferenceKeyPart(current.dataset?.paragraphNum);
+      const item = normalizeReferenceKeyPart(current.dataset?.itemNum);
+      if (article) return { article, paragraph, item, id: current.id || '' };
+
+      const parsed = current.id ? parseProvisionHash(`#${current.id}`) : null;
+      if (parsed?.article) {
+        return {
+          article: normalizeReferenceKeyPart(parsed.article),
+          paragraph: normalizeReferenceKeyPart(parsed.paragraph),
+          item: normalizeReferenceKeyPart(parsed.item),
+          id: current.id,
+        };
+      }
+      current = current.parentElement;
+    }
+    return null;
+  }
+
+  function buildInternalReferenceSourceUrl(lawId, parts) {
+    if (!lawId || !parts?.article) return '';
+    if (parts.id && /(?:^|-)At_[0-9_]+/.test(parts.id)) {
+      return `${buildLawUrl(lawId)}#${encodeURIComponent(parts.id)}`;
+    }
+    const article = parts.article.replace(/-/g, '_');
+    const paragraph = parts.paragraph ? `-Pr_${parts.paragraph.replace(/-/g, '_')}` : '';
+    const item = parts.item ? `-It_${parts.item.replace(/-/g, '_')}` : '';
+    return `${buildLawUrl(lawId)}#Mp-At_${article}${paragraph}${item}`;
+  }
+
+  function parseJapaneseReferenceNumber(value) {
+    const normalized = String(value || '')
+      .replace(/[０-９]/g, (char) => String.fromCharCode(char.charCodeAt(0) - 0xFEE0))
+      .replace(/[〇零]/g, '0');
+    if (!normalized) return NaN;
+    if (/^\d+$/.test(normalized)) return Number(normalized);
+    const digits = { 一: 1, 二: 2, 三: 3, 四: 4, 五: 5, 六: 6, 七: 7, 八: 8, 九: 9 };
+    const units = { 十: 10, 百: 100, 千: 1000, 万: 10000 };
+    let total = 0;
+    let section = 0;
+    let digit = 0;
+    for (const char of normalized) {
+      if (digits[char]) {
+        digit = digits[char];
+        continue;
+      }
+      const unit = units[char];
+      if (!unit) return NaN;
+      if (unit === 10000) {
+        total += (section + digit || 1) * unit;
+        section = 0;
+        digit = 0;
+      } else {
+        section += (digit || 1) * unit;
+        digit = 0;
+      }
+    }
+    return total + section + digit;
+  }
+
+  function buildSequentialReferenceKeys(start, end, buildKey, maxEntries = 500) {
+    if (!Number.isInteger(start) || !Number.isInteger(end) || end < start) return [];
+    if (end - start + 1 > maxEntries) return [];
+    return Array.from({ length: end - start + 1 }, (_, index) => buildKey(start + index));
+  }
+
+  function getInternalReferenceTargetKeys(anchor, initialTargetKey, sourceParts) {
+    const targetKey = canonicalizeReferenceTargetKey(initialTargetKey);
+    const parts = splitReferenceTargetKey(targetKey);
+    if (!parts.article) return [];
+    const text = String(anchor?.textContent || '').replace(/\s+/g, '');
+    if (!text.includes('から') || !text.includes('まで')) return [targetKey];
+
+    const numberPattern = '[0-9０-９〇零一二三四五六七八九十百千万]+';
+    const articleSegments = parts.article.split('-').map(Number);
+    const startArticle = articleSegments[0];
+    const startArticleBranch = articleSegments[1] || 0;
+
+    if (parts.item) {
+      const match = text.match(new RegExp(`から第?(${numberPattern})号まで`));
+      const start = Number(parts.item.split('-')[0]);
+      const end = parseJapaneseReferenceNumber(match?.[1]);
+      const keys = buildSequentialReferenceKeys(start, end, (number) => (
+        `${parts.article}.${parts.paragraph || '1'}.${number}`
+      ));
+      return keys.length ? keys : [targetKey];
+    }
+
+    if (parts.paragraph) {
+      const match = text.match(new RegExp(`から第?(${numberPattern})項まで`));
+      const start = Number(parts.paragraph.split('-')[0]);
+      const end = parseJapaneseReferenceNumber(match?.[1]);
+      const keys = buildSequentialReferenceKeys(start, end, (number) => `${parts.article}.${number}`);
+      return keys.length ? keys : [targetKey];
+    }
+
+    const branchedEnd = text.match(new RegExp(`から第?(${numberPattern})条の(${numberPattern})まで`));
+    if (branchedEnd) {
+      const endArticle = parseJapaneseReferenceNumber(branchedEnd[1]);
+      const endBranch = parseJapaneseReferenceNumber(branchedEnd[2]);
+      if (endArticle === startArticle && Number.isInteger(endBranch)) {
+        const firstBranch = startArticleBranch || 1;
+        const keys = buildSequentialReferenceKeys(firstBranch, endBranch, (branch) => (
+          branch === 1 && !startArticleBranch ? String(startArticle) : `${startArticle}-${branch}`
+        ));
+        return keys.length ? keys : [targetKey];
+      }
+    }
+
+    const explicitEnd = text.match(new RegExp(`から第?(${numberPattern})条まで`));
+    let endArticle = parseJapaneseReferenceNumber(explicitEnd?.[1]);
+    if (!Number.isInteger(endArticle) && /から前条まで/.test(text)) {
+      endArticle = Number(String(sourceParts?.article || '').split('-')[0]) - 1;
+    }
+    if (!startArticleBranch) {
+      const keys = buildSequentialReferenceKeys(startArticle, endArticle, (number) => String(number));
+      if (keys.length) return keys;
+    }
+    return [targetKey];
+  }
+
+  function collectInternalLawReferences(root, {
+    lawId,
+    lawTitle = '',
+    baseUrl = global.location?.href || LAW_BASE_URL,
+  } = {}) {
+    if (!(root instanceof Element) || !lawId) return {};
+    const result = {};
+    const seenByTarget = new Map();
+
+    root.querySelectorAll('a[href]').forEach((anchor) => {
+      let parsedUrl;
+      try {
+        parsedUrl = new URL(anchor.getAttribute('href') || '', baseUrl);
+      } catch (_) {
+        return;
+      }
+      let baseOrigin = '';
+      try {
+        baseOrigin = new URL(baseUrl, LAW_BASE_URL).origin;
+      } catch (_) {}
+      if (baseOrigin && parsedUrl.origin !== baseOrigin) return;
+      const targetLawId = parsedUrl.pathname.match(/\/law\/([^/?#]+)/)?.[1] || '';
+      if (targetLawId !== lawId) return;
+
+      const targetKey = getReferenceTargetKeyFromEgovUrl(parsedUrl.href, baseUrl);
+      if (!targetKey) return;
+      const sourceParts = getInternalReferenceSourceParts(anchor, root);
+      if (!sourceParts?.article) return;
+      const sourceUrl = buildInternalReferenceSourceUrl(lawId, sourceParts);
+      if (!sourceUrl) return;
+
+      getInternalReferenceTargetKeys(anchor, targetKey, sourceParts).forEach((resolvedTargetKey) => {
+        let seen = seenByTarget.get(resolvedTargetKey);
+        if (!seen) {
+          seen = new Set();
+          seenByTarget.set(resolvedTargetKey, seen);
+        }
+        if (seen.has(sourceUrl)) return;
+        seen.add(sourceUrl);
+
+        if (!result[resolvedTargetKey]) result[resolvedTargetKey] = { externalLawSources: [] };
+        result[resolvedTargetKey].externalLawSources.push({
+          sourceLawId: lawId,
+          sourceLawTitle: lawTitle || lawId,
+          sourceUrl,
+          isInternalLawSource: true,
+        });
+      });
+    });
+    return result;
+  }
+
+  function mergeLawReferences(...referenceSets) {
+    const merged = {};
+    const seenByTarget = new Map();
+    referenceSets.forEach((referenceSet) => {
+      Object.entries(referenceSet || {}).forEach(([rawTargetKey, value]) => {
+        const targetKey = canonicalizeReferenceTargetKey(rawTargetKey);
+        if (!targetKey) return;
+        if (!merged[targetKey]) merged[targetKey] = { externalLawSources: [] };
+        let seen = seenByTarget.get(targetKey);
+        if (!seen) {
+          seen = new Set();
+          seenByTarget.set(targetKey, seen);
+        }
+        const sources = Array.isArray(value?.externalLawSources) ? value.externalLawSources : [];
+        sources.forEach((source) => {
+          const identity = `${source?.sourceLawId || ''}\n${source?.sourceUrl || ''}`;
+          if (seen.has(identity)) return;
+          seen.add(identity);
+          merged[targetKey].externalLawSources.push(source);
+        });
+      });
+    });
+    return merged;
   }
 
   function configureReferenceClickable({
@@ -135,7 +362,7 @@
     if (!clickable || !sources?.length) return;
     clickable.classList.add(className);
     clickable.tabIndex = clickable.tabIndex >= 0 ? clickable.tabIndex : 0;
-    clickable.title = `外部法令からの参照元 ${sources.length}件`;
+    clickable.title = `参照元 ${sources.length}件`;
     clickable.dataset.egovReferenceTargetKey = targetKey;
     sourceMap.set(clickable, sources);
     if (clickable.dataset.egovReferenceBound === 'true') return;
@@ -169,20 +396,32 @@
   }) {
     const entries = Object.entries(lawReferences || {});
     let index = 0;
-    const step = () => {
-      if (!isEnabled()) return;
-      const end = Math.min(entries.length, index + batchSize);
-      for (; index < end; index += 1) {
-        if (!isEnabled()) return;
-        const [targetKey, value] = entries[index];
-        const sources = Array.isArray(value?.externalLawSources) ? value.externalLawSources : [];
-        if (!sources.length) continue;
-        const target = findTarget(targetKey);
-        if (target) makeClickable(target, targetKey, sources);
-      }
-      if (index < entries.length) schedule(step);
-    };
-    step();
+    return new Promise((resolve) => {
+      const step = () => {
+        if (!isEnabled()) {
+          resolve(false);
+          return;
+        }
+        const end = Math.min(entries.length, index + batchSize);
+        for (; index < end; index += 1) {
+          if (!isEnabled()) {
+            resolve(false);
+            return;
+          }
+          const [targetKey, value] = entries[index];
+          const sources = Array.isArray(value?.externalLawSources) ? value.externalLawSources : [];
+          if (!sources.length) continue;
+          const target = findTarget(targetKey);
+          if (target) makeClickable(target, targetKey, sources);
+        }
+        if (index < entries.length) {
+          schedule(step);
+          return;
+        }
+        resolve(true);
+      };
+      step();
+    });
   }
 
   function formatProvisionNumber(parts, {
@@ -504,8 +743,10 @@
     buildLawUrl,
     buildProvisionCopyPayload,
     cacheLiteLawXml,
+    canonicalizeReferenceTargetKey,
     cleanLawNameForSearch,
     cloneDefinitionPatterns,
+    collectInternalLawReferences,
     collectSearchTextSegments,
     configureReferenceClickable,
     DEFINITION_PATTERNS,
@@ -521,6 +762,7 @@
     findCurrentLawRevisionId,
     getJapanDateString,
     getLawReferencesData,
+    getReferenceTargetKeyFromEgovUrl,
     getLiteLawDataUrl,
     getLawFields,
     getReferenceDomParts,
@@ -538,6 +780,7 @@
     searchLawsByTitle,
     sortReferenceSources,
     splitReferenceTargetKey,
+    mergeLawReferences,
     stripPriorDefinitionParentheses,
     waitForTransaction,
   });
