@@ -171,7 +171,7 @@
     return null;
   }
 
-  function getInternalReferenceSourceText(anchor, root, article) {
+  function getInternalReferenceSourceDetails(anchor, root, article) {
     let current = anchor instanceof Element ? anchor : null;
     let articleElement = null;
     while (current && current !== root) {
@@ -194,7 +194,22 @@
       }
       current = current.parentElement;
     }
-    if (!articleElement) return '';
+    if (!articleElement) return { text: '', paragraphCount: 0 };
+
+    const paragraphNumbers = new Set();
+    articleElement.querySelectorAll('[data-paragraph-num], [id]').forEach((element) => {
+      const elementArticle = normalizeReferenceKeyPart(element.dataset?.articleNum);
+      const elementParagraph = normalizeReferenceKeyPart(element.dataset?.paragraphNum);
+      if (elementArticle === article && elementParagraph) {
+        paragraphNumbers.add(elementParagraph);
+        return;
+      }
+      const parsed = element.id ? parseProvisionHash(`#${element.id}`) : null;
+      if (normalizeReferenceKeyPart(parsed?.article) === article && parsed?.paragraph) {
+        paragraphNumbers.add(normalizeReferenceKeyPart(parsed.paragraph));
+      }
+    });
+
     const clone = articleElement.cloneNode(true);
     clone.querySelectorAll([
       '.article-caption',
@@ -206,7 +221,25 @@
       '[class*="ArticleCaption"]',
       '[class*="ArticleTitle"]',
     ].join(', ')).forEach((node) => node.remove());
-    return String(clone.textContent || '').replace(/\s+/g, ' ').trim();
+    const numberPattern = '[0-9０-９〇零一二三四五六七八九十百千万]+';
+    const leadingHeadingPattern = new RegExp(`^(?:（[^）]*）|\\([^)]*\\))\\s*第${numberPattern}条(?:の${numberPattern})?\\s*`);
+    let text = String(clone.textContent || '')
+      .replace(/\s+/g, ' ')
+      .trim();
+    const hadEmbeddedHeading = leadingHeadingPattern.test(text);
+    if (hadEmbeddedHeading) text = text.replace(leadingHeadingPattern, '').trim();
+    const leadingArticleNumberPattern = new RegExp(`^第(${numberPattern})条(?:の(${numberPattern}))?\\s*`);
+    const leadingArticleNumber = text.match(leadingArticleNumberPattern);
+    const expectedArticleParts = String(article || '').split('-').map(Number);
+    if (
+      !hadEmbeddedHeading &&
+      leadingArticleNumber &&
+      parseJapaneseReferenceNumber(leadingArticleNumber[1]) === expectedArticleParts[0] &&
+      (leadingArticleNumber[2] ? parseJapaneseReferenceNumber(leadingArticleNumber[2]) : 0) === (expectedArticleParts[1] || 0)
+    ) {
+      text = text.slice(leadingArticleNumber[0].length).trim();
+    }
+    return { text, paragraphCount: paragraphNumbers.size };
   }
 
   function buildInternalReferenceSourceUrl(lawId, parts) {
@@ -341,8 +374,12 @@
       if (!sourceParts?.article) return;
       const sourceUrl = buildInternalReferenceSourceUrl(lawId, sourceParts);
       if (!sourceUrl) return;
-      const sourceArticleLabel = formatProvisionSourcePath({ article: sourceParts.article });
-      const sourceProvisionText = getInternalReferenceSourceText(anchor, root, sourceParts.article);
+      const sourceDetails = getInternalReferenceSourceDetails(anchor, root, sourceParts.article);
+      const sourceProvisionLabel = formatProvisionSourcePath({
+        article: sourceParts.article,
+        paragraph: sourceDetails.paragraphCount > 1 ? sourceParts.paragraph : '',
+        item: sourceParts.item,
+      });
 
       getInternalReferenceTargetKeys(anchor, targetKey, sourceParts).forEach((resolvedTargetKey) => {
         let seen = seenByTarget.get(resolvedTargetKey);
@@ -358,8 +395,8 @@
           sourceLawId: lawId,
           sourceLawTitle: lawTitle || lawId,
           sourceUrl,
-          sourceArticleLabel,
-          sourceProvisionText,
+          sourceProvisionLabel,
+          sourceProvisionText: sourceDetails.text,
           isInternalLawSource: true,
         });
       });
