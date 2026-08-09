@@ -644,6 +644,12 @@ body[data-content-width="narrow"] .law-content {
   line-height: 1.45;
 }
 
+.egov-lite-reference-link-internal .egov-lite-reference-link-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .egov-lite-reference-frame {
   flex: 1;
   min-height: 0;

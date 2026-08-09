@@ -219,6 +219,12 @@
   line-height: 1.45 !important;
 }
 
+.egov-ext-reference-link-internal .egov-ext-reference-link-title {
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+
 .egov-ext-reference-source-proxy {
   position: fixed !important;
   left: -9999px !important;

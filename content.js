@@ -3137,7 +3137,7 @@
 
   function getReferenceSourceLabel(source) {
     if (source?.isInternalLawSource) {
-      return [source.sourceArticleLabel, source.sourceProvisionTitle].filter(Boolean).join(' ');
+      return [source.sourceArticleLabel, source.sourceProvisionText].filter(Boolean).join(' ');
     }
     const lawTitle = String(source?.sourceLawTitle || source?.sourceLawId || '').trim();
     const path = formatProvisionSourcePathFromEgovUrl(source?.sourceUrl, location.href);

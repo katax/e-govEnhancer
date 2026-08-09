@@ -171,25 +171,42 @@
     return null;
   }
 
-  function getInternalReferenceSourceTitle(anchor, root, article) {
+  function getInternalReferenceSourceText(anchor, root, article) {
     let current = anchor instanceof Element ? anchor : null;
+    let articleElement = null;
     while (current && current !== root) {
       const currentArticle = normalizeReferenceKeyPart(current.dataset?.articleNum);
       const parsed = current.id ? parseProvisionHash(`#${current.id}`) : null;
       const parsedArticle = normalizeReferenceKeyPart(parsed?.article);
       if (currentArticle === article || parsedArticle === article) {
-        const caption = current.querySelector([
+        articleElement = current;
+        const articleHeading = current.querySelector([
           ':scope > .article-caption',
+          ':scope > .article-title',
           ':scope > .articlecaption',
+          ':scope > .articletitle',
           ':scope > ._div_ArticleCaption',
+          ':scope > ._div_ArticleTitle',
           ':scope > [class*="ArticleCaption"]',
+          ':scope > [class*="ArticleTitle"]',
         ].join(', '));
-        const title = String(caption?.textContent || '').replace(/\s+/g, ' ').trim();
-        if (title) return title;
+        if (articleHeading) break;
       }
       current = current.parentElement;
     }
-    return '';
+    if (!articleElement) return '';
+    const clone = articleElement.cloneNode(true);
+    clone.querySelectorAll([
+      '.article-caption',
+      '.article-title',
+      '.articlecaption',
+      '.articletitle',
+      '._div_ArticleCaption',
+      '._div_ArticleTitle',
+      '[class*="ArticleCaption"]',
+      '[class*="ArticleTitle"]',
+    ].join(', ')).forEach((node) => node.remove());
+    return String(clone.textContent || '').replace(/\s+/g, ' ').trim();
   }
 
   function buildInternalReferenceSourceUrl(lawId, parts) {
@@ -325,7 +342,7 @@
       const sourceUrl = buildInternalReferenceSourceUrl(lawId, sourceParts);
       if (!sourceUrl) return;
       const sourceArticleLabel = formatProvisionSourcePath({ article: sourceParts.article });
-      const sourceProvisionTitle = getInternalReferenceSourceTitle(anchor, root, sourceParts.article);
+      const sourceProvisionText = getInternalReferenceSourceText(anchor, root, sourceParts.article);
 
       getInternalReferenceTargetKeys(anchor, targetKey, sourceParts).forEach((resolvedTargetKey) => {
         let seen = seenByTarget.get(resolvedTargetKey);
@@ -342,7 +359,7 @@
           sourceLawTitle: lawTitle || lawId,
           sourceUrl,
           sourceArticleLabel,
-          sourceProvisionTitle,
+          sourceProvisionText,
           isInternalLawSource: true,
         });
       });
