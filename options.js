@@ -642,10 +642,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
 
   reverseReferenceScopeSelect.addEventListener('change', async () => {
-    const saved = await persistLocal({
+    await persistLocal({
       [REVERSE_REFERENCE_SCOPE_KEY]: normalizeReverseReferenceScope(reverseReferenceScopeSelect.value),
     });
-    if (saved) runReloadLawTabs();
   });
 
   exportFavoritesBtn.addEventListener('click', () => {
