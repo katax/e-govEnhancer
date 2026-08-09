@@ -220,6 +220,11 @@
   display: inline-block !important;
 }
 
+.egov-ext-reference-link-internal .egov-ext-reference-same-article-badge {
+  background: #a5d6a7 !important;
+  margin-left: 4px !important;
+}
+
 .egov-ext-reference-link-title {
   display: block !important;
   font-size: 13px !important;

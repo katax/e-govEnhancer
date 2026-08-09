@@ -642,6 +642,11 @@ body[data-content-width="narrow"] .law-content {
   color: #1b5e20;
 }
 
+.egov-lite-reference-link-internal .egov-lite-reference-same-article-badge {
+  margin-left: 4px;
+  background: #a5d6a7;
+}
+
 .egov-lite-reference-link-title {
   display: block;
   font-size: 13px;

@@ -147,7 +147,7 @@
   }) {
     const list = Array.isArray(sources) ? sources : [];
     if (!list.length) return null;
-    const rows = sortSources(list, currentLawTitle);
+    const rows = sortSources(list, currentLawTitle, targetKey);
     const popup = global.document.createElement('div');
     popup.className = `${classPrefix}-reference-popup`;
     popup.setAttribute('role', 'dialog');
@@ -163,6 +163,7 @@
         ${rows.map((row, index) => `
           <button type="button" class="${classPrefix}-reference-link${row.isInternal ? ` ${classPrefix}-reference-link-internal` : row.isRelated ? ` ${classPrefix}-reference-link-related` : ''}" data-index="${index}">
             <span class="${classPrefix}-reference-related-badge">${row.isInternal ? '同一法令' : row.isRelated ? '関連' : ''}</span>
+            ${row.isSameArticle ? `<span class="${classPrefix}-reference-related-badge ${classPrefix}-reference-same-article-badge">同一条文</span>` : ''}
             <span class="${classPrefix}-reference-link-title">${escapeHtml(getSourceLabel(row.source))}</span>
           </button>
         `).join('')}

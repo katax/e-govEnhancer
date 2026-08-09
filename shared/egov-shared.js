@@ -101,26 +101,40 @@
     return formatProvisionSourcePath(parseProvisionPathFromEgovUrl(url, base));
   }
 
-  function sortReferenceSources(sources, currentLawTitle, normalize = normalizeLawNameForCopy) {
+  function sortReferenceSources(sources, currentLawTitle, targetKey = '', normalize = normalizeLawNameForCopy) {
     const currentTitle = normalize(currentLawTitle || '');
     const currentPrefix = currentTitle.slice(0, 5);
+    const targetArticle = normalizeReferenceKeyPart(
+      splitReferenceTargetKey(canonicalizeReferenceTargetKey(targetKey)).article
+    );
     return (Array.isArray(sources) ? sources : [])
       .map((source, index) => {
         const sourceTitle = normalize(source?.sourceLawTitle || '');
         const sourcePrefix = sourceTitle.slice(0, 5);
+        const isInternal = source?.isInternalLawSource === true;
+        const sourceArticle = normalizeReferenceKeyPart(
+          parseProvisionPathFromEgovUrl(source?.sourceUrl || '')?.article
+        );
         return {
           source,
           index,
-          isInternal: source?.isInternalLawSource === true,
-          isRelated: !!(
+          isInternal,
+          isSameArticle: !!(isInternal && targetArticle && sourceArticle === targetArticle),
+          isRelated: !!(!isInternal && (
             (currentPrefix && sourceTitle.includes(currentPrefix)) ||
             (sourcePrefix && currentTitle.includes(sourcePrefix))
-          ),
+          )),
         };
       })
       .sort((a, b) => {
-        if (a.isInternal !== b.isInternal) return a.isInternal ? -1 : 1;
-        if (a.isRelated !== b.isRelated) return a.isRelated ? -1 : 1;
+        const getPriority = (row) => {
+          if (row.isRelated) return 0;
+          if (row.isInternal && !row.isSameArticle) return 1;
+          if (row.isInternal && row.isSameArticle) return 2;
+          return 3;
+        };
+        const priority = getPriority(a) - getPriority(b);
+        if (priority) return priority;
         return a.index - b.index;
       });
   }
