@@ -159,8 +159,8 @@
     popup.innerHTML = `
       <div class="${classPrefix}-reference-popup-head">
         <div class="${classPrefix}-reference-target">
-          <span class="${classPrefix}-reference-target-number">${escapeHtml(getReferenceTargetLabel(targetKey))}</span>
           <span class="${classPrefix}-reference-mode"></span>
+          <span class="${classPrefix}-reference-mode-note"></span>
         </div>
         <button type="button" class="${classPrefix}-reference-close" aria-label="閉じる">×</button>
       </div>
@@ -181,10 +181,17 @@
     `;
     global.document.body.appendChild(popup);
     const mode = popup.querySelector(`.${classPrefix}-reference-mode`);
+    const modeNote = popup.querySelector(`.${classPrefix}-reference-mode-note`);
     let ctrlPressed = initialCtrlKey === true;
     const updateMode = () => {
       if (!mode || typeof getLinkModeText !== 'function') return;
-      mode.textContent = ` > ${getLinkModeText(ctrlPressed)}`;
+      mode.textContent = getLinkModeText(ctrlPressed);
+      if (modeNote) {
+        modeNote.textContent = ctrlPressed
+          ? '（一時的にモード切り替え中）'
+          : '（Ctrlで一時切り替え）';
+        modeNote.classList.toggle(`${classPrefix}-reference-mode-note-active`, ctrlPressed);
+      }
     };
     const onKeyDown = (event) => {
       if (event.key !== 'Control' || ctrlPressed) return;

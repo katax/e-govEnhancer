@@ -92,6 +92,10 @@
   outline: none !important;
 }
 
+.egov-ext-reference-clickable[data-egov-reference-supplement-article="true"]::before {
+  content: "附則" !important;
+}
+
 .egov-ext-reference-popup {
   position: fixed !important;
   z-index: 2147483647 !important;
@@ -130,7 +134,16 @@
 
 .egov-ext-reference-mode {
   font-size: 11px !important;
-  font-weight: 400 !important;
+  font-weight: 700 !important;
+}
+
+.egov-ext-reference-mode-note {
+  font-size: 11px !important;
+  font-weight: 700 !important;
+}
+
+.egov-ext-reference-mode-note-active {
+  color: #c62828 !important;
 }
 
 .egov-ext-reference-close {

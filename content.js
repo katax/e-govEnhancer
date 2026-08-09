@@ -3197,8 +3197,7 @@
     const effectiveSameLawPopup = ctrlKey ? !sameLawPopup : sameLawPopup;
     const effectiveOtherLawPopup = ctrlKey ? !otherLawPopup : otherLawPopup;
     return `他条文リンクは${effectiveSameLawPopup ? 'ポップアップ' : 'スクロール'}/` +
-      `他法令リンクは${effectiveOtherLawPopup ? 'ポップアップ' : '別ウィンドウ'}` +
-      (ctrlKey ? '' : '（Ctrlで一時切り替え）');
+      `他法令リンクは${effectiveOtherLawPopup ? 'ポップアップ' : '別ウィンドウ'}`;
   }
 
   function showReferencesPopup({ targetKey, sources, point, ctrlKey = false }) {
@@ -3334,6 +3333,7 @@
     document.querySelectorAll('.egov-ext-reference-clickable').forEach((el) => {
       el.classList.remove('egov-ext-reference-clickable');
       delete el.dataset.egovReferenceTargetKey;
+      delete el.dataset.egovReferenceSupplementArticle;
       el.removeAttribute('title');
       el.removeAttribute('tabindex');
     });

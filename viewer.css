@@ -423,6 +423,10 @@ body[data-content-width="narrow"] .law-content {
   outline: none;
 }
 
+.egov-lite-reference-clickable[data-egov-reference-supplement-article="true"]::before {
+  content: "附則";
+}
+
 .lite-defined-term {
   border-bottom: 1px dotted #69788c;
   cursor: help;
@@ -556,7 +560,16 @@ body[data-content-width="narrow"] .law-content {
 
 .egov-lite-reference-mode {
   font-size: 11px;
-  font-weight: 400;
+  font-weight: 700;
+}
+
+.egov-lite-reference-mode-note {
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.egov-lite-reference-mode-note-active {
+  color: #c62828;
 }
 
 .egov-lite-reference-close {

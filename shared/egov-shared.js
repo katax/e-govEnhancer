@@ -637,6 +637,12 @@
     clickable.tabIndex = clickable.tabIndex >= 0 ? clickable.tabIndex : 0;
     clickable.title = `参照元 ${sources.length}件`;
     clickable.dataset.egovReferenceTargetKey = targetKey;
+    const targetParts = splitReferenceTargetKey(targetKey);
+    if (targetParts.scope && !targetParts.paragraph && !targetParts.item) {
+      clickable.dataset.egovReferenceSupplementArticle = 'true';
+    } else {
+      delete clickable.dataset.egovReferenceSupplementArticle;
+    }
     sourceMap.set(clickable, sources);
     if (clickable.dataset.egovReferenceBound === 'true') return;
     clickable.dataset.egovReferenceBound = 'true';
