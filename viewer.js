@@ -1633,9 +1633,10 @@
   function findLiteReferenceTargetElement(targetKey) {
     const parts = getReferenceDomParts(splitReferenceTargetKey(targetKey));
     if (!parts.article) return null;
-    if (parts.item) return findJumpTarget(`${parts.article}.${parts.paragraph || '1'}.${parts.item}`);
-    if (parts.paragraph) return findJumpTarget(`${parts.article}.${parts.paragraph}`);
-    return findJumpTarget(parts.article);
+    const articleKey = parts.scope ? `${parts.scope}::${parts.article}` : parts.article;
+    if (parts.item) return findJumpTarget(`${articleKey}.${parts.paragraph || '1'}.${parts.item}`);
+    if (parts.paragraph) return findJumpTarget(`${articleKey}.${parts.paragraph}`);
+    return findJumpTarget(articleKey);
   }
 
   function findLiteReferenceClickableElement(target, targetKey) {

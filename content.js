@@ -3167,7 +3167,10 @@
         : ':scope > .articletitle, :scope > .articleheading, :scope > em.articleheading, :scope > ._div_ArticleTitle, :scope > [class*="ArticleTitle"]';
     try {
       const title = target.querySelector(selector);
-      if (title instanceof Element) return ensureReferenceNumberElement(title, parts);
+      if (title instanceof Element) {
+        const clickable = ensureReferenceNumberElement(title, parts);
+        if (clickable instanceof Element) return clickable;
+      }
     } catch (_) {}
     return ensureReferenceNumberElement(target, parts);
   }
