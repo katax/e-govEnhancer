@@ -503,7 +503,7 @@
 | 他の法令のみポップアップ表示 | `lawRefOtherLawPopup` | `true` | 別法令リンクはポップアップ表示対象にする |
 | マウスオーバーでポップアップ | `lawRefHoverPopup` | `false` | リンクホバーでe-Govポップアップを発火 |
 | 起動時に逆参照リンクを有効にする | `externalReferencesAutoEnable` | `true` | 法令画面の読み込み後に逆参照リンクを自動設定 |
-| 逆参照リンクの対象 | `reverseReferenceScope` | `both` | `internal`=同一法令内のみ、`external`=他法令からのみ、`both`=両方。変更時は開いている通常/Lite画面のリンクを即時再構築 |
+| 逆参照リンクの対象 | `reverseReferenceScope` | `both` | `internal`=同一法令内のみ、`external`=他法令からのみ、`both`=両方。変更時は開いている法令タブの再読み込みを確認 |
 | ピン状態の常時表示 | `pinToastDefaultVisible` | `true` | カラーピン状態トーストを常時表示 |
 
 ### 8.2 ショートカットキー設定表示

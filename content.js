@@ -141,7 +141,6 @@
   let articleLinkCopyLastSelection = '';
   let externalReferencesEnabled = false;
   let externalReferencesLoading = false;
-  let reverseReferenceScopeRefreshPending = false;
   let referenceAnalysisGeneration = 0;
   let activeReferencesPopup = null;
   let inyoDialogBridgeInjected = false;
@@ -192,8 +191,6 @@
       }
       if (changes[REVERSE_REFERENCE_SCOPE_KEY]) {
         reverseReferenceScope = normalizeReverseReferenceScope(changes[REVERSE_REFERENCE_SCOPE_KEY].newValue);
-        reverseReferenceScopeRefreshPending = externalReferencesEnabled;
-        if (externalReferencesEnabled) refreshReverseReferenceLinksForScope();
       }
       if (changes.liteDefTooltipEnabled) {
         defTooltipEnabled = changes.liteDefTooltipEnabled.newValue !== false;
@@ -3356,23 +3353,6 @@
     });
   }
 
-  async function refreshReverseReferenceLinksForScope() {
-    if (!externalReferencesEnabled || externalReferencesLoading) return false;
-    reverseReferenceScopeRefreshPending = false;
-    const scope = reverseReferenceScope;
-    const { includeExternal } = getReverseReferenceScopeFlags(scope);
-    const lawReferences = includeExternal
-      ? await getLawReferencesData(getCurrentLawIdFromUrl())
-      : {};
-    if (!externalReferencesEnabled) return false;
-    if (scope !== reverseReferenceScope) {
-      reverseReferenceScopeRefreshPending = true;
-      return refreshReverseReferenceLinksForScope();
-    }
-    applyExternalReferenceLinksForLaw(lawReferences);
-    return true;
-  }
-
   function setupExternalReferenceInteractions() {
     document.addEventListener('click', (event) => {
       if (!activeReferencesPopup) return;
@@ -3412,9 +3392,6 @@
     } finally {
       externalReferencesLoading = false;
       updateHeaderToggleButtonStates();
-      if (reverseReferenceScopeRefreshPending && externalReferencesEnabled) {
-        refreshReverseReferenceLinksForScope();
-      }
     }
   }
 

@@ -121,7 +121,6 @@
   let externalReferencesAutoEnable = true;
   let externalReferencesEnabled = false;
   let externalReferencesLoading = false;
-  let reverseReferenceScopeRefreshPending = false;
   let referenceAnalysisGeneration = 0;
   let activeReferencesPopup = null;
   let activeReferenceViewerPopup = null;
@@ -248,8 +247,6 @@
     if (area === 'local' && changes.lawRefOtherLawPopup) lawRefOtherLawPopupEnabled = changes.lawRefOtherLawPopup.newValue !== false;
     if (area === 'local' && changes[REVERSE_REFERENCE_SCOPE_KEY]) {
       reverseReferenceScope = normalizeReverseReferenceScope(changes[REVERSE_REFERENCE_SCOPE_KEY].newValue);
-      reverseReferenceScopeRefreshPending = externalReferencesEnabled;
-      if (externalReferencesEnabled) refreshReverseReferenceLinksForScope();
     }
     if (area === 'local' && changes[LITE_DEF_TOOLTIP_ENABLED_KEY]) {
       const nextEnabled = changes[LITE_DEF_TOOLTIP_ENABLED_KEY].newValue !== false;
@@ -1887,21 +1884,6 @@
     });
   }
 
-  async function refreshReverseReferenceLinksForScope() {
-    if (!externalReferencesEnabled || externalReferencesLoading) return false;
-    reverseReferenceScopeRefreshPending = false;
-    const scope = reverseReferenceScope;
-    const { includeExternal } = getReverseReferenceScopeFlags(scope);
-    const lawReferences = includeExternal ? await getLawReferencesData(lawId) : {};
-    if (!externalReferencesEnabled) return false;
-    if (scope !== reverseReferenceScope) {
-      reverseReferenceScopeRefreshPending = true;
-      return refreshReverseReferenceLinksForScope();
-    }
-    applyExternalReferenceLinksForLaw(lawReferences);
-    return true;
-  }
-
   async function enableExternalReferenceLinks({ silent = false } = {}) {
     if (externalReferencesEnabled) return true;
     if (externalReferencesLoading) return false;
@@ -1926,9 +1908,6 @@
     } finally {
       externalReferencesLoading = false;
       syncViewerToggleButtons();
-      if (reverseReferenceScopeRefreshPending && externalReferencesEnabled) {
-        refreshReverseReferenceLinksForScope();
-      }
     }
   }
 
