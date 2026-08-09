@@ -155,7 +155,7 @@
       const article = normalizeReferenceKeyPart(current.dataset?.articleNum);
       const paragraph = normalizeReferenceKeyPart(current.dataset?.paragraphNum);
       const item = normalizeReferenceKeyPart(current.dataset?.itemNum);
-      if (article) return { article, paragraph, item, id: current.id || '' };
+      if (article) return { article, paragraph, item, id: current.id || '', element: current };
 
       const parsed = current.id ? parseProvisionHash(`#${current.id}`) : null;
       if (parsed?.article) {
@@ -164,6 +164,7 @@
           paragraph: normalizeReferenceKeyPart(parsed.paragraph),
           item: normalizeReferenceKeyPart(parsed.item),
           id: current.id,
+          element: current,
         };
       }
       current = current.parentElement;
@@ -171,7 +172,8 @@
     return null;
   }
 
-  function getInternalReferenceSourceDetails(anchor, root, article) {
+  function getInternalReferenceSourceDetails(anchor, root, sourceParts) {
+    const article = sourceParts?.article || '';
     let current = anchor instanceof Element ? anchor : null;
     let articleElement = null;
     while (current && current !== root) {
@@ -210,17 +212,35 @@
       }
     });
 
-    const clone = articleElement.cloneNode(true);
-    clone.querySelectorAll([
-      '.article-caption',
-      '.article-title',
-      '.articlecaption',
-      '.articletitle',
-      '._div_ArticleCaption',
-      '._div_ArticleTitle',
-      '[class*="ArticleCaption"]',
-      '[class*="ArticleTitle"]',
-    ].join(', ')).forEach((node) => node.remove());
+    const sourceElement = sourceParts?.element instanceof Element ? sourceParts.element : articleElement;
+    const clone = sourceElement.cloneNode(true);
+    const directNumberSelectors = sourceParts?.item
+      ? [
+          ':scope > .law-num',
+          ':scope > .itemtitle',
+          ':scope > .itemnum',
+          ':scope > ._div_ItemTitle',
+          ':scope > [class*="ItemTitle"]',
+          ':scope > [class*="ItemNum"]',
+        ]
+      : sourceParts?.paragraph
+        ? [
+            ':scope > .law-num',
+            ':scope > .paragraphtitle',
+            ':scope > .paragraphnum',
+            ':scope > ._div_ParagraphTitle',
+            ':scope > [class*="ParagraphTitle"]',
+            ':scope > [class*="ParagraphNum"]',
+          ]
+        : [
+            ':scope > .article-caption',
+            ':scope > .article-title',
+            ':scope > .articlecaption',
+            ':scope > .articletitle',
+            ':scope > ._div_ArticleCaption',
+            ':scope > [class*="ArticleCaption"]',
+          ];
+    clone.querySelectorAll(directNumberSelectors.join(', ')).forEach((node) => node.remove());
     const numberPattern = '[0-9０-９〇零一二三四五六七八九十百千万]+';
     const leadingHeadingPattern = new RegExp(`^(?:（[^）]*）|\\([^)]*\\))\\s*第${numberPattern}条(?:の${numberPattern})?\\s*`);
     let text = String(clone.textContent || '')
@@ -231,13 +251,28 @@
     const leadingArticleNumberPattern = new RegExp(`^第(${numberPattern})条(?:の(${numberPattern}))?\\s*`);
     const leadingArticleNumber = text.match(leadingArticleNumberPattern);
     const expectedArticleParts = String(article || '').split('-').map(Number);
+    const sourceClassName = typeof sourceElement.className === 'string' ? sourceElement.className : '';
+    const hasCombinedArticleSentence = /(?:^|\s)_div_ArticleTitle(?:\s|$)/.test(sourceClassName);
     if (
       !hadEmbeddedHeading &&
+      ((!sourceParts?.paragraph && !sourceParts?.item) || hasCombinedArticleSentence) &&
       leadingArticleNumber &&
       parseJapaneseReferenceNumber(leadingArticleNumber[1]) === expectedArticleParts[0] &&
       (leadingArticleNumber[2] ? parseJapaneseReferenceNumber(leadingArticleNumber[2]) : 0) === (expectedArticleParts[1] || 0)
     ) {
       text = text.slice(leadingArticleNumber[0].length).trim();
+    }
+
+    const sourceUnit = sourceParts?.item ? '号' : sourceParts?.paragraph ? '項' : '';
+    const sourceUnitValue = sourceParts?.item || sourceParts?.paragraph || '';
+    if (sourceUnit && sourceUnitValue) {
+      const leadingUnitPattern = new RegExp(`^(?:第(${numberPattern})${sourceUnit}|(${numberPattern})\\s+)`);
+      const leadingUnit = text.match(leadingUnitPattern);
+      const expectedUnitNumber = Number(String(sourceUnitValue).split('-')[0]);
+      const actualUnitNumber = parseJapaneseReferenceNumber(leadingUnit?.[1] || leadingUnit?.[2]);
+      if (Number.isInteger(expectedUnitNumber) && actualUnitNumber === expectedUnitNumber) {
+        text = text.slice(leadingUnit[0].length).trim();
+      }
     }
     return { text, paragraphCount: paragraphNumbers.size };
   }
@@ -374,7 +409,7 @@
       if (!sourceParts?.article) return;
       const sourceUrl = buildInternalReferenceSourceUrl(lawId, sourceParts);
       if (!sourceUrl) return;
-      const sourceDetails = getInternalReferenceSourceDetails(anchor, root, sourceParts.article);
+      const sourceDetails = getInternalReferenceSourceDetails(anchor, root, sourceParts);
       const sourceProvisionLabel = formatProvisionSourcePath({
         article: sourceParts.article,
         paragraph: sourceDetails.paragraphCount > 1 ? sourceParts.paragraph : '',
