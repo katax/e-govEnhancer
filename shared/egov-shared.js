@@ -324,14 +324,89 @@
     return Array.from({ length: end - start + 1 }, (_, index) => buildKey(start + index));
   }
 
-  function getInternalReferenceTargetKeys(anchor, initialTargetKey, sourceParts) {
+  function buildInternalProvisionOrder(root) {
+    const articles = [];
+    const paragraphs = new Map();
+    const items = new Map();
+    const seenArticles = new Set();
+    const seenParagraphs = new Map();
+    const seenItems = new Map();
+    root.querySelectorAll('[data-article-num], [id*="At_"]').forEach((element) => {
+      const parsed = element.id ? parseProvisionHash(`#${element.id}`) : null;
+      const article = normalizeReferenceKeyPart(element.dataset?.articleNum || parsed?.article);
+      const paragraph = normalizeReferenceKeyPart(element.dataset?.paragraphNum || parsed?.paragraph);
+      const item = normalizeReferenceKeyPart(element.dataset?.itemNum || parsed?.item);
+      if (!article) return;
+      if (!seenArticles.has(article)) {
+        seenArticles.add(article);
+        articles.push(article);
+      }
+      if (!paragraph) return;
+      if (!paragraphs.has(article)) paragraphs.set(article, []);
+      if (!seenParagraphs.has(article)) seenParagraphs.set(article, new Set());
+      if (!seenParagraphs.get(article).has(paragraph)) {
+        seenParagraphs.get(article).add(paragraph);
+        paragraphs.get(article).push(paragraph);
+      }
+      if (!item) return;
+      const paragraphKey = `${article}.${paragraph}`;
+      if (!items.has(paragraphKey)) items.set(paragraphKey, []);
+      if (!seenItems.has(paragraphKey)) seenItems.set(paragraphKey, new Set());
+      if (!seenItems.get(paragraphKey).has(item)) {
+        seenItems.get(paragraphKey).add(item);
+        items.get(paragraphKey).push(item);
+      }
+    });
+    return { articles, paragraphs, items };
+  }
+
+  function getPriorReferenceKeys(parts, unit, count, provisionOrder) {
+    if (!Number.isInteger(count) || count < 2 || count > 500) return [];
+    let values = [];
+    let startValue = '';
+    let buildKey;
+    if (unit === '条') {
+      values = provisionOrder?.articles || [];
+      startValue = parts.article;
+      buildKey = (article) => article;
+    } else if (unit === '項') {
+      values = provisionOrder?.paragraphs?.get(parts.article) || [];
+      startValue = parts.paragraph || '1';
+      buildKey = (paragraph) => canonicalizeReferenceTargetKey(`${parts.article}.${paragraph}`);
+    } else if (unit === '号') {
+      const paragraph = parts.paragraph || '1';
+      values = provisionOrder?.items?.get(`${parts.article}.${paragraph}`) || [];
+      startValue = parts.item || '1';
+      buildKey = (item) => canonicalizeReferenceTargetKey(`${parts.article}.${paragraph}.${item}`);
+    }
+    const startIndex = values.indexOf(startValue);
+    if (startIndex >= 0) {
+      const keys = values.slice(startIndex, startIndex + count).map(buildKey).filter(Boolean);
+      if (keys.length === count) return keys;
+    }
+
+    const start = Number(String(startValue).split('-')[0]);
+    return buildSequentialReferenceKeys(start, start + count - 1, (number) => {
+      if (unit === '条') return String(number);
+      if (unit === '項') return canonicalizeReferenceTargetKey(`${parts.article}.${number}`);
+      return canonicalizeReferenceTargetKey(`${parts.article}.${parts.paragraph || '1'}.${number}`);
+    });
+  }
+
+  function getInternalReferenceTargetKeys(anchor, initialTargetKey, sourceParts, provisionOrder) {
     const targetKey = canonicalizeReferenceTargetKey(initialTargetKey);
     const parts = splitReferenceTargetKey(targetKey);
     if (!parts.article) return [];
     const text = String(anchor?.textContent || '').replace(/\s+/g, '');
+    const numberPattern = '[0-9０-９〇零一二三四五六七八九十百千万]+';
+    const priorMatch = text.match(new RegExp(`前(${numberPattern})(条|項|号)`));
+    if (priorMatch) {
+      const count = parseJapaneseReferenceNumber(priorMatch[1]);
+      const keys = getPriorReferenceKeys(parts, priorMatch[2], count, provisionOrder);
+      if (keys.length) return keys;
+    }
     if (!text.includes('から') || !text.includes('まで')) return [targetKey];
 
-    const numberPattern = '[0-9０-９〇零一二三四五六七八九十百千万]+';
     const articleSegments = parts.article.split('-').map(Number);
     const startArticle = articleSegments[0];
     const startArticleBranch = articleSegments[1] || 0;
@@ -387,6 +462,7 @@
     if (!(root instanceof Element) || !lawId) return {};
     const result = {};
     const seenByTarget = new Map();
+    const provisionOrder = buildInternalProvisionOrder(root);
 
     root.querySelectorAll('a[href]').forEach((anchor) => {
       let parsedUrl;
@@ -416,7 +492,7 @@
         item: sourceParts.item,
       });
 
-      getInternalReferenceTargetKeys(anchor, targetKey, sourceParts).forEach((resolvedTargetKey) => {
+      getInternalReferenceTargetKeys(anchor, targetKey, sourceParts, provisionOrder).forEach((resolvedTargetKey) => {
         let seen = seenByTarget.get(resolvedTargetKey);
         if (!seen) {
           seen = new Set();

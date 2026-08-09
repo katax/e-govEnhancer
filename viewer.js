@@ -489,6 +489,97 @@
     return html + escapeHtml(source.slice(lastIndex));
   }
 
+  function buildLiteProvisionHref(article, paragraph = '', item = '') {
+    if (!article) return '';
+    const articlePath = String(article).replace(/-/g, '_');
+    const paragraphPath = paragraph ? `-Pr_${String(paragraph).replace(/-/g, '_')}` : '';
+    const itemPath = item ? `-It_${String(item).replace(/-/g, '_')}` : '';
+    return `https://laws.e-gov.go.jp/law/${encodeURIComponent(lawId)}#Mp-At_${articlePath}${paragraphPath}${itemPath}`;
+  }
+
+  function getLitePriorReferenceHref(node, unit, count, articles) {
+    if (!Number.isInteger(count) || count < 2) return '';
+    const sourceElement = node.parentElement;
+    const sourceArticle = sourceElement?.closest('.law-article[data-article-num]');
+    if (!sourceArticle) return '';
+    if (unit === '条') {
+      const sourceIndex = articles.indexOf(sourceArticle);
+      const target = articles[sourceIndex - count];
+      return buildLiteProvisionHref(target?.dataset?.articleNum || '');
+    }
+
+    const sourceParagraph = sourceElement.closest('.law-paragraph[data-paragraph-num]');
+    if (!sourceParagraph) return '';
+    const paragraphs = Array.from(sourceArticle.querySelectorAll('.law-paragraph[data-paragraph-num]'))
+      .filter((paragraph) => paragraph.closest('.law-article') === sourceArticle);
+    if (unit === '項') {
+      const sourceIndex = paragraphs.indexOf(sourceParagraph);
+      const target = paragraphs[sourceIndex - count];
+      return buildLiteProvisionHref(
+        sourceArticle.dataset.articleNum,
+        target?.dataset?.paragraphNum || ''
+      );
+    }
+
+    const sourceItem = sourceElement.closest('.law-item[data-item-num], .law-subitem[data-item-num]');
+    if (!sourceItem) return '';
+    const items = Array.from(sourceParagraph.querySelectorAll('.law-item[data-item-num], .law-subitem[data-item-num]'))
+      .filter((item) => item.closest('.law-paragraph') === sourceParagraph);
+    const sourceIndex = items.indexOf(sourceItem);
+    const target = items[sourceIndex - count];
+    return buildLiteProvisionHref(
+      sourceArticle.dataset.articleNum,
+      sourceParagraph.dataset.paragraphNum,
+      target?.dataset?.itemNum || ''
+    );
+  }
+
+  function linkifyLitePriorReferences() {
+    if (!lawId || !contentEl.querySelector('.law-article')) return;
+    const articles = Array.from(contentEl.querySelectorAll('.law-article[data-article-num]'));
+    const textNodes = [];
+    const walker = document.createTreeWalker(contentEl, NodeFilter.SHOW_TEXT, {
+      acceptNode(node) {
+        const parent = node.parentElement;
+        if (!parent || !node.textContent?.includes('前')) return NodeFilter.FILTER_SKIP;
+        if (parent.closest('a, button, script, style, .law-title, .law-heading, .article-title, .article-caption')) {
+          return NodeFilter.FILTER_REJECT;
+        }
+        return NodeFilter.FILTER_ACCEPT;
+      },
+    });
+    let node;
+    while ((node = walker.nextNode())) textNodes.push(node);
+
+    const numberPattern = '[0-9０-９〇零一二三四五六七八九十百千万]+';
+    const pattern = new RegExp(`前(${numberPattern})(条|項|号)`, 'g');
+    textNodes.forEach((textNode) => {
+      const text = textNode.textContent || '';
+      pattern.lastIndex = 0;
+      let match;
+      let lastIndex = 0;
+      let changed = false;
+      const fragment = document.createDocumentFragment();
+      while ((match = pattern.exec(text))) {
+        const count = parseJapaneseReferenceNumber(match[1]);
+        const href = getLitePriorReferenceHref(textNode, match[2], count, articles);
+        if (!href) continue;
+        fragment.appendChild(document.createTextNode(text.slice(lastIndex, match.index)));
+        const anchor = document.createElement('a');
+        anchor.href = href;
+        anchor.target = '_blank';
+        anchor.rel = 'noreferrer';
+        anchor.textContent = match[0];
+        fragment.appendChild(anchor);
+        lastIndex = pattern.lastIndex;
+        changed = true;
+      }
+      if (!changed) return;
+      fragment.appendChild(document.createTextNode(text.slice(lastIndex)));
+      textNode.replaceWith(fragment);
+    });
+  }
+
   function renderInlineChildren(el) {
     return Array.from(el.childNodes).map(renderInline).join('');
   }
@@ -963,6 +1054,7 @@
     document.body.removeAttribute('data-paren-mode');
     syncViewerToggleButtons();
     articleElementsCache = Array.from(contentEl.querySelectorAll('.law-article'));
+    linkifyLitePriorReferences();
     rebuildArticleIndex();
     scheduleApplyLiteDefinitionTooltips();
   }
