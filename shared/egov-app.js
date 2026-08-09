@@ -140,6 +140,8 @@
     sortSources,
     escapeHtml,
     getSourceLabel,
+    getLinkModeText,
+    initialCtrlKey = false,
     onOpen,
     onClose,
   }) {
@@ -151,7 +153,10 @@
     popup.setAttribute('role', 'dialog');
     popup.innerHTML = `
       <div class="${classPrefix}-reference-popup-head">
-        <div class="${classPrefix}-reference-target">${escapeHtml(getReferenceTargetLabel(targetKey))}</div>
+        <div class="${classPrefix}-reference-target">
+          <span class="${classPrefix}-reference-target-number">${escapeHtml(getReferenceTargetLabel(targetKey))}</span>
+          <span class="${classPrefix}-reference-mode"></span>
+        </div>
         <button type="button" class="${classPrefix}-reference-close" aria-label="閉じる">×</button>
       </div>
       <div class="${classPrefix}-reference-list">
@@ -164,6 +169,38 @@
       </div>
     `;
     global.document.body.appendChild(popup);
+    const mode = popup.querySelector(`.${classPrefix}-reference-mode`);
+    let ctrlPressed = initialCtrlKey === true;
+    const updateMode = () => {
+      if (!mode || typeof getLinkModeText !== 'function') return;
+      mode.textContent = ` > ${getLinkModeText(ctrlPressed)}`;
+    };
+    const onKeyDown = (event) => {
+      if (event.key !== 'Control' || ctrlPressed) return;
+      ctrlPressed = true;
+      updateMode();
+    };
+    const onKeyUp = (event) => {
+      if (event.key !== 'Control' || !ctrlPressed) return;
+      ctrlPressed = false;
+      updateMode();
+    };
+    const onWindowBlur = () => {
+      if (!ctrlPressed) return;
+      ctrlPressed = false;
+      updateMode();
+    };
+    updateMode();
+    if (mode) {
+      global.addEventListener('keydown', onKeyDown);
+      global.addEventListener('keyup', onKeyUp);
+      global.addEventListener('blur', onWindowBlur);
+      popup.cleanupReferencePopup = () => {
+        global.removeEventListener('keydown', onKeyDown);
+        global.removeEventListener('keyup', onKeyUp);
+        global.removeEventListener('blur', onWindowBlur);
+      };
+    }
     positionFixedPopup(popup, point);
     popup.addEventListener('click', (event) => event.stopPropagation());
     popup.querySelector(`.${classPrefix}-reference-close`)?.addEventListener('click', onClose);

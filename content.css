@@ -120,9 +120,17 @@
 }
 
 .egov-ext-reference-target {
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
   color: #303949 !important;
   font-size: 13px !important;
   font-weight: 700 !important;
+  line-height: 1.4 !important;
+}
+
+.egov-ext-reference-mode {
+  font-size: 11px !important;
+  font-weight: 400 !important;
 }
 
 .egov-ext-reference-close {

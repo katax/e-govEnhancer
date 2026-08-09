@@ -447,22 +447,23 @@
     if (clickable.dataset.egovReferenceBound === 'true') return;
     clickable.dataset.egovReferenceBound = 'true';
 
-    const open = (point) => showPopup({
+    const open = (point, ctrlKey = false) => showPopup({
       targetKey: clickable.dataset.egovReferenceTargetKey,
       sources: sourceMap.get(clickable),
       point,
+      ctrlKey,
     });
     clickable.addEventListener('click', (event) => {
       if (!isEnabled()) return;
       event.preventDefault();
       event.stopPropagation();
-      open({ x: event.clientX, y: event.clientY });
+      open({ x: event.clientX, y: event.clientY }, event.ctrlKey);
     });
     clickable.addEventListener('keydown', (event) => {
       if (!isEnabled() || (event.key !== 'Enter' && event.key !== ' ')) return;
       event.preventDefault();
       const rect = clickable.getBoundingClientRect();
-      open({ x: rect.left, y: rect.bottom });
+      open({ x: rect.left, y: rect.bottom }, event.ctrlKey);
     });
   }
 

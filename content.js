@@ -3146,11 +3146,22 @@
 
   function hideReferencesPopup() {
     if (!activeReferencesPopup) return;
+    activeReferencesPopup.cleanupReferencePopup?.();
     activeReferencesPopup.remove();
     activeReferencesPopup = null;
   }
 
-  function showReferencesPopup({ targetKey, sources, point }) {
+  function getReferenceLinkModeText(ctrlKey = false) {
+    const sameLawPopup = lawRefClickEnabled === false;
+    const otherLawPopup = sameLawPopup || lawRefOtherLawPopupEnabled;
+    const effectiveSameLawPopup = ctrlKey ? !sameLawPopup : sameLawPopup;
+    const effectiveOtherLawPopup = ctrlKey ? !otherLawPopup : otherLawPopup;
+    return `他条文リンクは${effectiveSameLawPopup ? 'ポップアップ' : 'スクロール'}/` +
+      `他法令リンクは${effectiveOtherLawPopup ? 'ポップアップ' : '別ウィンドウ'}` +
+      (ctrlKey ? '' : '（Ctrlで一時切り替え）');
+  }
+
+  function showReferencesPopup({ targetKey, sources, point, ctrlKey = false }) {
     if (!Array.isArray(sources) || !sources.length) return;
     hideReferencesPopup();
     activeReferencesPopup = createReferencePopup({
@@ -3162,6 +3173,8 @@
       sortSources: sortReferenceSources,
       escapeHtml,
       getSourceLabel: getReferenceSourceLabel,
+      getLinkModeText: getReferenceLinkModeText,
+      initialCtrlKey: ctrlKey,
       onOpen: openReferenceSource,
       onClose: hideReferencesPopup,
     });
