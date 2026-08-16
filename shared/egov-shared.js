@@ -464,6 +464,32 @@
     });
   }
 
+  function getAllParagraphReferenceKeys(parts, provisionOrder) {
+    const scope = String(parts.scope || '');
+    const articleKey = formatScopedReferenceTargetKey(scope, parts.article);
+    return (provisionOrder?.paragraphs?.get(articleKey) || [])
+      .map((paragraph) => canonicalizeReferenceTargetKey(
+        formatScopedReferenceTargetKey(scope, `${parts.article}.${paragraph}`)
+      ))
+      .filter(Boolean);
+  }
+
+  function getAllItemReferenceKeys(parts, provisionOrder, includeAllParagraphs = false) {
+    const scope = String(parts.scope || '');
+    const paragraphs = includeAllParagraphs
+      ? getAllParagraphReferenceKeys(parts, provisionOrder)
+        .map((key) => splitReferenceTargetKey(key).paragraph || '1')
+      : [parts.paragraph || '1'];
+    return paragraphs.flatMap((paragraph) => {
+      const paragraphKey = formatScopedReferenceTargetKey(scope, `${parts.article}.${paragraph}`);
+      return (provisionOrder?.items?.get(paragraphKey) || [])
+        .map((item) => canonicalizeReferenceTargetKey(
+          formatScopedReferenceTargetKey(scope, `${parts.article}.${paragraph}.${item}`)
+        ))
+        .filter(Boolean);
+    });
+  }
+
   function getInternalReferenceTargetKeys(anchor, initialTargetKey, sourceParts, provisionOrder) {
     const targetKey = canonicalizeReferenceTargetKey(initialTargetKey);
     const parts = splitReferenceTargetKey(targetKey);
@@ -474,6 +500,14 @@
     if (priorMatch) {
       const count = parseJapaneseReferenceNumber(priorMatch[1]);
       const keys = getPriorReferenceKeys(parts, priorMatch[2], count, provisionOrder);
+      if (keys.length) return keys;
+    }
+    if (text.includes('各号')) {
+      const keys = getAllItemReferenceKeys(parts, provisionOrder, text.includes('各項'));
+      if (keys.length) return keys;
+    }
+    if (text.includes('各項')) {
+      const keys = getAllParagraphReferenceKeys(parts, provisionOrder);
       if (keys.length) return keys;
     }
     if (!text.includes('から') || !text.includes('まで')) return [targetKey];

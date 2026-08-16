@@ -118,6 +118,9 @@
   let lawReferenceShieldAnchor = null;
   let lawReferenceOpenLockUntil = 0;
   let lawRefClickEnabled = true;
+  // null の間は保存設定を使用し、boolean の間はこの法令画面だけで一時上書きする。
+  let lawRefPageScrollOverride = null;
+  let lawRefModeCtrlPressed = false;
   let lawRefHoverPopupEnabled = false;
   let lawRefOtherLawPopupEnabled = true;
   let reverseReferenceScope = 'both';
@@ -185,6 +188,7 @@
       if (changes.lawRefClickEnabled) {
         lawRefClickEnabled = changes.lawRefClickEnabled.newValue !== false;
         if (!lawRefClickEnabled) hideLawReferencePreview();
+        updateLawRefModeButton();
       }
       if (changes.lawRefHoverPopup) {
         lawRefHoverPopupEnabled = changes.lawRefHoverPopup.newValue === true;
@@ -728,6 +732,42 @@
     button.setAttribute('aria-label', title);
   }
 
+  function isLawRefScrollMode() {
+    return lawRefPageScrollOverride ?? lawRefClickEnabled;
+  }
+
+  function updateLawRefModeButton() {
+    const button = document.getElementById('egov-ext-law-ref-mode-button');
+    if (!button) return;
+    if (!button.dataset.fixedModeWidth) {
+      button.textContent = 'ポップアップ';
+      button.style.setProperty('box-sizing', 'border-box', 'important');
+      button.style.setProperty('width', 'auto', 'important');
+      const popupModeWidth = Math.ceil(button.getBoundingClientRect().width);
+      if (popupModeWidth > 0) {
+        button.style.setProperty('width', `${popupModeWidth}px`, 'important');
+        button.style.setProperty('min-width', `${popupModeWidth}px`, 'important');
+        button.dataset.fixedModeWidth = String(popupModeWidth);
+      }
+    }
+    const effectiveScrollMode = lawRefModeCtrlPressed ? !isLawRefScrollMode() : isLawRefScrollMode();
+    const modeLabel = effectiveScrollMode ? 'スクロール' : 'ポップアップ';
+    button.textContent = modeLabel;
+    button.classList.toggle('is-active', effectiveScrollMode && !lawRefModeCtrlPressed);
+    button.classList.toggle('is-ctrl-temporary', lawRefModeCtrlPressed);
+    button.setAttribute('aria-pressed', String(effectiveScrollMode));
+    button.title = lawRefModeCtrlPressed
+      ? `Ctrl一時切替中：${modeLabel}`
+      : `${modeLabel}（この法令だけの一時設定）`;
+    button.setAttribute('aria-label', button.title);
+  }
+
+  function toggleLawRefPageMode() {
+    lawRefPageScrollOverride = !isLawRefScrollMode();
+    hideLawReferencePreview();
+    updateLawRefModeButton();
+  }
+
   function updateHeaderToggleButtonStates() {
     setHeaderToggleButtonState(
       document.getElementById('egov-ext-wide-button'),
@@ -754,6 +794,7 @@
       defTooltipEnabled,
       defTooltipEnabled ? '定義語リンクを無効化' : '定義語リンクを有効化'
     );
+    updateLawRefModeButton();
   }
 
   function toggleDefinitionHeaderLinks() {
@@ -772,6 +813,7 @@
       { id: 'egov-ext-paren-button', label: 'かっこ', onClick: () => toggleParenthesesMute('nested') },
       { id: 'egov-ext-external-references-button', label: '逆リンク', onClick: () => toggleExternalReferenceLinks() },
       { id: 'egov-ext-definition-button', label: '定義', onClick: toggleDefinitionHeaderLinks },
+      { id: 'egov-ext-law-ref-mode-button', label: 'スクロール', onClick: toggleLawRefPageMode },
     ];
     const buttons = configs.map(({ id, label, onClick }) => {
       let button = document.getElementById(id);
@@ -3192,7 +3234,7 @@
   }
 
   function getReferenceLinkModeText(ctrlKey = false) {
-    const sameLawPopup = lawRefClickEnabled === false;
+    const sameLawPopup = !isLawRefScrollMode();
     const otherLawPopup = sameLawPopup || lawRefOtherLawPopupEnabled;
     const effectiveSameLawPopup = ctrlKey ? !sameLawPopup : sameLawPopup;
     const effectiveOtherLawPopup = ctrlKey ? !otherLawPopup : otherLawPopup;
@@ -3233,8 +3275,9 @@
 
   function shouldOpenReferenceSourcePopup(event, anchor) {
     const isDifferentLaw = isAnchorDifferentLaw(anchor);
-    let shouldPopup = lawRefClickEnabled === false;
-    if (lawRefClickEnabled !== false && lawRefOtherLawPopupEnabled && isDifferentLaw) {
+    const scrollMode = isLawRefScrollMode();
+    let shouldPopup = !scrollMode;
+    if (scrollMode && lawRefOtherLawPopupEnabled && isDifferentLaw) {
       shouldPopup = true;
     }
     return event?.ctrlKey ? !shouldPopup : shouldPopup;
@@ -4115,7 +4158,7 @@
   }
 
   function shouldSuppressLawReferencePopup(event, anchor) {
-    const baseSuppress = lawRefClickEnabled !== false;
+    const baseSuppress = isLawRefScrollMode();
     const effectiveSuppress = event?.ctrlKey ? !baseSuppress : baseSuppress;
     if (!effectiveSuppress) return false;
     return !(lawRefOtherLawPopupEnabled && isAnchorDifferentLaw(anchor));
@@ -4199,14 +4242,25 @@
     }, true);
 
     document.addEventListener('keydown', (event) => {
-      if (!event.isTrusted || event.key !== 'Control' || lawRefClickEnabled !== false) return;
-      activateLawReferenceAnchorAtPoint(lawReferencePointerPoint);
+      if (!event.isTrusted || event.key !== 'Control') return;
+      lawRefModeCtrlPressed = true;
+      updateLawRefModeButton();
+      if (!isLawRefScrollMode()) activateLawReferenceAnchorAtPoint(lawReferencePointerPoint);
     }, true);
 
     document.addEventListener('keyup', (event) => {
-      if (!event.isTrusted || event.key !== 'Control' || lawRefClickEnabled !== false) return;
-      hideLawReferencePreview();
+      if (!event.isTrusted || event.key !== 'Control') return;
+      lawRefModeCtrlPressed = false;
+      updateLawRefModeButton();
+      if (!isLawRefScrollMode()) hideLawReferencePreview();
     }, true);
+
+    window.addEventListener('blur', () => {
+      if (!lawRefModeCtrlPressed) return;
+      lawRefModeCtrlPressed = false;
+      updateLawRefModeButton();
+      hideLawReferencePreview();
+    });
 
     window.addEventListener('scroll', () => hideLawReferencePreview(), { passive: true });
     window.addEventListener('resize', () => hideLawReferencePreview());
@@ -5077,6 +5131,7 @@
         lawRefHoverPopupEnabled = lawRefHoverPopup === true;
         lawRefOtherLawPopupEnabled = lawRefOtherLawPopup !== false;
         reverseReferenceScope = normalizeReverseReferenceScope(storedReverseReferenceScope);
+        updateLawRefModeButton();
         setupLawReferenceInteractions();
       });
     }, 1800);

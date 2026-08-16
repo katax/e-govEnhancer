@@ -762,6 +762,14 @@ mark.egov-ext-mark-current {
   color: #fff !important;
 }
 
+.egov-ext-header-toggle-button.is-ctrl-temporary,
+.egov-ext-header-toggle-button.is-ctrl-temporary:hover {
+  border-color: rgba(198, 40, 40, 0.58) !important;
+  background: #fff7f7 !important;
+  color: #c62828 !important;
+  box-shadow: none !important;
+}
+
 .egov-ext-header-toggle-button[aria-busy="true"] {
   cursor: progress !important;
   opacity: 0.7 !important;
