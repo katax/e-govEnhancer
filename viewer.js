@@ -82,6 +82,7 @@
   const parenModeButton = document.getElementById('paren-mode-button');
   const externalReferencesButton = document.getElementById('external-references-button');
   const definitionLinksButton = document.getElementById('definition-links-button');
+  const lawRefModeButton = document.getElementById('law-ref-mode-button');
   const normalModeButton = document.getElementById('normal-mode-button');
   const compareModeButton = document.getElementById('compare-mode-button');
   const favoriteButton = document.getElementById('favorite-button');
@@ -116,6 +117,8 @@
   let compareFocusedIndex = -1;
   let lawRefClickEnabled = true;
   let lawRefOtherLawPopupEnabled = true;
+  let lawRefPageScrollOverride = null;
+  let lawRefModeCtrlPressed = false;
   let reverseReferenceScope = 'both';
   let liteDefTooltipEnabled = true;
   let defTooltipClickOnly = true;
@@ -143,6 +146,40 @@
     button.title = title;
   }
 
+  function isLawRefScrollMode() {
+    return lawRefPageScrollOverride ?? lawRefClickEnabled;
+  }
+
+  function updateLawRefModeButton() {
+    if (!lawRefModeButton) return;
+    if (!lawRefModeButton.dataset.fixedModeWidth) {
+      lawRefModeButton.textContent = 'ポップアップ';
+      lawRefModeButton.style.boxSizing = 'border-box';
+      lawRefModeButton.style.width = 'auto';
+      const popupModeWidth = Math.ceil(lawRefModeButton.getBoundingClientRect().width);
+      if (popupModeWidth > 0) {
+        lawRefModeButton.style.width = `${popupModeWidth}px`;
+        lawRefModeButton.style.minWidth = `${popupModeWidth}px`;
+        lawRefModeButton.dataset.fixedModeWidth = String(popupModeWidth);
+      }
+    }
+    const effectiveScrollMode = lawRefModeCtrlPressed ? !isLawRefScrollMode() : isLawRefScrollMode();
+    const modeLabel = effectiveScrollMode ? 'スクロール' : 'ポップアップ';
+    lawRefModeButton.textContent = modeLabel;
+    lawRefModeButton.classList.toggle('is-active', effectiveScrollMode && !lawRefModeCtrlPressed);
+    lawRefModeButton.classList.toggle('is-ctrl-temporary', lawRefModeCtrlPressed);
+    lawRefModeButton.setAttribute('aria-pressed', String(effectiveScrollMode));
+    lawRefModeButton.title = lawRefModeCtrlPressed
+      ? `Ctrl一時切替中：${modeLabel}`
+      : `${modeLabel}（この法令だけの一時設定）`;
+    lawRefModeButton.setAttribute('aria-label', lawRefModeButton.title);
+  }
+
+  function toggleLawRefPageMode() {
+    lawRefPageScrollOverride = !isLawRefScrollMode();
+    updateLawRefModeButton();
+  }
+
   function syncViewerToggleButtons() {
     const parenHidden = document.body.dataset.parenMode === 'nested';
     setViewerToggleButtonState(parenModeButton, parenHidden, parenHidden ? 'かっこ消しを解除' : 'かっこを薄くして本文を表示');
@@ -158,6 +195,7 @@
       liteDefTooltipEnabled,
       liteDefTooltipEnabled ? '定義語リンクを無効化' : '定義語リンクを有効化'
     );
+    updateLawRefModeButton();
   }
 
   function applyFontSize(value) {
@@ -202,6 +240,7 @@
   parenModeButton.addEventListener('click', () => toggleParenMode('nested'));
   externalReferencesButton.addEventListener('click', toggleExternalReferenceLinks);
   definitionLinksButton.addEventListener('click', toggleDefinitionLinks);
+  lawRefModeButton.addEventListener('click', toggleLawRefPageMode);
   compareModeButton.addEventListener('click', () => toggleCompareMode());
   favoriteButton.addEventListener('click', () => toggleFavorite());
   shortcutButton.addEventListener('click', () => showShortcutDialog());
@@ -244,7 +283,10 @@
     }
     if (area === 'local' && changes[LITE_FONT_SIZE_KEY]) applyFontSize(changes[LITE_FONT_SIZE_KEY].newValue);
     if (area === 'local' && changes[LITE_CONTENT_WIDTH_KEY]) applyContentWidth(changes[LITE_CONTENT_WIDTH_KEY].newValue);
-    if (area === 'local' && changes.lawRefClickEnabled) lawRefClickEnabled = changes.lawRefClickEnabled.newValue !== false;
+    if (area === 'local' && changes.lawRefClickEnabled) {
+      lawRefClickEnabled = changes.lawRefClickEnabled.newValue !== false;
+      updateLawRefModeButton();
+    }
     if (area === 'local' && changes.lawRefOtherLawPopup) lawRefOtherLawPopupEnabled = changes.lawRefOtherLawPopup.newValue !== false;
     if (area === 'local' && changes[REVERSE_REFERENCE_SCOPE_KEY]) {
       reverseReferenceScope = normalizeReverseReferenceScope(changes[REVERSE_REFERENCE_SCOPE_KEY].newValue);
@@ -981,7 +1023,7 @@
   function shouldSkipDefinitionTextNode(node, definition) {
     const parent = node.parentElement;
     if (!parent) return true;
-    if (parent.closest('a, button, script, style, mark, .law-title, .law-heading, .article-title, .article-caption, .egov-lite-paren, .lite-defined-term, .egov-lite-reference-number, .egov-lite-reference-clickable')) return true;
+    if (parent.closest('a, button, script, style, mark, .law-title, .law-heading, .article-title, .article-caption, .lite-defined-term, .egov-lite-reference-number, .egov-lite-reference-clickable')) return true;
     if (definition?.excludeEl?.contains(parent)) return true;
     if (definition?.sourceType === 'patternC' && definition.sourceEl) {
       const pos = parent.compareDocumentPosition(definition.sourceEl);
@@ -1753,7 +1795,7 @@
   }
 
   function getReferenceLinkModeText(ctrlKey = false) {
-    const sameLawPopup = lawRefClickEnabled === false;
+    const sameLawPopup = !isLawRefScrollMode();
     const otherLawPopup = sameLawPopup || lawRefOtherLawPopupEnabled;
     const effectiveSameLawPopup = ctrlKey ? !sameLawPopup : sameLawPopup;
     const effectiveOtherLawPopup = ctrlKey ? !otherLawPopup : otherLawPopup;
@@ -1809,8 +1851,9 @@
 
   function shouldOpenReferenceSourcePopup(event, sourceLawId) {
     const isDifferentLaw = sourceLawId && sourceLawId !== lawId;
-    let shouldPopup = lawRefClickEnabled === false;
-    if (lawRefClickEnabled !== false && lawRefOtherLawPopupEnabled && isDifferentLaw) shouldPopup = true;
+    const scrollMode = isLawRefScrollMode();
+    let shouldPopup = !scrollMode;
+    if (scrollMode && lawRefOtherLawPopupEnabled && isDifferentLaw) shouldPopup = true;
     return event?.ctrlKey ? !shouldPopup : shouldPopup;
   }
 
@@ -1833,22 +1876,28 @@
     if (!activeReferenceViewerPopup) window.open(url, '_blank', 'noopener');
   }
 
+  function openLawReferenceUrl(url, event = null, sourceLawId = '') {
+    const resolvedLawId = sourceLawId || getLawIdFromUrl(url);
+    if (!resolvedLawId) return false;
+    const provisionKey = parseProvisionKeyFromEgovUrl(url);
+    const point = event ? { x: event.clientX, y: event.clientY } : null;
+    if (shouldOpenReferenceSourcePopup(event || {}, resolvedLawId)) {
+      showReferenceViewerPopup(null, url, point);
+      return true;
+    }
+    if (resolvedLawId === lawId && provisionKey && jumpToKey(provisionKey)) return true;
+    window.open(url, '_blank', 'noopener');
+    return true;
+  }
+
   function openReferenceSource(source, event = null) {
     if (!source) return;
     const sourceLawId = source.sourceLawId || getLawIdFromUrl(source.sourceUrl || '');
-    const provisionKey = parseProvisionKeyFromEgovUrl(source.sourceUrl || '');
-    const point = event ? { x: event.clientX, y: event.clientY } : null;
     hideReferencesPopup();
-
-    if (sourceLawId === lawId && provisionKey && jumpToKey(provisionKey)) return;
 
     const url = buildNormalReferenceSourceUrl(source);
     if (!url) return;
-    if (shouldOpenReferenceSourcePopup(event || {}, sourceLawId)) {
-      showReferenceViewerPopup(source, url, point);
-      return;
-    }
-    window.open(url, '_blank', 'noopener');
+    openLawReferenceUrl(url, event, sourceLawId);
   }
 
   function clearExternalReferenceLinks() {
@@ -1904,7 +1953,11 @@
         });
         if (!externalReferencesEnabled || generation !== referenceAnalysisGeneration) return;
         const mergedReferences = mergeLawReferences(externalReferences, internalReferences);
-        applyReferenceLinksForLaw(mergedReferences);
+        const referencesToRefresh = {};
+        Object.keys(internalReferences).forEach((targetKey) => {
+          if (mergedReferences[targetKey]) referencesToRefresh[targetKey] = mergedReferences[targetKey];
+        });
+        applyReferenceLinksForLaw(referencesToRefresh);
       }, 250);
     });
   }
@@ -1954,17 +2007,40 @@
   }
 
   function setupExternalReferenceInteractions() {
+    contentEl.addEventListener('click', (event) => {
+      const target = event.target instanceof Element ? event.target : null;
+      const anchor = target?.closest('a[href]');
+      if (!anchor || !contentEl.contains(anchor) || !getLawIdFromUrl(anchor.href)) return;
+      event.preventDefault();
+      event.stopPropagation();
+      hideReferencesPopup();
+      openLawReferenceUrl(anchor.href, event);
+    });
     document.addEventListener('click', (event) => {
       const target = event.target instanceof Element ? event.target : null;
       if (target?.closest('.egov-lite-reference-popup, .egov-lite-reference-viewer-popup, .egov-lite-reference-clickable')) return;
       hideReferencesPopup();
     });
     document.addEventListener('keydown', (event) => {
+      if (event.isTrusted && event.key === 'Control') {
+        lawRefModeCtrlPressed = true;
+        updateLawRefModeButton();
+      }
       if (event.key === 'Escape') {
         hideReferencesPopup();
         hideReferenceViewerPopup();
         hideLiteTooltip(true);
       }
+    });
+    document.addEventListener('keyup', (event) => {
+      if (!event.isTrusted || event.key !== 'Control') return;
+      lawRefModeCtrlPressed = false;
+      updateLawRefModeButton();
+    });
+    window.addEventListener('blur', () => {
+      if (!lawRefModeCtrlPressed) return;
+      lawRefModeCtrlPressed = false;
+      updateLawRefModeButton();
     });
   }
 
@@ -2525,38 +2601,35 @@
   function wrapParentheses() {
     parenSeq = 0;
     parenGroups = new Map();
-    const walker = document.createTreeWalker(contentEl, NodeFilter.SHOW_TEXT, {
-      acceptNode(node) {
-        const text = node.nodeValue || '';
-        if (!text.includes('\uFF08') && !text.includes('\uFF09')) return NodeFilter.FILTER_REJECT;
-        if (node.parentElement?.closest('script, style, mark, .law-title, .law-heading, .article-title, .article-caption, .egov-lite-paren')) return NodeFilter.FILTER_REJECT;
-        return NodeFilter.FILTER_ACCEPT;
+
+    function appendSegment(parent, text, depth, group) {
+      if (!text) return;
+      if (depth <= 0) {
+        parent.appendChild(document.createTextNode(text));
+        return;
       }
-    });
-    const nodes = [];
-    let node;
-    while ((node = walker.nextNode())) nodes.push(node);
-    for (const textNode of nodes) {
+      const span = document.createElement('span');
+      span.className = 'egov-lite-paren';
+      span.dataset.group = group;
+      span.textContent = text;
+      if (group) {
+        if (!parenGroups.has(group)) parenGroups.set(group, []);
+        parenGroups.get(group).push(span);
+      }
+      parent.appendChild(span);
+    }
+
+    function wrapTextNode(textNode, state) {
       const text = textNode.nodeValue || '';
       const frag = document.createDocumentFragment();
-      let depth = 0;
-      let group = '';
+      let depth = Math.max(0, state.depth || 0);
+      let group = state.group || '';
+      let segmentDepth = depth > 0 ? 1 : 0;
+      let segmentGroup = group;
       let buffer = '';
       function flush() {
         if (!buffer) return;
-        if (depth > 0 || buffer.startsWith('\uFF08')) {
-          const span = document.createElement('span');
-          span.className = 'egov-lite-paren';
-          span.dataset.group = group;
-          span.textContent = buffer;
-          if (group) {
-            if (!parenGroups.has(group)) parenGroups.set(group, []);
-            parenGroups.get(group).push(span);
-          }
-          frag.appendChild(span);
-        } else {
-          frag.appendChild(document.createTextNode(buffer));
-        }
+        appendSegment(frag, buffer, segmentDepth, segmentGroup);
         buffer = '';
       }
       for (const ch of text) {
@@ -2564,19 +2637,43 @@
           flush();
           if (depth === 0) group = `p${++parenSeq}`;
           depth += 1;
+          segmentDepth = 1;
+          segmentGroup = group;
           buffer += ch;
         } else if (ch === '\uFF09') {
           buffer += ch;
           flush();
           depth = Math.max(0, depth - 1);
           if (depth === 0) group = '';
+          segmentDepth = depth > 0 ? 1 : 0;
+          segmentGroup = group;
         } else {
           buffer += ch;
         }
       }
       flush();
       textNode.parentNode.replaceChild(frag, textNode);
+      return { depth, group };
     }
+
+    contentEl.querySelectorAll('.law-text p').forEach((paragraph) => {
+      const paragraphText = paragraph.textContent || '';
+      if (!paragraphText.includes('\uFF08') && !paragraphText.includes('\uFF09')) return;
+      const walker = document.createTreeWalker(paragraph, NodeFilter.SHOW_TEXT, {
+        acceptNode(node) {
+          if (!node.nodeValue) return NodeFilter.FILTER_REJECT;
+          if (node.parentElement?.closest('script, style, mark, .egov-lite-paren')) return NodeFilter.FILTER_REJECT;
+          return NodeFilter.FILTER_ACCEPT;
+        }
+      });
+      const nodes = [];
+      let node;
+      while ((node = walker.nextNode())) nodes.push(node);
+      let state = { depth: 0, group: '' };
+      nodes.forEach((textNode) => {
+        state = wrapTextNode(textNode, state);
+      });
+    });
   }
 
   function toggleParenMode(mode) {

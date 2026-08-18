@@ -14,6 +14,24 @@
   // 旧キャッシュには法令IDの取得結果が現行改正IDとして保存されている可能性があるため、再利用しない。
   const LITE_LAW_CACHE_NAME = 'egov-lite-law-xml-v3';
   const LITE_LAW_CACHE_MAX_ENTRIES = 100;
+  const JAPANESE_REFERENCE_NUMBER_PATTERN = '[0-9０-９〇零一二三四五六七八九十百千万]+';
+  const PRIOR_REFERENCE_PATTERN = new RegExp(`前(${JAPANESE_REFERENCE_NUMBER_PATTERN})(条|項|号)`);
+  const ITEM_RANGE_END_PATTERN = new RegExp(`から第?(${JAPANESE_REFERENCE_NUMBER_PATTERN})号まで`);
+  const PARAGRAPH_RANGE_END_PATTERN = new RegExp(`から第?(${JAPANESE_REFERENCE_NUMBER_PATTERN})項まで`);
+  const BRANCHED_ARTICLE_RANGE_END_PATTERN = new RegExp(
+    `から第?(${JAPANESE_REFERENCE_NUMBER_PATTERN})条の(${JAPANESE_REFERENCE_NUMBER_PATTERN})まで`
+  );
+  const ARTICLE_RANGE_END_PATTERN = new RegExp(`から第?(${JAPANESE_REFERENCE_NUMBER_PATTERN})条まで`);
+  const LEADING_ARTICLE_HEADING_PATTERN = new RegExp(
+    `^(?:（[^）]*）|\\([^)]*\\))\\s*第${JAPANESE_REFERENCE_NUMBER_PATTERN}条(?:の${JAPANESE_REFERENCE_NUMBER_PATTERN})?\\s*`
+  );
+  const LEADING_ARTICLE_NUMBER_PATTERN = new RegExp(
+    `^第(${JAPANESE_REFERENCE_NUMBER_PATTERN})条(?:の(${JAPANESE_REFERENCE_NUMBER_PATTERN}))?\\s*`
+  );
+  const LEADING_UNIT_PATTERNS = {
+    項: new RegExp(`^(?:第(${JAPANESE_REFERENCE_NUMBER_PATTERN})項|(${JAPANESE_REFERENCE_NUMBER_PATTERN})\\s+)`),
+    号: new RegExp(`^(?:第(${JAPANESE_REFERENCE_NUMBER_PATTERN})号|(${JAPANESE_REFERENCE_NUMBER_PATTERN})\\s+)`),
+  };
 
   function escapeHtml(str) {
     return String(str)
@@ -196,16 +214,24 @@
     ].filter(Boolean).join('.')));
   }
 
-  function getInternalReferenceSourceParts(anchor, root) {
+  function getParsedProvisionElement(element, cache) {
+    if (!(element instanceof Element) || !element.id) return null;
+    if (cache?.has(element)) return cache.get(element);
+    const parsed = parseProvisionHash(`#${element.id}`);
+    cache?.set(element, parsed);
+    return parsed;
+  }
+
+  function getInternalReferenceSourceParts(anchor, root, parsedProvisionCache) {
     let current = anchor instanceof Element ? anchor : null;
     while (current && current !== root) {
+      const parsed = getParsedProvisionElement(current, parsedProvisionCache);
       const article = normalizeReferenceKeyPart(current.dataset?.articleNum);
       const paragraph = normalizeReferenceKeyPart(current.dataset?.paragraphNum);
       const item = normalizeReferenceKeyPart(current.dataset?.itemNum);
-      const scope = String(current.dataset?.referenceScope || parseProvisionHash(`#${current.id || ''}`)?.scope || '');
+      const scope = String(current.dataset?.referenceScope || parsed?.scope || '');
       if (article) return { scope, article, paragraph, item, id: current.id || '', element: current };
 
-      const parsed = current.id ? parseProvisionHash(`#${current.id}`) : null;
       if (parsed?.article) {
         return {
           scope: String(parsed.scope || ''),
@@ -221,14 +247,20 @@
     return null;
   }
 
-  function getInternalReferenceSourceDetails(anchor, root, sourceParts) {
+  function getInternalReferenceSourceDetails(
+    anchor,
+    root,
+    sourceParts,
+    parsedProvisionCache,
+    paragraphCountCache
+  ) {
     const article = sourceParts?.article || '';
     const scope = String(sourceParts?.scope || '');
     let current = anchor instanceof Element ? anchor : null;
     let articleElement = null;
     while (current && current !== root) {
       const currentArticle = normalizeReferenceKeyPart(current.dataset?.articleNum);
-      const parsed = current.id ? parseProvisionHash(`#${current.id}`) : null;
+      const parsed = getParsedProvisionElement(current, parsedProvisionCache);
       const parsedArticle = normalizeReferenceKeyPart(parsed?.article);
       const currentScope = String(current.dataset?.referenceScope || parsed?.scope || '');
       if ((currentArticle === article || parsedArticle === article) && currentScope === scope) {
@@ -249,21 +281,26 @@
     }
     if (!articleElement) return { text: '', paragraphCount: 0 };
 
-    const paragraphNumbers = new Set();
-    articleElement.querySelectorAll('[data-paragraph-num], [id]').forEach((element) => {
-      const elementArticle = normalizeReferenceKeyPart(element.dataset?.articleNum);
-      const elementParagraph = normalizeReferenceKeyPart(element.dataset?.paragraphNum);
-      const parsed = element.id ? parseProvisionHash(`#${element.id}`) : null;
-      const elementScope = String(element.dataset?.referenceScope || parsed?.scope || '');
-      if (elementScope !== scope) return;
-      if (elementArticle === article && elementParagraph) {
-        paragraphNumbers.add(elementParagraph);
-        return;
-      }
-      if (normalizeReferenceKeyPart(parsed?.article) === article && parsed?.paragraph) {
-        paragraphNumbers.add(normalizeReferenceKeyPart(parsed.paragraph));
-      }
-    });
+    let paragraphCount = paragraphCountCache?.get(articleElement);
+    if (!Number.isInteger(paragraphCount)) {
+      const paragraphNumbers = new Set();
+      articleElement.querySelectorAll('[data-paragraph-num], [id]').forEach((element) => {
+        const elementArticle = normalizeReferenceKeyPart(element.dataset?.articleNum);
+        const elementParagraph = normalizeReferenceKeyPart(element.dataset?.paragraphNum);
+        const parsed = getParsedProvisionElement(element, parsedProvisionCache);
+        const elementScope = String(element.dataset?.referenceScope || parsed?.scope || '');
+        if (elementScope !== scope) return;
+        if (elementArticle === article && elementParagraph) {
+          paragraphNumbers.add(elementParagraph);
+          return;
+        }
+        if (normalizeReferenceKeyPart(parsed?.article) === article && parsed?.paragraph) {
+          paragraphNumbers.add(normalizeReferenceKeyPart(parsed.paragraph));
+        }
+      });
+      paragraphCount = paragraphNumbers.size;
+      paragraphCountCache?.set(articleElement, paragraphCount);
+    }
 
     const sourceElement = sourceParts?.element instanceof Element ? sourceParts.element : articleElement;
     const clone = sourceElement.cloneNode(true);
@@ -294,15 +331,12 @@
             ':scope > [class*="ArticleCaption"]',
           ];
     clone.querySelectorAll(directNumberSelectors.join(', ')).forEach((node) => node.remove());
-    const numberPattern = '[0-9０-９〇零一二三四五六七八九十百千万]+';
-    const leadingHeadingPattern = new RegExp(`^(?:（[^）]*）|\\([^)]*\\))\\s*第${numberPattern}条(?:の${numberPattern})?\\s*`);
     let text = String(clone.textContent || '')
       .replace(/\s+/g, ' ')
       .trim();
-    const hadEmbeddedHeading = leadingHeadingPattern.test(text);
-    if (hadEmbeddedHeading) text = text.replace(leadingHeadingPattern, '').trim();
-    const leadingArticleNumberPattern = new RegExp(`^第(${numberPattern})条(?:の(${numberPattern}))?\\s*`);
-    const leadingArticleNumber = text.match(leadingArticleNumberPattern);
+    const hadEmbeddedHeading = LEADING_ARTICLE_HEADING_PATTERN.test(text);
+    if (hadEmbeddedHeading) text = text.replace(LEADING_ARTICLE_HEADING_PATTERN, '').trim();
+    const leadingArticleNumber = text.match(LEADING_ARTICLE_NUMBER_PATTERN);
     const expectedArticleParts = String(article || '').split('-').map(Number);
     const sourceClassName = typeof sourceElement.className === 'string' ? sourceElement.className : '';
     const hasCombinedArticleSentence = /(?:^|\s)_div_ArticleTitle(?:\s|$)/.test(sourceClassName);
@@ -319,7 +353,7 @@
     const sourceUnit = sourceParts?.item ? '号' : sourceParts?.paragraph ? '項' : '';
     const sourceUnitValue = sourceParts?.item || sourceParts?.paragraph || '';
     if (sourceUnit && sourceUnitValue) {
-      const leadingUnitPattern = new RegExp(`^(?:第(${numberPattern})${sourceUnit}|(${numberPattern})\\s+)`);
+      const leadingUnitPattern = LEADING_UNIT_PATTERNS[sourceUnit];
       const leadingUnit = text.match(leadingUnitPattern);
       const expectedUnitNumber = Number(String(sourceUnitValue).split('-')[0]);
       const actualUnitNumber = parseJapaneseReferenceNumber(leadingUnit?.[1] || leadingUnit?.[2]);
@@ -327,7 +361,7 @@
         text = text.slice(leadingUnit[0].length).trim();
       }
     }
-    return { text, paragraphCount: paragraphNumbers.size };
+    return { text, paragraphCount };
   }
 
   function buildInternalReferenceSourceUrl(lawId, parts) {
@@ -378,7 +412,7 @@
     return Array.from({ length: end - start + 1 }, (_, index) => buildKey(start + index));
   }
 
-  function buildInternalProvisionOrder(root) {
+  function buildInternalProvisionOrder(root, parsedProvisionCache) {
     const articlesByScope = new Map();
     const paragraphs = new Map();
     const items = new Map();
@@ -386,7 +420,7 @@
     const seenParagraphs = new Map();
     const seenItems = new Map();
     root.querySelectorAll('[data-article-num], [id*="At_"]').forEach((element) => {
-      const parsed = element.id ? parseProvisionHash(`#${element.id}`) : null;
+      const parsed = getParsedProvisionElement(element, parsedProvisionCache);
       const article = normalizeReferenceKeyPart(element.dataset?.articleNum || parsed?.article);
       const paragraph = normalizeReferenceKeyPart(element.dataset?.paragraphNum || parsed?.paragraph);
       const item = normalizeReferenceKeyPart(element.dataset?.itemNum || parsed?.item);
@@ -417,20 +451,27 @@
     return { articlesByScope, paragraphs, items };
   }
 
-  function getPriorReferenceKeys(parts, unit, count, provisionOrder) {
+  function getPriorReferenceKeys(parts, unit, count, sourceParts, provisionOrder) {
     if (!Number.isInteger(count) || count < 2 || count > 500) return [];
     let values = [];
     let startValue = '';
+    let sourceValue = '';
+    let hasMatchingSourceContext = false;
     let buildKey;
     const scope = String(parts.scope || '');
+    const sourceScope = String(sourceParts?.scope || '');
     const articleKey = formatScopedReferenceTargetKey(scope, parts.article);
     if (unit === '条') {
       values = provisionOrder?.articlesByScope?.get(scope) || [];
       startValue = parts.article;
+      sourceValue = sourceParts?.article || '';
+      hasMatchingSourceContext = sourceScope === scope;
       buildKey = (article) => formatScopedReferenceTargetKey(scope, article);
     } else if (unit === '項') {
       values = provisionOrder?.paragraphs?.get(articleKey) || [];
       startValue = parts.paragraph || '1';
+      sourceValue = sourceParts?.paragraph || '1';
+      hasMatchingSourceContext = sourceScope === scope && sourceParts?.article === parts.article;
       buildKey = (paragraph) => canonicalizeReferenceTargetKey(
         formatScopedReferenceTargetKey(scope, `${parts.article}.${paragraph}`)
       );
@@ -440,9 +481,20 @@
         formatScopedReferenceTargetKey(scope, `${parts.article}.${paragraph}`)
       ) || [];
       startValue = parts.item || '1';
+      sourceValue = sourceParts?.item || '';
+      hasMatchingSourceContext = sourceScope === scope &&
+        sourceParts?.article === parts.article &&
+        (sourceParts?.paragraph || '1') === paragraph;
       buildKey = (item) => canonicalizeReferenceTargetKey(
         formatScopedReferenceTargetKey(scope, `${parts.article}.${paragraph}.${item}`)
       );
+    }
+    const sourceIndex = hasMatchingSourceContext ? values.indexOf(sourceValue) : -1;
+    if (sourceIndex >= 0) {
+      return values
+        .slice(Math.max(0, sourceIndex - count), sourceIndex)
+        .map(buildKey)
+        .filter(Boolean);
     }
     const startIndex = values.indexOf(startValue);
     if (startIndex >= 0) {
@@ -464,29 +516,56 @@
     });
   }
 
+  function getAllPriorReferenceKeys(parts, unit, sourceParts, provisionOrder) {
+    const scope = String(parts.scope || '');
+    const sourceScope = String(sourceParts?.scope || '');
+    const sameArticle = sourceScope === scope && sourceParts?.article === parts.article;
+    if (unit === '項') {
+      const articleKey = formatScopedReferenceTargetKey(scope, parts.article);
+      const values = provisionOrder?.paragraphs?.get(articleKey) || [];
+      const sourceParagraph = sourceParts?.paragraph || '1';
+      const endIndex = sameArticle ? values.indexOf(sourceParagraph) : -1;
+      const preceding = endIndex >= 0 ? values.slice(0, endIndex) : values;
+      return preceding.map((paragraph) => canonicalizeReferenceTargetKey(
+        formatScopedReferenceTargetKey(scope, `${parts.article}.${paragraph}`)
+      ));
+    }
+
+    const paragraph = parts.paragraph || sourceParts?.paragraph || '1';
+    const paragraphKey = formatScopedReferenceTargetKey(scope, `${parts.article}.${paragraph}`);
+    const values = provisionOrder?.items?.get(paragraphKey) || [];
+    const sourceParagraph = sourceParts?.paragraph || '1';
+    const sameParagraph = sameArticle && sourceParagraph === paragraph;
+    const endIndex = sameParagraph && sourceParts?.item
+      ? values.indexOf(sourceParts.item)
+      : -1;
+    const preceding = endIndex >= 0 ? values.slice(0, endIndex) : values;
+    return preceding.map((item) => canonicalizeReferenceTargetKey(
+      formatScopedReferenceTargetKey(scope, `${parts.article}.${paragraph}.${item}`)
+    ));
+  }
+
   function getAllParagraphReferenceKeys(parts, provisionOrder) {
     const scope = String(parts.scope || '');
     const articleKey = formatScopedReferenceTargetKey(scope, parts.article);
     return (provisionOrder?.paragraphs?.get(articleKey) || [])
       .map((paragraph) => canonicalizeReferenceTargetKey(
         formatScopedReferenceTargetKey(scope, `${parts.article}.${paragraph}`)
-      ))
-      .filter(Boolean);
+      ));
   }
 
   function getAllItemReferenceKeys(parts, provisionOrder, includeAllParagraphs = false) {
     const scope = String(parts.scope || '');
+    const articleKey = formatScopedReferenceTargetKey(scope, parts.article);
     const paragraphs = includeAllParagraphs
-      ? getAllParagraphReferenceKeys(parts, provisionOrder)
-        .map((key) => splitReferenceTargetKey(key).paragraph || '1')
+      ? (provisionOrder?.paragraphs?.get(articleKey) || [])
       : [parts.paragraph || '1'];
     return paragraphs.flatMap((paragraph) => {
       const paragraphKey = formatScopedReferenceTargetKey(scope, `${parts.article}.${paragraph}`);
       return (provisionOrder?.items?.get(paragraphKey) || [])
         .map((item) => canonicalizeReferenceTargetKey(
           formatScopedReferenceTargetKey(scope, `${parts.article}.${paragraph}.${item}`)
-        ))
-        .filter(Boolean);
+        ));
     });
   }
 
@@ -495,11 +574,16 @@
     const parts = splitReferenceTargetKey(targetKey);
     if (!parts.article) return [];
     const text = String(anchor?.textContent || '').replace(/\s+/g, '');
-    const numberPattern = '[0-9０-９〇零一二三四五六七八九十百千万]+';
-    const priorMatch = text.match(new RegExp(`前(${numberPattern})(条|項|号)`));
+    if (text.includes('前各号')) {
+      return getAllPriorReferenceKeys(parts, '号', sourceParts, provisionOrder);
+    }
+    if (text.includes('前各項')) {
+      return getAllPriorReferenceKeys(parts, '項', sourceParts, provisionOrder);
+    }
+    const priorMatch = text.match(PRIOR_REFERENCE_PATTERN);
     if (priorMatch) {
       const count = parseJapaneseReferenceNumber(priorMatch[1]);
-      const keys = getPriorReferenceKeys(parts, priorMatch[2], count, provisionOrder);
+      const keys = getPriorReferenceKeys(parts, priorMatch[2], count, sourceParts, provisionOrder);
       if (keys.length) return keys;
     }
     if (text.includes('各号')) {
@@ -517,7 +601,7 @@
     const startArticleBranch = articleSegments[1] || 0;
 
     if (parts.item) {
-      const match = text.match(new RegExp(`から第?(${numberPattern})号まで`));
+      const match = text.match(ITEM_RANGE_END_PATTERN);
       const start = Number(parts.item.split('-')[0]);
       const end = parseJapaneseReferenceNumber(match?.[1]);
       const keys = buildSequentialReferenceKeys(start, end, (number) => (
@@ -530,7 +614,7 @@
     }
 
     if (parts.paragraph) {
-      const match = text.match(new RegExp(`から第?(${numberPattern})項まで`));
+      const match = text.match(PARAGRAPH_RANGE_END_PATTERN);
       const start = Number(parts.paragraph.split('-')[0]);
       const end = parseJapaneseReferenceNumber(match?.[1]);
       const keys = buildSequentialReferenceKeys(start, end, (number) => (
@@ -539,7 +623,7 @@
       return keys.length ? keys : [targetKey];
     }
 
-    const branchedEnd = text.match(new RegExp(`から第?(${numberPattern})条の(${numberPattern})まで`));
+    const branchedEnd = text.match(BRANCHED_ARTICLE_RANGE_END_PATTERN);
     if (branchedEnd) {
       const endArticle = parseJapaneseReferenceNumber(branchedEnd[1]);
       const endBranch = parseJapaneseReferenceNumber(branchedEnd[2]);
@@ -555,7 +639,7 @@
       }
     }
 
-    const explicitEnd = text.match(new RegExp(`から第?(${numberPattern})条まで`));
+    const explicitEnd = text.match(ARTICLE_RANGE_END_PATTERN);
     let endArticle = parseJapaneseReferenceNumber(explicitEnd?.[1]);
     if (!Number.isInteger(endArticle) && /から前条まで/.test(text)) {
       endArticle = Number(String(sourceParts?.article || '').split('-')[0]) - 1;
@@ -577,7 +661,14 @@
     if (!(root instanceof Element) || !lawId) return {};
     const result = {};
     const seenByTarget = new Map();
-    const provisionOrder = buildInternalProvisionOrder(root);
+    const parsedProvisionCache = new WeakMap();
+    const sourceDetailsCache = new WeakMap();
+    const paragraphCountCache = new WeakMap();
+    const provisionOrder = buildInternalProvisionOrder(root, parsedProvisionCache);
+    let baseOrigin = '';
+    try {
+      baseOrigin = new URL(baseUrl, LAW_BASE_URL).origin;
+    } catch (_) {}
 
     root.querySelectorAll('a[href]').forEach((anchor) => {
       let parsedUrl;
@@ -586,21 +677,27 @@
       } catch (_) {
         return;
       }
-      let baseOrigin = '';
-      try {
-        baseOrigin = new URL(baseUrl, LAW_BASE_URL).origin;
-      } catch (_) {}
       if (baseOrigin && parsedUrl.origin !== baseOrigin) return;
       const targetLawId = parsedUrl.pathname.match(/\/law\/([^/?#]+)/)?.[1] || '';
       if (targetLawId !== lawId) return;
 
       const targetKey = getReferenceTargetKeyFromEgovUrl(parsedUrl.href, baseUrl);
       if (!targetKey) return;
-      const sourceParts = getInternalReferenceSourceParts(anchor, root);
+      const sourceParts = getInternalReferenceSourceParts(anchor, root, parsedProvisionCache);
       if (!sourceParts?.article) return;
       const sourceUrl = buildInternalReferenceSourceUrl(lawId, sourceParts);
       if (!sourceUrl) return;
-      const sourceDetails = getInternalReferenceSourceDetails(anchor, root, sourceParts);
+      let sourceDetails = sourceDetailsCache.get(sourceParts.element);
+      if (!sourceDetails) {
+        sourceDetails = getInternalReferenceSourceDetails(
+          anchor,
+          root,
+          sourceParts,
+          parsedProvisionCache,
+          paragraphCountCache
+        );
+        sourceDetailsCache.set(sourceParts.element, sourceDetails);
+      }
       const sourceProvisionLabel = formatProvisionSourcePath({
         scope: sourceParts.scope,
         article: sourceParts.article,
@@ -708,7 +805,8 @@
     schedule,
     batchSize = 120,
   }) {
-    const entries = Object.entries(lawReferences || {});
+    const references = lawReferences || {};
+    const targetKeys = Object.keys(references);
     let index = 0;
     return new Promise((resolve) => {
       const step = () => {
@@ -716,19 +814,20 @@
           resolve(false);
           return;
         }
-        const end = Math.min(entries.length, index + batchSize);
+        const end = Math.min(targetKeys.length, index + batchSize);
         for (; index < end; index += 1) {
           if (!isEnabled()) {
             resolve(false);
             return;
           }
-          const [targetKey, value] = entries[index];
+          const targetKey = targetKeys[index];
+          const value = references[targetKey];
           const sources = Array.isArray(value?.externalLawSources) ? value.externalLawSources : [];
           if (!sources.length) continue;
           const target = findTarget(targetKey);
           if (target) makeClickable(target, targetKey, sources);
         }
-        if (index < entries.length) {
+        if (index < targetKeys.length) {
           schedule(step);
           return;
         }

@@ -21,6 +21,7 @@
     applyReferenceLinksInBatches,
     buildLawUrl,
     buildProvisionCopyPayload: buildSharedProvisionCopyPayload,
+    canonicalizeReferenceTargetKey,
     cloneDefinitionPatterns,
     cleanLawNameForSearch,
     collectSearchTextSegments,
@@ -39,6 +40,7 @@
     mergeLawReferences,
     normalizeLawNameForCopy,
     normalizeReverseReferenceScope,
+    parseProvisionHash,
     rangeFromSearchOffsets,
     sortReferenceSources,
     splitReferenceTargetKey,
@@ -145,6 +147,7 @@
   let externalReferencesEnabled = false;
   let externalReferencesLoading = false;
   let referenceAnalysisGeneration = 0;
+  let referenceTargetElementIndex = new Map();
   let activeReferencesPopup = null;
   let inyoDialogBridgeInjected = false;
   let inyoDialogBridgeReadyPromise = null;
@@ -3013,7 +3016,29 @@
     return null;
   }
 
+  function buildReferenceTargetElementIndex() {
+    const index = new Map();
+    const provisionRoot = document.querySelector('#provisionview');
+    if (!(provisionRoot instanceof Element)) return index;
+    provisionRoot.querySelectorAll('[data-article-num], [id*="-At_"]').forEach((element) => {
+      const parsed = element.id ? parseProvisionHash(`#${element.id}`) : null;
+      const article = String(element.dataset?.articleNum || parsed?.article || '').replace(/_/g, '-');
+      const paragraph = String(element.dataset?.paragraphNum || parsed?.paragraph || '').replace(/_/g, '-');
+      const item = String(element.dataset?.itemNum || parsed?.item || '').replace(/_/g, '-');
+      const scope = String(element.dataset?.referenceScope || parsed?.scope || '');
+      const targetKey = canonicalizeReferenceTargetKey(
+        `${scope ? `${scope}::` : ''}${[article, paragraph, item].filter(Boolean).join('.')}`
+      );
+      if (targetKey && !index.has(targetKey)) index.set(targetKey, element);
+    });
+    return index;
+  }
+
   function findReferenceTargetElement(targetKey) {
+    const indexedTarget = referenceTargetElementIndex.get(
+      canonicalizeReferenceTargetKey(targetKey)
+    );
+    if (indexedTarget instanceof Element && indexedTarget.isConnected) return indexedTarget;
     const { scope, article, paragraph, item } = getReferenceDomParts(splitReferenceTargetKey(targetKey));
     if (!article) return null;
 
@@ -3398,7 +3423,10 @@
   }
 
   function applyReferenceLinksForLaw(lawReferences, { clear = false } = {}) {
-    if (clear) clearExternalReferenceLinks();
+    if (clear) {
+      clearExternalReferenceLinks();
+      referenceTargetElementIndex = buildReferenceTargetElementIndex();
+    }
     return applyReferenceLinksInBatches(lawReferences, {
       isEnabled: () => externalReferencesEnabled,
       findTarget: findReferenceTargetElement,
@@ -3424,7 +3452,11 @@
         });
         if (!externalReferencesEnabled || generation !== referenceAnalysisGeneration) return;
         const mergedReferences = mergeLawReferences(externalReferences, internalReferences);
-        applyReferenceLinksForLaw(mergedReferences);
+        const referencesToRefresh = {};
+        Object.keys(internalReferences).forEach((targetKey) => {
+          if (mergedReferences[targetKey]) referencesToRefresh[targetKey] = mergedReferences[targetKey];
+        });
+        applyReferenceLinksForLaw(referencesToRefresh);
       }, 250);
     });
   }
