@@ -6,6 +6,9 @@
  *   h / l  : 条文ジャンプ履歴を前後に移動
  *   n / p  : 次/前の条文を画面上端に表示
  *   d / u  : 下/上へ80%スクロール
+ *   Space  : 現在位置の条文ブックマークを追加/削除
+ *   b      : 条文ブックマーク一覧を開く/閉じる
+ *   m      : ハイライト・メモ一覧を開く/閉じる
  *   s      : ページ内検索
  *   r      : ジャンプ前の位置に戻る
  *   Alt+R  : 現在の法令名で法令検索
@@ -34,14 +37,18 @@
     formatProvisionSourcePathFromEgovUrl,
     getLawReferencesData,
     getLawFields,
+    getNormalizedTextSignature,
     getReferenceDomParts,
     getReverseReferenceScopeFlags,
+    getTextRangeClientRects,
+    getTextRangeText,
     isTermBoundarySafe: isSharedTermBoundarySafe,
     mergeLawReferences,
     normalizeLawNameForCopy,
     normalizeReverseReferenceScope,
     parseProvisionHash,
     rangeFromSearchOffsets,
+    rangeFromNormalizedTextAnchorOffsets,
     sortReferenceSources,
     splitReferenceTargetKey,
     REVERSE_REFERENCE_SCOPE_KEY,
@@ -100,12 +107,19 @@
   let activeFlashTransitionTimer = null;
   let favoriteScrollSaveTimer = null;
   let favoriteScrollRestored = false;
-  let pinIndicatorTimer = null;
-  let pinToastVisible = false;
-  let pinToastPinned = false;
-  let pinToastTimer = null;
-  let pinToastRenderRaf = 0;
-  let pinToastDefaultVisible = true;
+  let favoriteScrollPersistenceSetup = false;
+  let pageIndicatorTimer = null;
+  let articleBookmarksCache = [];
+  let articleBookmarksLoaded = false;
+  let articleBookmarkRenderVersion = 0;
+  let articleBookmarkGutterSignature = '';
+  const articleBookmarkGutterButtons = new Map();
+  let articleBookmarkProvisionItemsCache = null;
+  const articleBookmarkToggleLocks = new Set();
+  const articleBookmarkLastToggleAt = new Map();
+  let articleBookmarkGuttersDirty = false;
+  let articleBookmarkDialogSessionActive = false;
+  let keyboardBookmarkTargetId = '';
   let parenthesesMuteMode = 'off'; // 'off' | 'flat' | 'nested'
   let parenthesesMutingInitialized = false;
   let mutedParenGroupSeq = 0;
@@ -153,20 +167,73 @@
   let inyoDialogBridgeReadyPromise = null;
   const externalReferencesByElement = new WeakMap();
   let activeProvisionSelectionEl = null;
-  const PIN_SLOT_ORDER = ['i', 'o', 'j', 'k', 'm'];
-  const PIN_SLOT_CONFIG = {
-    i: { color: '#ef6b73', label: 'i' },
-    o: { color: '#f6b73c', label: 'o' },
-    j: { color: '#5bbd72', label: 'j' },
-    k: { color: '#4c8df6', label: 'k' },
-    m: { color: '#9a6df2', label: 'm' },
+  let textHighlightPopup = null;
+  let textHighlightTargetOutline = null;
+  let textHighlightTargetOutlineRaf = 0;
+  let textHighlightMemoTooltip = null;
+  let textHighlightMemoTooltipRecordId = '';
+  let textHighlightMemoTooltipSource = null;
+  let textHighlightMemoHideTimer = 0;
+  let textHighlightHitTestCache = null;
+  let pendingTextHighlightRange = null;
+  let pendingTextHighlightSource = null;
+  let textHighlightRangeAdjusting = false;
+  let textHighlightRangeButtonResetTimer = 0;
+  let textHighlightOverlapNoticeTimer = 0;
+  let textHighlightSequence = 0;
+  const textHighlightRangeSequence = new WeakMap();
+  const textHighlightRangeRecordId = new WeakMap();
+  const textHighlightRecords = new Map();
+  const textHighlightDirtyRecordIds = new Set();
+  const textHighlightDeletedRecordIds = new Set();
+  let textHighlightSaveTimer = 0;
+  let textHighlightRestoreTimer = 0;
+  let textHighlightRestoreNoticeTimer = 0;
+  let textHighlightUnrestoredRecords = [];
+  let textHighlightUnrestoredSignature = '';
+  let textHighlightUnrestoredStablePasses = 0;
+  let textHighlightRestoreNoticeIgnored = false;
+  let textHighlightPendingStorageRecords = null;
+  let textHighlightRecordsLoaded = false;
+  let textHighlightLoadPromise = null;
+  const TEXT_HIGHLIGHT_STORAGE_PREFIX = 'textHighlights:v1:';
+  const TEXT_HIGHLIGHT_ENABLED_KEY = 'textHighlightsEnabled';
+  const TEXT_HIGHLIGHT_DISPLAY_LIMIT = 1000;
+  const TEXT_HIGHLIGHT_QUOTE_HEAD_LENGTH = 256;
+  const TEXT_HIGHLIGHT_QUOTE_TAIL_LENGTH = 128;
+  const TEXT_HIGHLIGHT_CONTEXT_LENGTH = 32;
+  const TEXT_HIGHLIGHT_MEMO_MAX_LENGTH = 2000;
+  let textHighlightFeatureEnabled = true;
+  const TEXT_HIGHLIGHT_TEXT_EXCLUDE_SELECTOR =
+    '.egov-ext-reference-popup, .egov-ext-definition-tooltip, #egov-ext-text-highlight-popup, ' +
+    '#egov-ext-text-highlight-memo-tooltip, #egov-ext-text-highlight-target-outline, ' +
+    '#egov-ext-text-highlight-restore-notice, #egov-ext-text-highlight-overlap-notice';
+  const TEXT_HIGHLIGHT_PORTABLE_EXCLUDE_SELECTOR =
+    `${TEXT_HIGHLIGHT_TEXT_EXCLUDE_SELECTOR}, ._div_ArticleCaption, ` +
+    '._div_ArticleTitle > span:first-child, ._div_ParagraphSentence > span:first-child, ' +
+    '._div_ItemSentence > span:first-child, ' +
+    '[class*="_div_Subitem"][class*="Sentence"] > span:first-child, ' +
+    '.articletitle, .paragraphtitle, .paragraphnum, .itemtitle, .listtitle, .portiontitle, rt, rp';
+  const textHighlightRanges = {
+    yellow: [],
+    pink: [],
+    green: [],
   };
+  const TEXT_HIGHLIGHT_COLORS = [
+    { key: 'yellow', label: '薄い黄色' },
+    { key: 'pink', label: '薄いピンク' },
+    { key: 'green', label: '薄い緑' },
+  ];
+  const ARTICLE_BOOKMARKS_STORAGE_KEY = 'articleBookmarks';
+  const BOOKMARK_SHORTCUT_KEYS = ['f', 'j', 'd', 'k', 's', 'l', 'a'];
+  const ARTICLE_BOOKMARK_TOGGLE_DEBOUNCE_MS = 500;
 
   // スクロール速度（'instant' | 'smooth'、デフォ: instant）
   let scrollBehavior = 'instant';
-  chrome.storage.local.get(['scrollBehavior', 'pinToastDefaultVisible'], (data) => {
+  chrome.storage.local.get(['scrollBehavior', ARTICLE_BOOKMARKS_STORAGE_KEY], (data) => {
     if (data.scrollBehavior === 'smooth') scrollBehavior = 'smooth';
-    if (typeof data.pinToastDefaultVisible === 'boolean') pinToastDefaultVisible = data.pinToastDefaultVisible;
+    articleBookmarksCache = normalizeArticleBookmarks(data[ARTICLE_BOOKMARKS_STORAGE_KEY]);
+    articleBookmarksLoaded = true;
   });
   chrome.storage.onChanged.addListener((changes, area) => {
     if (area === 'local') {
@@ -175,14 +242,14 @@
         favoritesStore.replace(changes.favorites.newValue);
         refreshFavoriteHeaderBadge();
       }
-      if (changes.pinToastDefaultVisible) {
-        pinToastDefaultVisible = !!changes.pinToastDefaultVisible.newValue;
-        if (pinToastDefaultVisible) {
-          pinToastPinned = true;
-          showPinToast(false);
-        } else if (pinToastPinned) {
-          pinToastPinned = false;
-          hidePinToast(true);
+      if (changes[ARTICLE_BOOKMARKS_STORAGE_KEY]) {
+        articleBookmarksCache = normalizeArticleBookmarks(changes[ARTICLE_BOOKMARKS_STORAGE_KEY].newValue);
+        articleBookmarksLoaded = true;
+        const nextGutterSignature = getArticleBookmarkGutterSignature(articleBookmarksCache);
+        if (articleBookmarkDialogSessionActive) {
+          if (nextGutterSignature !== articleBookmarkGutterSignature) articleBookmarkGuttersDirty = true;
+        } else if (nextGutterSignature !== articleBookmarkGutterSignature) {
+          renderArticleBookmarkGutters();
         }
       }
       if (changes.lawRefOtherLawPopup) {
@@ -212,21 +279,1522 @@
       if (changes.hideLawSidebarDefault) {
         setLawRevisionAreaExpanded(changes.hideLawSidebarDefault.newValue === true);
       }
-    } else if (area === 'session') {
-      if (changes.colorPins) {
-        refreshColorPinHighlights();
-        if (pinToastVisible) schedulePinToastRender();
+      const textHighlightStorageKey = getTextHighlightStorageKey();
+      if (textHighlightStorageKey && changes[textHighlightStorageKey]) {
+        syncTextHighlightRecordsFromStorage(changes[textHighlightStorageKey].newValue);
       }
     }
   });
-  window.addEventListener('resize', () => { if (pinToastVisible) schedulePinToastRender(); });
-  window.addEventListener('scroll', () => { if (pinToastVisible) schedulePinToastRender(); }, { passive: true });
 
   // ==================
   // 履歴ユーティリティ
   // ==================
   function pushHistory(history, value) {
     pushSharedHistory(history, value, HISTORY_MAX);
+  }
+
+  // ==================
+  // 選択テキストの一時ハイライト
+  // ==================
+  function isTextHighlightMemoEditing() {
+    return !!textHighlightPopup?.querySelector('.egov-ext-text-highlight-memo-editor.is-visible');
+  }
+
+  function isTextHighlightMemoDirty() {
+    const textarea = textHighlightPopup?.querySelector('.egov-ext-text-highlight-memo-editor.is-visible textarea');
+    return !!textarea && textarea.value !== (textarea.dataset.initialValue || '');
+  }
+
+  function updateTextHighlightMemoDirtyState() {
+    const editor = textHighlightPopup?.querySelector('.egov-ext-text-highlight-memo-editor');
+    const textarea = editor?.querySelector('textarea');
+    const status = editor?.querySelector('.egov-ext-text-highlight-memo-status');
+    if (!editor || !textarea || !status) return false;
+    const dirty = textarea.value !== (textarea.dataset.initialValue || '');
+    editor.classList.toggle('is-dirty', dirty);
+    status.textContent = dirty ? '未保存のメモの変更があります' : '';
+    return dirty;
+  }
+
+  function hideTextHighlightTargetOutline() {
+    if (textHighlightTargetOutlineRaf) cancelAnimationFrame(textHighlightTargetOutlineRaf);
+    textHighlightTargetOutlineRaf = 0;
+    textHighlightTargetOutline?.remove();
+    textHighlightTargetOutline = null;
+  }
+
+  function getTextHighlightTargetRects(range) {
+    if (!range?.startContainer?.isConnected || !range?.endContainer?.isConnected) return [];
+    const rects = getTextRangeClientRects(range, {
+      excludeSelector: '#egov-ext-text-highlight-popup, #egov-ext-text-highlight-memo-tooltip, #egov-ext-text-highlight-target-outline',
+    })
+      .filter((rect) => rect.width > 0.5 && rect.height > 0.5 &&
+        rect.right > 0 && rect.bottom > 0 && rect.left < window.innerWidth && rect.top < window.innerHeight)
+      .map((rect) => ({ left: rect.left, top: rect.top, right: rect.right, bottom: rect.bottom }))
+      .sort((first, second) => first.top - second.top || first.left - second.left);
+    const merged = [];
+    rects.forEach((rect) => {
+      const previous = merged[merged.length - 1];
+      const overlap = previous
+        ? Math.min(previous.bottom, rect.bottom) - Math.max(previous.top, rect.top)
+        : 0;
+      const sameLine = previous && overlap >= Math.min(previous.bottom - previous.top, rect.bottom - rect.top) * 0.5;
+      if (sameLine && rect.left <= previous.right + 4) {
+        previous.left = Math.min(previous.left, rect.left);
+        previous.top = Math.min(previous.top, rect.top);
+        previous.right = Math.max(previous.right, rect.right);
+        previous.bottom = Math.max(previous.bottom, rect.bottom);
+      } else {
+        merged.push({ ...rect });
+      }
+    });
+    return merged;
+  }
+
+  function showTextHighlightTargetOutline(range = pendingTextHighlightRange) {
+    hideTextHighlightTargetOutline();
+    const rects = getTextHighlightTargetRects(range);
+    if (!rects.length) return;
+    const outline = document.createElement('div');
+    outline.id = 'egov-ext-text-highlight-target-outline';
+    outline.setAttribute('aria-hidden', 'true');
+    outline.style.setProperty('display', 'block', 'important');
+    rects.forEach((rect) => {
+      const segment = document.createElement('div');
+      segment.className = 'egov-ext-text-highlight-target-segment';
+      segment.style.left = `${Math.max(0, rect.left - 2)}px`;
+      segment.style.top = `${Math.max(0, rect.top - 2)}px`;
+      segment.style.width = `${rect.right - rect.left + 4}px`;
+      segment.style.height = `${rect.bottom - rect.top + 4}px`;
+      outline.appendChild(segment);
+    });
+    document.body.appendChild(outline);
+    textHighlightTargetOutline = outline;
+  }
+
+  function scheduleTextHighlightTargetOutline() {
+    if (textHighlightTargetOutlineRaf) return;
+    textHighlightTargetOutlineRaf = requestAnimationFrame(() => {
+      textHighlightTargetOutlineRaf = 0;
+      if (textHighlightPopup) showTextHighlightTargetOutline();
+    });
+  }
+
+  function hideTextHighlightPopup({ force = false } = {}) {
+    if (!force && isTextHighlightMemoEditing()) return false;
+    if (textHighlightRangeButtonResetTimer) clearTimeout(textHighlightRangeButtonResetTimer);
+    textHighlightRangeButtonResetTimer = 0;
+    textHighlightRangeAdjusting = false;
+    textHighlightPopup?.remove();
+    textHighlightPopup = null;
+    hideTextHighlightTargetOutline();
+    pendingTextHighlightRange = null;
+    pendingTextHighlightSource = null;
+    if (textHighlightPendingStorageRecords) {
+      const pendingRecords = textHighlightPendingStorageRecords;
+      textHighlightPendingStorageRecords = null;
+      setTimeout(() => syncTextHighlightRecordsFromStorage(pendingRecords), 0);
+    }
+    return true;
+  }
+
+  function hideTextHighlightMemoTooltip() {
+    if (textHighlightMemoHideTimer) clearTimeout(textHighlightMemoHideTimer);
+    textHighlightMemoHideTimer = 0;
+    textHighlightMemoTooltip?.remove();
+    textHighlightMemoTooltip = null;
+    textHighlightMemoTooltipRecordId = '';
+    textHighlightMemoTooltipSource = null;
+  }
+
+  function cancelTextHighlightMemoTooltipHide() {
+    if (textHighlightMemoHideTimer) clearTimeout(textHighlightMemoHideTimer);
+    textHighlightMemoHideTimer = 0;
+  }
+
+  function scheduleTextHighlightMemoTooltipHide(delay = 500) {
+    if (textHighlightMemoHideTimer) return;
+    textHighlightMemoHideTimer = setTimeout(() => {
+      textHighlightMemoHideTimer = 0;
+      hideTextHighlightMemoTooltip();
+    }, delay);
+  }
+
+  function getRangeContainerElement(node) {
+    return node instanceof Element ? node : node?.parentElement || null;
+  }
+
+  function isRangeInsideProvisionView(range) {
+    const provisionRoot = document.querySelector('#provisionview');
+    if (!provisionRoot || !range) return false;
+    const startEl = getRangeContainerElement(range.startContainer);
+    const endEl = getRangeContainerElement(range.endContainer);
+    return !!startEl && !!endEl && provisionRoot.contains(startEl) && provisionRoot.contains(endEl);
+  }
+
+  function getTextHighlightStorageKey() {
+    const lawId = getCurrentLawIdFromUrl();
+    return lawId ? `${TEXT_HIGHLIGHT_STORAGE_PREFIX}${lawId}` : '';
+  }
+
+  function formatTextHighlightPortableKey(parts) {
+    if (!parts?.article) return '';
+    const provisionKey = buildJumpHistoryKey(parts);
+    return parts.scope ? `${parts.scope}::${provisionKey}` : provisionKey;
+  }
+
+  function getTextHighlightPortableKeyFromElement(element) {
+    if (!(element instanceof Element) || !element.id) return '';
+    return formatTextHighlightPortableKey(parseProvisionHash(`#${element.id}`) || parseProvisionPath(element.id));
+  }
+
+  function getTextHighlightAnchor(range) {
+    const provisionRoot = document.querySelector('#provisionview');
+    const endEl = getRangeContainerElement(range?.endContainer);
+    let el = getRangeContainerElement(range?.startContainer);
+    while (el && el !== provisionRoot) {
+      if (el.id && parseProvisionPath(el.id) && el.contains(endEl)) return el;
+      el = el.parentElement;
+    }
+    return provisionRoot?.contains(endEl) ? provisionRoot : null;
+  }
+
+  function getTextHighlightProvisionAnchor(node) {
+    const provisionRoot = document.querySelector('#provisionview');
+    let element = getRangeContainerElement(node);
+    let anchor = null;
+    let anchorKey = '';
+    while (element && element !== provisionRoot) {
+      const key = getTextHighlightPortableKeyFromElement(element);
+      if (key) {
+        if (!anchorKey) anchorKey = key;
+        if (key !== anchorKey) break;
+        anchor = element;
+      }
+      element = element.parentElement;
+    }
+    return anchor;
+  }
+
+  function getTextHighlightPortableAnchor(node) {
+    const provisionRoot = document.querySelector('#provisionview');
+    let element = getRangeContainerElement(node);
+    let paragraphAnchor = null;
+    let paragraphKey = '';
+    let articleAnchor = null;
+    while (element && element !== provisionRoot) {
+      const parts = element.id
+        ? (parseProvisionHash(`#${element.id}`) || parseProvisionPath(element.id))
+        : null;
+      if (parts?.article && parts.paragraph && !parts.item) {
+        const key = formatTextHighlightPortableKey(parts);
+        if (!paragraphKey) paragraphKey = key;
+        if (key === paragraphKey) paragraphAnchor = element;
+      } else if (parts?.article && !parts.paragraph && !parts.item) {
+        articleAnchor = element;
+      }
+      element = element.parentElement;
+    }
+    return paragraphAnchor || articleAnchor || getTextHighlightProvisionAnchor(node);
+  }
+
+  function getTextOffsetInAnchor(anchor, node, offset) {
+    try {
+      const range = document.createRange();
+      range.selectNodeContents(anchor);
+      range.setEnd(node, offset);
+      return range.toString().length;
+    } catch (_) {
+      return -1;
+    }
+  }
+
+  function getTextHighlightSearchOffset(anchor, node, offset) {
+    const options = { excludeSelector: TEXT_HIGHLIGHT_PORTABLE_EXCLUDE_SELECTOR };
+    try {
+      const prefixRange = document.createRange();
+      prefixRange.selectNodeContents(anchor);
+      prefixRange.setEnd(node, offset);
+      return getTextRangeText(prefixRange, options).replace(/\s+/g, '').length;
+    } catch (_) {
+      return -1;
+    }
+  }
+
+  function getTextHighlightPortableText(range) {
+    return getTextRangeText(range, {
+      excludeSelector: TEXT_HIGHLIGHT_PORTABLE_EXCLUDE_SELECTOR,
+    }).replace(/\s+/g, '');
+  }
+
+  function textHighlightPortableRangeMatchesRecord(range, record) {
+    const selectedText = getTextHighlightPortableText(range);
+    if (!selectedText || !record.q) return false;
+    if (!record.z) return selectedText === record.q;
+    return selectedText.startsWith(record.q) && selectedText.endsWith(record.z);
+  }
+
+  function updateTextHighlightPortableFields(record, range) {
+    const startAnchor = getTextHighlightPortableAnchor(range.startContainer);
+    const endAnchor = getTextHighlightPortableAnchor(range.endContainer);
+    const portableStart = startAnchor ? getTextHighlightSearchOffset(startAnchor, range.startContainer, range.startOffset) : -1;
+    const portableEnd = endAnchor ? getTextHighlightSearchOffset(endAnchor, range.endContainer, range.endOffset) : -1;
+    if (!startAnchor || !endAnchor || portableStart < 0 || portableEnd <= 0) return false;
+    const portableText = getTextHighlightPortableText(range);
+    if (!portableText) return false;
+    const fields = {
+      u: getTextHighlightPortableKeyFromElement(startAnchor),
+      v: getTextHighlightPortableKeyFromElement(endAnchor),
+      x: portableStart,
+      y: portableEnd,
+      f: 2,
+      l: portableText.length,
+      q: portableText.slice(0, TEXT_HIGHLIGHT_QUOTE_HEAD_LENGTH),
+      z: portableText.length > TEXT_HIGHLIGHT_QUOTE_HEAD_LENGTH
+        ? portableText.slice(-TEXT_HIGHLIGHT_QUOTE_TAIL_LENGTH)
+        : '',
+      w: getNormalizedTextSignature(portableText),
+    };
+    if (!fields.u || !fields.v) return false;
+    const changed = Object.entries(fields).some(([key, value]) => record[key] !== value);
+    Object.assign(record, fields);
+    return changed;
+  }
+
+  function createTextHighlightRecord(range, colorKey, recordId = '', memo = '') {
+    const anchor = getTextHighlightAnchor(range);
+    if (!anchor || !textHighlightRanges[colorKey]) return null;
+    const start = getTextOffsetInAnchor(anchor, range.startContainer, range.startOffset);
+    const end = getTextOffsetInAnchor(anchor, range.endContainer, range.endOffset);
+    const selectedText = range.toString();
+    if (start < 0 || end <= start || !selectedText) return null;
+
+    const anchorText = anchor.textContent || '';
+    const id = recordId || crypto.randomUUID?.() ||
+      `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 9)}`;
+    const record = {
+      id,
+      c: colorKey,
+      a: anchor.id,
+      h: getTextHighlightPortableKeyFromElement(anchor),
+      k: getProvisionJumpKeyFromNode(range.startContainer),
+      s: start,
+      e: end,
+      l: selectedText.length,
+      q: selectedText.slice(0, TEXT_HIGHLIGHT_QUOTE_HEAD_LENGTH),
+      z: selectedText.length > TEXT_HIGHLIGHT_QUOTE_HEAD_LENGTH
+        ? selectedText.slice(-TEXT_HIGHLIGHT_QUOTE_TAIL_LENGTH)
+        : '',
+      p: anchorText.slice(Math.max(0, start - TEXT_HIGHLIGHT_CONTEXT_LENGTH), start),
+      n: anchorText.slice(end, end + TEXT_HIGHLIGHT_CONTEXT_LENGTH),
+      m: String(memo || '').slice(0, TEXT_HIGHLIGHT_MEMO_MAX_LENGTH),
+      t: Date.now(),
+    };
+    if (!updateTextHighlightPortableFields(record, range)) return null;
+    return record;
+  }
+
+  function normalizeTextHighlightRecord(record) {
+    if (!record || typeof record !== 'object') return null;
+    const colorKey = String(record.c || '');
+    const id = String(record.id || '');
+    const anchorId = String(record.a || '');
+    const start = Number(record.s);
+    const end = Number(record.e);
+    const length = Number(record.l);
+    if (!textHighlightRanges[colorKey] || !id || !anchorId ||
+        !Number.isInteger(start) || !Number.isInteger(end) || !Number.isInteger(length) ||
+        start < 0 || end <= start || length <= 0) return null;
+    const normalized = {
+      id: id.slice(0, 80),
+      c: colorKey,
+      a: anchorId.slice(0, 500),
+      h: String(record.h || '').slice(0, 120),
+      k: String(record.k || '').slice(0, 100),
+      s: start,
+      e: end,
+      l: length,
+      q: String(record.q || '').slice(0, TEXT_HIGHLIGHT_QUOTE_HEAD_LENGTH),
+      z: String(record.z || '').slice(-TEXT_HIGHLIGHT_QUOTE_TAIL_LENGTH),
+      p: String(record.p || '').slice(-TEXT_HIGHLIGHT_CONTEXT_LENGTH),
+      n: String(record.n || '').slice(0, TEXT_HIGHLIGHT_CONTEXT_LENGTH),
+      m: String(record.m || '').slice(0, TEXT_HIGHLIGHT_MEMO_MAX_LENGTH),
+      t: Number(record.t) || 0,
+    };
+    const portableStart = Number(record.x);
+    const portableEnd = Number(record.y);
+    if (record.f !== 2 || !record.u || !record.v ||
+        !Number.isInteger(portableStart) || !Number.isInteger(portableEnd) ||
+        portableStart < 0 || portableEnd <= 0) return null;
+    normalized.u = String(record.u).slice(0, 120);
+    normalized.v = String(record.v).slice(0, 120);
+    normalized.x = portableStart;
+    normalized.y = portableEnd;
+    normalized.f = 2;
+    normalized.w = String(record.w || '').slice(0, 32);
+    return normalized;
+  }
+
+  async function loadTextHighlightRecords() {
+    if (textHighlightRecordsLoaded) return;
+    if (textHighlightLoadPromise) return textHighlightLoadPromise;
+    textHighlightLoadPromise = (async () => {
+      const storageKey = getTextHighlightStorageKey();
+      if (!storageKey) return;
+      const stored = await chrome.storage.local.get([storageKey]).catch(() => ({}));
+      const records = Array.isArray(stored[storageKey]) ? stored[storageKey] : [];
+      records.forEach((rawRecord) => {
+        const record = normalizeTextHighlightRecord(rawRecord);
+        if (record) textHighlightRecords.set(record.id, record);
+      });
+    })().finally(() => {
+      textHighlightRecordsLoaded = true;
+      textHighlightLoadPromise = null;
+    });
+    return textHighlightLoadPromise;
+  }
+
+  function getTextHighlightRecordSignature(record) {
+    return record ? JSON.stringify([
+      record.c, record.a, record.h, record.k, record.s, record.e, record.l,
+      record.q, record.z, record.p, record.n, record.m, record.t,
+      record.u, record.v, record.x, record.y, record.w,
+      record.f,
+    ]) : '';
+  }
+
+  function syncTextHighlightRecordsFromStorage(rawRecords) {
+    if (isTextHighlightMemoDirty()) {
+      textHighlightPendingStorageRecords = rawRecords;
+      return;
+    }
+    const external = new Map();
+    (Array.isArray(rawRecords) ? rawRecords : []).forEach((rawRecord) => {
+      const record = normalizeTextHighlightRecord(rawRecord);
+      if (record) external.set(record.id, record);
+    });
+    const changedIds = new Set();
+    textHighlightRecords.forEach((record, id) => {
+      if (textHighlightDirtyRecordIds.has(id) || textHighlightDeletedRecordIds.has(id)) return;
+      if (getTextHighlightRecordSignature(record) !== getTextHighlightRecordSignature(external.get(id))) {
+        changedIds.add(id);
+      }
+    });
+    external.forEach((record, id) => {
+      if (textHighlightDirtyRecordIds.has(id) || textHighlightDeletedRecordIds.has(id)) return;
+      if (getTextHighlightRecordSignature(record) !== getTextHighlightRecordSignature(textHighlightRecords.get(id))) {
+        changedIds.add(id);
+      }
+    });
+    if (!changedIds.size) return;
+    if (isTextHighlightMemoEditing()) hideTextHighlightPopup({ force: true });
+    changedIds.forEach((id) => {
+      const record = external.get(id);
+      if (record) textHighlightRecords.set(id, record);
+      else textHighlightRecords.delete(id);
+    });
+    Object.keys(textHighlightRanges).forEach((colorKey) => {
+      textHighlightRanges[colorKey] = textHighlightRanges[colorKey].filter((range) => (
+        !changedIds.has(textHighlightRangeRecordId.get(range))
+      ));
+      refreshTextHighlightColor(colorKey);
+    });
+    scheduleTextHighlightRestore(0);
+  }
+
+  async function persistTextHighlightRecordsNow() {
+    if (textHighlightSaveTimer) clearTimeout(textHighlightSaveTimer);
+    textHighlightSaveTimer = 0;
+    await loadTextHighlightRecords();
+    const storageKey = getTextHighlightStorageKey();
+    if (!storageKey || (!textHighlightDirtyRecordIds.size && !textHighlightDeletedRecordIds.size)) return;
+    const dirtySnapshot = new Map();
+    textHighlightDirtyRecordIds.forEach((id) => {
+      const record = textHighlightRecords.get(id);
+      if (record) dirtySnapshot.set(id, record);
+    });
+    const deletedSnapshot = new Set(textHighlightDeletedRecordIds);
+    const stored = await chrome.storage.local.get([storageKey]).catch(() => ({}));
+    const merged = new Map();
+    (Array.isArray(stored[storageKey]) ? stored[storageKey] : []).forEach((rawRecord) => {
+      const record = normalizeTextHighlightRecord(rawRecord);
+      if (record) merged.set(record.id, record);
+    });
+    deletedSnapshot.forEach((id) => merged.delete(id));
+    dirtySnapshot.forEach((record, id) => merged.set(id, record));
+    const records = Array.from(merged.values())
+      .sort((first, second) => (second.t || 0) - (first.t || 0));
+    let saved = false;
+    try {
+      if (records.length) await chrome.storage.local.set({ [storageKey]: records });
+      else await chrome.storage.local.remove(storageKey);
+      saved = true;
+    } catch (_) {}
+    if (!saved) return;
+    dirtySnapshot.forEach((record, id) => {
+      if (textHighlightRecords.get(id) === record) textHighlightDirtyRecordIds.delete(id);
+    });
+    deletedSnapshot.forEach((id) => textHighlightDeletedRecordIds.delete(id));
+    new Map(records.map((record) => [record.id, record])).forEach((record, id) => {
+      if (!textHighlightDirtyRecordIds.has(id) && !textHighlightDeletedRecordIds.has(id)) {
+        textHighlightRecords.set(id, record);
+      }
+    });
+  }
+
+  function persistTextHighlightRecordsSoon() {
+    if (textHighlightSaveTimer) clearTimeout(textHighlightSaveTimer);
+    textHighlightSaveTimer = setTimeout(() => persistTextHighlightRecordsNow(), 180);
+  }
+
+  function getTextHighlightFallbackAnchorIndex(indexRef) {
+    if (indexRef.value) return indexRef.value;
+    const index = new Map();
+    const canonicalElements = new Set();
+    collectProvisionLinkTargets().forEach((el) => {
+      const canonical = getTextHighlightProvisionAnchor(el);
+      if (canonical) canonicalElements.add(canonical);
+      const portable = getTextHighlightPortableAnchor(el);
+      if (portable) canonicalElements.add(portable);
+    });
+    const addAnchor = (key, element) => {
+      if (!key || !(element instanceof Element)) return;
+      if (!index.has(key)) index.set(key, []);
+      if (!index.get(key).includes(element)) index.get(key).push(element);
+    };
+    canonicalElements.forEach((el) => {
+      const legacyKey = buildJumpHistoryKey(parseProvisionPath(el.id));
+      const portableKey = getTextHighlightPortableKeyFromElement(el);
+      [portableKey, legacyKey].forEach((key) => addAnchor(key, el));
+
+      // Lite版では第1項の要素内に各号が入るが、通常版では第1項本文と各号が
+      // 兄弟要素になる。第1項キーでも条文全体を候補にして、号をまたぐ範囲を復帰する。
+      const parts = parseProvisionHash(`#${el.id}`) || parseProvisionPath(el.id);
+      if (parts?.paragraph === '1' && !parts.item) {
+        let article = el.parentElement;
+        while (article && article !== document.querySelector('#provisionview')) {
+          const articleParts = article.id
+            ? (parseProvisionHash(`#${article.id}`) || parseProvisionPath(article.id))
+            : null;
+          if (articleParts?.article === parts.article && !articleParts.paragraph && !articleParts.item) {
+            [portableKey, legacyKey].forEach((key) => addAnchor(key, article));
+            break;
+          }
+          article = article.parentElement;
+        }
+      }
+    });
+    indexRef.value = index;
+    return index;
+  }
+
+  function restoreTextHighlightPortableRange(record, anchorIndex) {
+    if (!record.u || !record.v || !Number.isInteger(record.x) || !Number.isInteger(record.y)) return null;
+    const startAnchors = anchorIndex.get(record.u) || [];
+    const endAnchors = anchorIndex.get(record.v) || [];
+    const options = {
+      excludeSelector: TEXT_HIGHLIGHT_PORTABLE_EXCLUDE_SELECTOR,
+    };
+    for (const startAnchor of startAnchors) {
+      for (const endAnchor of endAnchors) {
+        const range = rangeFromNormalizedTextAnchorOffsets(
+          startAnchor, record.x, endAnchor, record.y, options,
+        );
+        if (!range || !isRangeInsideProvisionView(range)) continue;
+        if (!textHighlightPortableRangeMatchesRecord(range, record)) continue;
+        return range;
+      }
+    }
+    return null;
+  }
+
+  function restoreTextHighlightRecord(record, fallbackAnchorIndexRef = { value: null }) {
+    const portableRange = restoreTextHighlightPortableRange(
+      record,
+      getTextHighlightFallbackAnchorIndex(fallbackAnchorIndexRef),
+    );
+    if (!portableRange) return false;
+    const restoredRange = portableRange.cloneRange();
+    textHighlightRangeSequence.set(restoredRange, ++textHighlightSequence);
+    textHighlightRangeRecordId.set(restoredRange, record.id);
+    textHighlightRanges[record.c].push(restoredRange);
+    return true;
+  }
+
+  function textHighlightRangeMatchesRecord(range, record) {
+    if (!range || !record || range.collapsed ||
+        !range.startContainer?.isConnected || !range.endContainer?.isConnected) return false;
+    return textHighlightPortableRangeMatchesRecord(range, record);
+  }
+
+  function getUnrestoredTextHighlightRecords() {
+    const restoredIds = new Set();
+    const displayIds = new Set(getTextHighlightDisplayRecords().map((record) => record.id));
+    Object.values(textHighlightRanges).forEach((ranges) => {
+      ranges.forEach((range) => {
+        const id = textHighlightRangeRecordId.get(range);
+        if (id && displayIds.has(id) && textHighlightRangeMatchesRecord(range, textHighlightRecords.get(id))) {
+          restoredIds.add(id);
+        }
+      });
+    });
+    return Array.from(textHighlightRecords.values()).filter((record) => !restoredIds.has(record.id));
+  }
+
+  function getTextHighlightDisplayRecords() {
+    return Array.from(textHighlightRecords.values())
+      .sort((first, second) => (second.t || 0) - (first.t || 0))
+      .slice(0, TEXT_HIGHLIGHT_DISPLAY_LIMIT);
+  }
+
+  function getTextHighlightDisplayLimitExceededCount() {
+    return Math.max(0, textHighlightRecords.size - TEXT_HIGHLIGHT_DISPLAY_LIMIT);
+  }
+
+  function formatUnrestoredTextHighlightTarget(record, end = false) {
+    const key = end ? (record.v || record.h) : (record.u || record.h || record.k);
+    return key ? (getReferenceTargetLabel(key) || key) : '不明';
+  }
+
+  function buildUnrestoredTextHighlightReport(records) {
+    const items = records.map((record) => [
+      '【対象条文】',
+      `開始位置：${formatUnrestoredTextHighlightTarget(record)}`,
+      `終了位置：${formatUnrestoredTextHighlightTarget(record, true)}`,
+      '',
+      '【対象メモ】',
+      String(record.m || '').trim() ? String(record.m || '') : 'なし',
+      '---',
+    ].join('\n'));
+    return ['改正等により、描画できなかったハイライト/メモ', ...items].join('\n');
+  }
+
+  function downloadUnrestoredTextHighlightReport() {
+    const records = getUnrestoredTextHighlightRecords();
+    if (!records.length) {
+      clearTextHighlightRestoreNotice();
+      return;
+    }
+    const date = new Date();
+    const stamp = [date.getFullYear(), date.getMonth() + 1, date.getDate()]
+      .map((value) => String(value).padStart(2, '0')).join('');
+    const lawId = String(getCurrentLawIdFromUrl() || '').replace(/[^0-9A-Za-z_-]/g, '') || 'law';
+    const blob = new Blob(['\uFEFF', buildUnrestoredTextHighlightReport(records)], {
+      type: 'text/plain;charset=utf-8',
+    });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `描画できなかったハイライト・メモ_${lawId}_${stamp}.txt`;
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
+  function deleteUnrestoredTextHighlights() {
+    const records = getUnrestoredTextHighlightRecords();
+    if (!records.length) {
+      clearTextHighlightRestoreNotice();
+      return;
+    }
+    if (!window.confirm('復元できなかったハイライト/メモを削除してよいですか？')) return;
+    records.forEach((record) => {
+      textHighlightRecords.delete(record.id);
+      textHighlightDirtyRecordIds.delete(record.id);
+      textHighlightDeletedRecordIds.add(record.id);
+    });
+    Object.keys(textHighlightRanges).forEach((colorKey) => {
+      textHighlightRanges[colorKey] = textHighlightRanges[colorKey].filter((range) => (
+        !textHighlightDeletedRecordIds.has(textHighlightRangeRecordId.get(range))
+      ));
+      refreshTextHighlightColor(colorKey);
+    });
+    persistTextHighlightRecordsSoon();
+    clearTextHighlightRestoreNotice();
+  }
+
+  function ignoreTextHighlightRestoreNotice() {
+    textHighlightRestoreNoticeIgnored = true;
+    clearTextHighlightRestoreNotice();
+  }
+
+  function renderTextHighlightRestoreNotice() {
+    const records = getUnrestoredTextHighlightRecords();
+    const signature = records.map((record) => record.id).sort().join('\n');
+    if (signature !== textHighlightUnrestoredSignature) {
+      scheduleTextHighlightRestoreNotice(records);
+      return;
+    }
+    let notice = document.querySelector('#egov-ext-text-highlight-restore-notice');
+    if (!records.length) {
+      notice?.remove();
+      return;
+    }
+    if (!notice) {
+      notice = document.createElement('div');
+      notice.id = 'egov-ext-text-highlight-restore-notice';
+      notice.setAttribute('role', 'status');
+      notice.setAttribute('aria-live', 'polite');
+      const message = document.createElement('span');
+      message.className = 'egov-ext-text-highlight-restore-message';
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.textContent = 'テキスト保存';
+      button.addEventListener('click', downloadUnrestoredTextHighlightReport);
+      const deleteButton = document.createElement('button');
+      deleteButton.type = 'button';
+      deleteButton.className = 'egov-ext-text-highlight-restore-delete';
+      deleteButton.textContent = '削除';
+      deleteButton.addEventListener('click', deleteUnrestoredTextHighlights);
+      const ignoreButton = document.createElement('button');
+      ignoreButton.type = 'button';
+      ignoreButton.textContent = '無視';
+      ignoreButton.addEventListener('click', ignoreTextHighlightRestoreNotice);
+      const actions = document.createElement('div');
+      actions.className = 'egov-ext-text-highlight-restore-actions';
+      actions.append(button, deleteButton, ignoreButton);
+      notice.append(message, actions);
+      document.body.appendChild(notice);
+    }
+    const message = notice.querySelector('.egov-ext-text-highlight-restore-message');
+    if (message) {
+      const limitExceededCount = getTextHighlightDisplayLimitExceededCount();
+      message.textContent = limitExceededCount
+        ? `表示できなかったハイライト/メモが${records.length}件あります（うち${limitExceededCount}件は表示上限1,000件を超えています）。`
+        : `復元できなかったハイライト/メモが${records.length}件あります。`;
+    }
+  }
+
+  function clearTextHighlightRestoreNotice() {
+    if (textHighlightRestoreNoticeTimer) clearTimeout(textHighlightRestoreNoticeTimer);
+    textHighlightRestoreNoticeTimer = 0;
+    textHighlightUnrestoredRecords = [];
+    textHighlightUnrestoredSignature = '';
+    textHighlightUnrestoredStablePasses = 0;
+    document.querySelector('#egov-ext-text-highlight-restore-notice')?.remove();
+  }
+
+  function scheduleTextHighlightRestoreNotice(records, delay = 1500) {
+    if (textHighlightRestoreNoticeIgnored) {
+      clearTextHighlightRestoreNotice();
+      return;
+    }
+    textHighlightUnrestoredRecords = Array.from(records || []);
+    const signature = textHighlightUnrestoredRecords.map((record) => record.id).sort().join('\n');
+    if (textHighlightRestoreNoticeTimer) clearTimeout(textHighlightRestoreNoticeTimer);
+    const notice = document.querySelector('#egov-ext-text-highlight-restore-notice');
+    if (!signature && !notice) {
+      textHighlightRestoreNoticeTimer = 0;
+      textHighlightUnrestoredSignature = '';
+      textHighlightUnrestoredStablePasses = 0;
+      return;
+    }
+    if (signature === textHighlightUnrestoredSignature) {
+      textHighlightUnrestoredStablePasses += 1;
+    } else {
+      textHighlightUnrestoredSignature = signature;
+      textHighlightUnrestoredStablePasses = 1;
+    }
+    if (textHighlightUnrestoredStablePasses < 3) {
+      textHighlightRestoreNoticeTimer = setTimeout(() => {
+        textHighlightRestoreNoticeTimer = 0;
+        restoreTextHighlights().catch(() => {});
+      }, 550);
+      return;
+    }
+    textHighlightRestoreNoticeTimer = setTimeout(() => {
+      textHighlightRestoreNoticeTimer = 0;
+      if (signature) renderTextHighlightRestoreNotice();
+      else clearTextHighlightRestoreNotice();
+    }, delay);
+  }
+
+  async function restoreTextHighlights() {
+    if (!textHighlightFeatureEnabled) return;
+    await loadTextHighlightRecords();
+    if (!document.querySelector('#provisionview') || !textHighlightRecords.size) {
+      scheduleTextHighlightRestoreNotice([]);
+      return;
+    }
+
+    const connectedRecordIds = new Set();
+    const displayRecords = getTextHighlightDisplayRecords();
+    const displayRecordIds = new Set(displayRecords.map((record) => record.id));
+    Object.values(textHighlightRanges).forEach((ranges) => {
+      ranges.forEach((range) => {
+        const recordId = textHighlightRangeRecordId.get(range);
+        if (recordId && displayRecordIds.has(recordId) &&
+            textHighlightRangeMatchesRecord(range, textHighlightRecords.get(recordId))) {
+          connectedRecordIds.add(recordId);
+        }
+      });
+    });
+    Object.keys(textHighlightRanges).forEach((colorKey) => {
+      textHighlightRanges[colorKey] = textHighlightRanges[colorKey].filter((range) => (
+        displayRecordIds.has(textHighlightRangeRecordId.get(range))
+      ));
+    });
+
+    let restoredCount = 0;
+    const fallbackAnchorIndexRef = { value: null };
+    for (const record of displayRecords) {
+      if (connectedRecordIds.has(record.id)) continue;
+      if (restoreTextHighlightRecord(record, fallbackAnchorIndexRef)) {
+        connectedRecordIds.add(record.id);
+        restoredCount += 1;
+      }
+      if (restoredCount > 0 && restoredCount % 25 === 0) {
+        await new Promise((resolve) => requestAnimationFrame(resolve));
+      }
+    }
+    Object.keys(textHighlightRanges).forEach(refreshTextHighlightColor);
+    scheduleTextHighlightRestoreNotice(
+      Array.from(textHighlightRecords.values()).filter((record) => !connectedRecordIds.has(record.id)),
+    );
+  }
+
+  function scheduleTextHighlightRestore(delay = 220) {
+    if (!textHighlightFeatureEnabled) return;
+    if (textHighlightRestoreTimer) clearTimeout(textHighlightRestoreTimer);
+    textHighlightRestoreTimer = setTimeout(() => {
+      textHighlightRestoreTimer = 0;
+      restoreTextHighlights().catch(() => {});
+    }, delay);
+  }
+
+  function discardInvalidTextHighlightRanges() {
+    let discarded = false;
+    Object.keys(textHighlightRanges).forEach((colorKey) => {
+      textHighlightRanges[colorKey] = textHighlightRanges[colorKey].filter((range) => {
+        if (!range.startContainer?.isConnected || !range.endContainer?.isConnected || range.collapsed) {
+          discarded = true;
+          return false;
+        }
+        const record = textHighlightRecords.get(textHighlightRangeRecordId.get(range));
+        if (!record) return true;
+        const valid = textHighlightRangeMatchesRecord(range, record);
+        if (!valid) discarded = true;
+        return valid;
+      });
+    });
+    return discarded;
+  }
+
+  function observeTextHighlightDomChanges() {
+    const root = document.querySelector('#provisionview') || document.documentElement;
+    let validationTimer = 0;
+    const observer = new MutationObserver(() => {
+      textHighlightHitTestCache = null;
+      if (textHighlightPopup) scheduleTextHighlightTargetOutline();
+      if (!textHighlightRecords.size) return;
+      if (validationTimer) clearTimeout(validationTimer);
+      validationTimer = setTimeout(() => {
+        validationTimer = 0;
+        if (discardInvalidTextHighlightRanges()) scheduleTextHighlightRestore(80);
+      }, 80);
+    });
+    observer.observe(root, { childList: true, subtree: true });
+  }
+
+  function refreshTextHighlightColor(colorKey) {
+    if (!CSS.highlights || typeof Highlight !== 'function') return;
+    textHighlightHitTestCache = null;
+    textHighlightRanges[colorKey] = textHighlightRanges[colorKey]
+      .filter((range) => range.startContainer?.isConnected && range.endContainer?.isConnected);
+    CSS.highlights.set(
+      `egov-ext-text-highlight-${colorKey}`,
+      new Highlight(...textHighlightRanges[colorKey])
+    );
+  }
+
+  function applyPendingTextHighlight(colorKey) {
+    const range = pendingTextHighlightRange;
+    if (!range || !isRangeInsideProvisionView(range) || !textHighlightRanges[colorKey]) {
+      hideTextHighlightPopup();
+      return;
+    }
+    if (findOverlappingTextHighlightRange(range, pendingTextHighlightSource?.range || null)) {
+      showTextHighlightOverlapNotice();
+      flashTextHighlightRangeButton('重複不可');
+      return;
+    }
+
+    const sourceRecordId = pendingTextHighlightSource
+      ? textHighlightRangeRecordId.get(pendingTextHighlightSource.range) || ''
+      : '';
+    const memo = textHighlightPopup?.querySelector('.egov-ext-text-highlight-memo-input')?.value || '';
+    if (pendingTextHighlightSource) {
+      const { colorKey: sourceColor, range: sourceRange } = pendingTextHighlightSource;
+      textHighlightRanges[sourceColor] = textHighlightRanges[sourceColor]
+        .filter((highlightRange) => highlightRange !== sourceRange);
+      refreshTextHighlightColor(sourceColor);
+    }
+
+    const nextRange = range.cloneRange();
+    const record = createTextHighlightRecord(nextRange, colorKey, sourceRecordId, memo);
+    if (!record) {
+      updateTextHighlightMemoDirtyState();
+      scheduleTextHighlightRestore(0);
+      textHighlightPopup?.querySelector('textarea')?.focus();
+      return;
+    }
+    textHighlightRangeSequence.set(nextRange, ++textHighlightSequence);
+    if (sourceRecordId) textHighlightRecords.delete(sourceRecordId);
+    textHighlightRecords.set(record.id, record);
+    textHighlightRangeRecordId.set(nextRange, record.id);
+    textHighlightDirtyRecordIds.add(record.id);
+    textHighlightDeletedRecordIds.delete(record.id);
+    textHighlightRanges[colorKey].push(nextRange);
+    refreshTextHighlightColor(colorKey);
+    persistTextHighlightRecordsSoon();
+    hideTextHighlightPopup({ force: true });
+    window.getSelection()?.removeAllRanges();
+  }
+
+  function textHighlightRangesOverlap(first, second) {
+    try {
+      return first.compareBoundaryPoints(Range.START_TO_END, second) > 0 &&
+        first.compareBoundaryPoints(Range.END_TO_START, second) < 0;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  function findOverlappingTextHighlightRange(range, excludedRange = null) {
+    return Object.values(textHighlightRanges).flat().find((highlightRange) => (
+      highlightRange !== excludedRange && textHighlightRangesOverlap(highlightRange, range)
+    )) || null;
+  }
+
+  function showTextHighlightOverlapNotice(clientX = null, clientY = null) {
+    if (textHighlightOverlapNoticeTimer) clearTimeout(textHighlightOverlapNoticeTimer);
+    document.querySelector('#egov-ext-text-highlight-overlap-notice')?.remove();
+    const notice = document.createElement('div');
+    notice.id = 'egov-ext-text-highlight-overlap-notice';
+    notice.setAttribute('role', 'status');
+    notice.textContent = '既存のハイライトと重なる範囲にハイライトを設定することはできません';
+    document.body.appendChild(notice);
+    const anchorRect = textHighlightPopup?.getBoundingClientRect();
+    const left = Number.isFinite(clientX) ? clientX : anchorRect?.left;
+    const top = Number.isFinite(clientY) ? clientY : anchorRect?.bottom;
+    notice.style.left = `${Math.max(8, Math.min(Number(left) || 8, window.innerWidth - notice.offsetWidth - 8))}px`;
+    notice.style.top = `${Math.max(8, Math.min((Number(top) || 8) + 10, window.innerHeight - notice.offsetHeight - 8))}px`;
+    textHighlightOverlapNoticeTimer = setTimeout(() => {
+      textHighlightOverlapNoticeTimer = 0;
+      notice.remove();
+    }, 2200);
+  }
+
+  function updateTextHighlightRangeButton(label = '') {
+    const button = textHighlightPopup?.querySelector('[data-highlight-range]');
+    if (!button) return;
+    button.textContent = label || (textHighlightRangeAdjusting ? '選択中…' : '範囲');
+    button.setAttribute('aria-pressed', String(textHighlightRangeAdjusting));
+  }
+
+  function flashTextHighlightRangeButton(label) {
+    if (textHighlightRangeButtonResetTimer) clearTimeout(textHighlightRangeButtonResetTimer);
+    updateTextHighlightRangeButton(label);
+    textHighlightRangeButtonResetTimer = setTimeout(() => {
+      textHighlightRangeButtonResetTimer = 0;
+      updateTextHighlightRangeButton();
+    }, 1400);
+  }
+
+  function toggleTextHighlightRangeAdjustment() {
+    textHighlightRangeAdjusting = !textHighlightRangeAdjusting;
+    updateTextHighlightRangeButton();
+    if (textHighlightRangeAdjusting) window.getSelection()?.removeAllRanges();
+  }
+
+  function applyAdjustedTextHighlightRange(range, clientX, clientY) {
+    if (!range || !isRangeInsideProvisionView(range) || range.collapsed || !range.toString().trim()) {
+      flashTextHighlightRangeButton('範囲を選択');
+      return false;
+    }
+    if (findOverlappingTextHighlightRange(range, pendingTextHighlightSource?.range || null)) {
+      showTextHighlightOverlapNotice(clientX, clientY);
+      flashTextHighlightRangeButton('重複不可');
+      return false;
+    }
+    const source = pendingTextHighlightSource;
+    const sourceRecordId = source ? textHighlightRangeRecordId.get(source.range) || '' : '';
+    const sourceRecord = sourceRecordId ? textHighlightRecords.get(sourceRecordId) : null;
+    if (!source || !sourceRecordId || !sourceRecord) {
+      flashTextHighlightRangeButton('変更失敗');
+      return false;
+    }
+    const nextRange = range.cloneRange();
+    const nextRecord = createTextHighlightRecord(
+      nextRange,
+      source.colorKey,
+      sourceRecordId,
+      sourceRecord.m,
+    );
+    if (!nextRecord) {
+      flashTextHighlightRangeButton('変更失敗');
+      return false;
+    }
+    textHighlightRanges[source.colorKey] = textHighlightRanges[source.colorKey]
+      .filter((highlightRange) => highlightRange !== source.range);
+    textHighlightRangeSequence.set(nextRange, ++textHighlightSequence);
+    textHighlightRangeRecordId.set(nextRange, sourceRecordId);
+    textHighlightRecords.set(sourceRecordId, nextRecord);
+    textHighlightDirtyRecordIds.add(sourceRecordId);
+    textHighlightDeletedRecordIds.delete(sourceRecordId);
+    textHighlightRanges[source.colorKey].push(nextRange);
+    refreshTextHighlightColor(source.colorKey);
+    persistTextHighlightRecordsSoon();
+    pendingTextHighlightRange = nextRange.cloneRange();
+    pendingTextHighlightSource = { colorKey: source.colorKey, range: nextRange };
+    showTextHighlightTargetOutline(pendingTextHighlightRange);
+    textHighlightRangeAdjusting = false;
+    flashTextHighlightRangeButton('変更済み');
+    window.getSelection()?.removeAllRanges();
+    return true;
+  }
+
+  function removePendingTextHighlights() {
+    const range = pendingTextHighlightRange;
+    if (!range || !isRangeInsideProvisionView(range)) {
+      hideTextHighlightPopup({ force: true });
+      return;
+    }
+
+    const rangesToRemove = pendingTextHighlightSource
+      ? [pendingTextHighlightSource.range]
+      : Object.values(textHighlightRanges).flat().filter((highlightRange) => (
+        textHighlightRangesOverlap(highlightRange, range)
+      ));
+    const removesMemo = rangesToRemove.some((highlightRange) => {
+      const record = textHighlightRecords.get(textHighlightRangeRecordId.get(highlightRange));
+      return !!record?.m;
+    });
+    if (removesMemo && !window.confirm('ハイライトとともにメモも削除されますが良いですか？')) return;
+
+    if (pendingTextHighlightSource) {
+      const { colorKey, range: sourceRange } = pendingTextHighlightSource;
+      const recordId = textHighlightRangeRecordId.get(sourceRange);
+      if (recordId) {
+        textHighlightRecords.delete(recordId);
+        textHighlightDirtyRecordIds.delete(recordId);
+        textHighlightDeletedRecordIds.add(recordId);
+      }
+      textHighlightRanges[colorKey] = textHighlightRanges[colorKey]
+        .filter((highlightRange) => highlightRange !== sourceRange);
+      refreshTextHighlightColor(colorKey);
+    } else {
+      Object.keys(textHighlightRanges).forEach((colorKey) => {
+        textHighlightRanges[colorKey] = textHighlightRanges[colorKey].filter((highlightRange) => {
+          if (!textHighlightRangesOverlap(highlightRange, range)) return true;
+          const recordId = textHighlightRangeRecordId.get(highlightRange);
+          if (recordId) {
+            textHighlightRecords.delete(recordId);
+            textHighlightDirtyRecordIds.delete(recordId);
+            textHighlightDeletedRecordIds.add(recordId);
+          }
+          return false;
+        });
+        refreshTextHighlightColor(colorKey);
+      });
+    }
+    persistTextHighlightRecordsSoon();
+    scheduleTextHighlightRestoreNotice(getUnrestoredTextHighlightRecords(), 0);
+    hideTextHighlightPopup({ force: true });
+    window.getSelection()?.removeAllRanges();
+  }
+
+  function positionTextHighlightPopup(popup, clientX, clientY) {
+    const gap = 10;
+    const viewportPadding = 8;
+    const rect = popup.getBoundingClientRect();
+    let left = clientX + gap;
+    let top = clientY + gap;
+
+    if (left + rect.width > window.innerWidth - viewportPadding) {
+      left = clientX - rect.width - gap;
+    }
+    if (top + rect.height > window.innerHeight - viewportPadding) {
+      top = clientY - rect.height - gap;
+    }
+
+    popup.style.left = `${Math.max(viewportPadding, left)}px`;
+    popup.style.top = `${Math.max(viewportPadding, top)}px`;
+    popup.classList.toggle('memo-above', clientY > window.innerHeight / 2);
+    popup.classList.toggle('memo-align-right', left + 550 > window.innerWidth - viewportPadding);
+  }
+
+  function getTextHighlightHitTestEntries() {
+    if (textHighlightHitTestCache) return textHighlightHitTestCache;
+    const entries = [];
+    Object.entries(textHighlightRanges).forEach(([colorKey, ranges]) => {
+      ranges.forEach((range) => {
+        if (!range.startContainer?.isConnected || !range.endContainer?.isConnected) return;
+        entries.push({
+          colorKey,
+          range,
+          rects: Array.from(range.getClientRects()),
+          sequence: textHighlightRangeSequence.get(range) || 0,
+        });
+      });
+    });
+    textHighlightHitTestCache = entries;
+    return entries;
+  }
+
+  function findTextHighlightAtPoint(clientX, clientY) {
+    const caret = document.caretPositionFromPoint?.(clientX, clientY);
+    const fallbackRange = !caret ? document.caretRangeFromPoint?.(clientX, clientY) : null;
+    const node = caret?.offsetNode || fallbackRange?.startContainer;
+    const offset = caret?.offset ?? fallbackRange?.startOffset;
+    if (!node || !Number.isInteger(offset)) return null;
+
+    const matches = [];
+    getTextHighlightHitTestEntries().forEach((entry) => {
+        const isVisuallyInside = entry.rects.some((rect) => (
+          clientX >= rect.left && clientX <= rect.right && clientY >= rect.top && clientY <= rect.bottom
+        ));
+        if (!isVisuallyInside) return;
+        try {
+          if (entry.range.comparePoint(node, offset) === 0) {
+            matches.push(entry);
+          }
+        } catch (_) {
+          // The caret and range can briefly belong to different DOM trees during a page update.
+        }
+    });
+    matches.sort((first, second) => second.sequence - first.sequence);
+    return matches[0] || null;
+  }
+
+  function positionTextHighlightMemoTooltip(tooltip, clientX, clientY) {
+    const gap = 12;
+    const padding = 8;
+    const rect = tooltip.getBoundingClientRect();
+    let left = clientX + gap;
+    let top = clientY + gap;
+    if (left + rect.width > window.innerWidth - padding) left = clientX - rect.width - gap;
+    if (top + rect.height > window.innerHeight - padding) top = clientY - rect.height - gap;
+    tooltip.style.left = `${Math.max(padding, left)}px`;
+    tooltip.style.top = `${Math.max(padding, top)}px`;
+  }
+
+  function showTextHighlightMemoTooltip(record, source, clientX, clientY) {
+    if (!record?.m || textHighlightPopup) {
+      hideTextHighlightMemoTooltip();
+      return;
+    }
+    cancelTextHighlightMemoTooltipHide();
+    if (textHighlightMemoTooltip && textHighlightMemoTooltipRecordId === record.id) return;
+    if (!textHighlightMemoTooltip || textHighlightMemoTooltipRecordId !== record.id) {
+      hideTextHighlightMemoTooltip();
+      const tooltip = document.createElement('div');
+      tooltip.id = 'egov-ext-text-highlight-memo-tooltip';
+      tooltip.className = `is-${source.colorKey}`;
+      tooltip.setAttribute('role', 'tooltip');
+      tooltip.textContent = record.m;
+      tooltip.addEventListener('pointerenter', cancelTextHighlightMemoTooltipHide);
+      tooltip.addEventListener('pointerleave', () => scheduleTextHighlightMemoTooltipHide(500));
+      tooltip.addEventListener('click', (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        const activeSource = textHighlightMemoTooltipSource;
+        if (!activeSource?.range?.startContainer?.isConnected) return;
+        showTextHighlightPopup(activeSource.range, event.clientX, event.clientY, activeSource);
+      });
+      document.body.appendChild(tooltip);
+      textHighlightMemoTooltip = tooltip;
+      textHighlightMemoTooltipRecordId = record.id;
+      textHighlightMemoTooltipSource = source;
+    }
+    positionTextHighlightMemoTooltip(textHighlightMemoTooltip, clientX, clientY);
+  }
+
+  function showTextHighlightMemoEditor({ focus = false } = {}) {
+    if (!textHighlightPopup) return;
+    const editor = textHighlightPopup.querySelector('.egov-ext-text-highlight-memo-editor');
+    const button = textHighlightPopup.querySelector('[data-highlight-memo]');
+    if (!editor) return;
+    const textarea = editor.querySelector('textarea');
+    if (!editor.classList.contains('is-visible') && textarea) {
+      textarea.dataset.initialValue = textarea.value;
+    }
+    editor.classList.add('is-visible');
+    button?.setAttribute('aria-expanded', 'true');
+    updateTextHighlightMemoDirtyState();
+    if (focus) {
+      textarea?.focus();
+      textarea?.setSelectionRange(textarea.value.length, textarea.value.length);
+    }
+  }
+
+  function cancelTextHighlightMemoEdit({ focusButton = true } = {}) {
+    if (!textHighlightPopup) return true;
+    const editor = textHighlightPopup.querySelector('.egov-ext-text-highlight-memo-editor.is-visible');
+    const textarea = editor?.querySelector('textarea');
+    if (!editor || !textarea) return true;
+    const initialValue = textarea.dataset.initialValue || '';
+    if (isTextHighlightMemoDirty() && !window.confirm('メモを保存せずに閉じていいですか？')) {
+      textarea.focus();
+      return false;
+    }
+    textarea.value = initialValue;
+    updateTextHighlightMemoDirtyState();
+    editor.classList.remove('is-visible');
+    textHighlightPopup.querySelector('[data-highlight-memo]')?.setAttribute('aria-expanded', 'false');
+    if (focusButton) textHighlightPopup.querySelector('[data-highlight-memo]')?.focus();
+    return true;
+  }
+
+  function showTextHighlightPopup(range, clientX, clientY, source = null) {
+    if (isTextHighlightMemoEditing()) return;
+    hideTextHighlightPopup({ force: true });
+    hideTextHighlightMemoTooltip();
+    pendingTextHighlightRange = range.cloneRange();
+    pendingTextHighlightSource = source;
+    showTextHighlightTargetOutline(pendingTextHighlightRange);
+    const sourceRecord = source
+      ? textHighlightRecords.get(textHighlightRangeRecordId.get(source.range))
+      : null;
+
+    const popup = document.createElement('div');
+    popup.id = 'egov-ext-text-highlight-popup';
+    popup.setAttribute('role', 'toolbar');
+    popup.setAttribute('aria-label', 'ハイライトの編集');
+    popup.innerHTML = TEXT_HIGHLIGHT_COLORS.map(({ key, label }) => (
+      `<button type="button" class="egov-ext-text-highlight-swatch is-${key}` +
+      `${source?.colorKey === key ? ' is-active' : ''}" data-highlight-color="${key}" ` +
+      `aria-label="${label}" aria-pressed="${source?.colorKey === key}" title="${label}"></button>`
+    )).join('') +
+      '<span class="egov-ext-text-highlight-divider" aria-hidden="true"></span>' +
+      (source ? '<button type="button" class="egov-ext-text-highlight-range-button" ' +
+      'data-highlight-range aria-label="ハイライト範囲を変更" aria-pressed="false" title="ハイライト範囲を選び直す">範囲</button>' : '') +
+      '<button type="button" class="egov-ext-text-highlight-memo-button" ' +
+      'data-highlight-memo aria-label="メモを追加・編集" aria-expanded="false" title="メモを追加・編集">メモ</button>' +
+      '<button type="button" class="egov-ext-text-highlight-remove" ' +
+      'data-highlight-remove aria-label="ハイライトを消す" title="ハイライトを消す">×</button>' +
+      '<div class="egov-ext-text-highlight-memo-editor">' +
+      `<textarea class="egov-ext-text-highlight-memo-input" rows="6" maxlength="${TEXT_HIGHLIGHT_MEMO_MAX_LENGTH}" ` +
+      'aria-label="ハイライトのメモ" placeholder="メモを入力…"></textarea>' +
+      '<div class="egov-ext-text-highlight-memo-footer">' +
+      '<div class="egov-ext-text-highlight-memo-status" aria-live="polite"></div>' +
+      '<div class="egov-ext-text-highlight-memo-hint">色選択・Ctrl+Enterで確定/「メモ」かESCでキャンセル</div></div></div>';
+
+    const memoInput = popup.querySelector('.egov-ext-text-highlight-memo-input');
+    if (memoInput) memoInput.value = sourceRecord?.m || '';
+
+    popup.addEventListener('pointerdown', (event) => {
+      if (!event.target.closest('textarea')) event.preventDefault();
+    });
+    popup.addEventListener('click', (event) => {
+      const rangeButton = event.target.closest('[data-highlight-range]');
+      if (rangeButton instanceof HTMLElement) {
+        event.preventDefault();
+        event.stopPropagation();
+        toggleTextHighlightRangeAdjustment();
+        return;
+      }
+      const memoButton = event.target.closest('[data-highlight-memo]');
+      if (memoButton instanceof HTMLElement) {
+        event.preventDefault();
+        event.stopPropagation();
+        if (isTextHighlightMemoEditing()) cancelTextHighlightMemoEdit();
+        else showTextHighlightMemoEditor({ focus: true });
+        return;
+      }
+      const removeButton = event.target.closest('[data-highlight-remove]');
+      if (removeButton instanceof HTMLElement) {
+        event.preventDefault();
+        event.stopPropagation();
+        removePendingTextHighlights();
+        return;
+      }
+      const button = event.target.closest('[data-highlight-color]');
+      if (!(button instanceof HTMLElement)) return;
+      event.preventDefault();
+      event.stopPropagation();
+      applyPendingTextHighlight(button.dataset.highlightColor || '');
+    });
+
+    document.body.appendChild(popup);
+    textHighlightPopup = popup;
+    memoInput?.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter' && event.ctrlKey) {
+        event.preventDefault();
+        event.stopPropagation();
+        const selectedColorButton = popup.querySelector('[data-highlight-color].is-active') ||
+          popup.querySelector('[data-highlight-color]');
+        applyPendingTextHighlight(selectedColorButton?.dataset.highlightColor || TEXT_HIGHLIGHT_COLORS[0].key);
+        return;
+      }
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        event.stopPropagation();
+        cancelTextHighlightMemoEdit();
+      }
+    });
+    memoInput?.addEventListener('input', updateTextHighlightMemoDirtyState);
+    memoInput?.addEventListener('focusout', () => {
+      setTimeout(() => {
+        if (!isTextHighlightMemoEditing() || isTextHighlightMemoDirty()) return;
+        cancelTextHighlightMemoEdit({ focusButton: false });
+      }, 0);
+    });
+    positionTextHighlightPopup(popup, clientX, clientY);
+    if (sourceRecord?.m) showTextHighlightMemoEditor({ focus: true });
+  }
+
+  function setupTextHighlightInteractions() {
+    if (!CSS.highlights || typeof Highlight !== 'function') return;
+
+    const longPressDelay = 550;
+    const moveTolerance = 8;
+    let longPressTimer = 0;
+    let longPressStart = null;
+    let suppressLongPressClick = null;
+    let ignoreSelectionPopupUntil = 0;
+    let memoHoverRaf = 0;
+    let memoHoverTimer = 0;
+    let pendingMemoRecordId = '';
+    let memoHoverPoint = null;
+
+    function clearTextHighlightMemoHover({ immediate = false } = {}) {
+      if (memoHoverTimer) clearTimeout(memoHoverTimer);
+      memoHoverTimer = 0;
+      pendingMemoRecordId = '';
+      if (immediate) hideTextHighlightMemoTooltip();
+      else scheduleTextHighlightMemoTooltipHide(500);
+    }
+
+    function scheduleTextHighlightMemoHover(event) {
+      if (event.pointerType === 'touch') return;
+      memoHoverPoint = { clientX: event.clientX, clientY: event.clientY, target: event.target };
+      if (memoHoverRaf) return;
+      memoHoverRaf = requestAnimationFrame(() => {
+        memoHoverRaf = 0;
+        const point = memoHoverPoint;
+        const provisionRoot = document.querySelector('#provisionview');
+        if (point?.target?.closest?.('#egov-ext-text-highlight-memo-tooltip')) {
+          cancelTextHighlightMemoTooltipHide();
+          return;
+        }
+        if (!point || textHighlightPopup || !provisionRoot?.contains(point.target)) {
+          clearTextHighlightMemoHover();
+          return;
+        }
+        const source = findTextHighlightAtPoint(point.clientX, point.clientY);
+        const record = source
+          ? textHighlightRecords.get(textHighlightRangeRecordId.get(source.range))
+          : null;
+        if (!record?.m) {
+          clearTextHighlightMemoHover();
+          return;
+        }
+        if (textHighlightMemoTooltipRecordId === record.id) {
+          cancelTextHighlightMemoTooltipHide();
+          return;
+        }
+        if (pendingMemoRecordId === record.id) return;
+        if (memoHoverTimer) clearTimeout(memoHoverTimer);
+        pendingMemoRecordId = record.id;
+        memoHoverTimer = setTimeout(() => {
+          memoHoverTimer = 0;
+          pendingMemoRecordId = '';
+          if (!memoHoverPoint || textHighlightPopup) return;
+          const currentSource = findTextHighlightAtPoint(memoHoverPoint.clientX, memoHoverPoint.clientY);
+          const currentRecord = currentSource
+            ? textHighlightRecords.get(textHighlightRangeRecordId.get(currentSource.range))
+            : null;
+          if (currentRecord?.id === record.id) {
+            showTextHighlightMemoTooltip(record, currentSource, memoHoverPoint.clientX, memoHoverPoint.clientY);
+          }
+        }, 220);
+      });
+    }
+
+    function clearTextHighlightLongPressTimer() {
+      if (longPressTimer) clearTimeout(longPressTimer);
+      longPressTimer = 0;
+      longPressStart = null;
+    }
+
+    function matchesLongPressTarget(target, pressedTarget) {
+      if (!(target instanceof Node) || !(pressedTarget instanceof Node)) return false;
+      return target === pressedTarget ||
+        (target instanceof Element && target.contains(pressedTarget)) ||
+        (pressedTarget instanceof Element && pressedTarget.contains(target));
+    }
+
+    function isTextHighlightPriorityClickTarget(target) {
+      const element = target instanceof Element ? target : target?.parentElement;
+      return !!element?.closest(
+        'a[href], .egov-ext-defined-term[data-term], .egov-ext-reference-clickable'
+      );
+    }
+
+    document.addEventListener('pointerdown', (event) => {
+      if (event.button !== 0 || event.isPrimary === false ||
+          event.target.closest?.('#egov-ext-text-highlight-popup, #egov-ext-text-highlight-memo-tooltip')) return;
+      if (isTextHighlightMemoEditing()) return;
+      clearTextHighlightMemoHover({ immediate: true });
+      const provisionRoot = document.querySelector('#provisionview');
+      if (!provisionRoot?.contains(event.target)) return;
+      const source = findTextHighlightAtPoint(event.clientX, event.clientY);
+      if (!source) return;
+
+      clearTextHighlightLongPressTimer();
+      longPressStart = {
+        pointerId: event.pointerId,
+        clientX: event.clientX,
+        clientY: event.clientY,
+        target: event.target,
+        source,
+      };
+      longPressTimer = setTimeout(() => {
+        if (!longPressStart) return;
+        const pressed = longPressStart;
+        longPressTimer = 0;
+        ignoreSelectionPopupUntil = performance.now() + 1200;
+        suppressLongPressClick = { target: pressed.target, expiresAt: performance.now() + 1200 };
+        window.getSelection()?.removeAllRanges();
+        hideLawReferencePreview();
+        hideDefinitionTooltip(true);
+        hideReferencesPopup();
+        showTextHighlightPopup(pressed.source.range, pressed.clientX, pressed.clientY, pressed.source);
+        longPressStart = null;
+      }, longPressDelay);
+    }, true);
+
+    document.addEventListener('pointermove', (event) => {
+      if (longPressStart && event.pointerId === longPressStart.pointerId &&
+          Math.hypot(event.clientX - longPressStart.clientX, event.clientY - longPressStart.clientY) > moveTolerance) {
+        clearTextHighlightLongPressTimer();
+      }
+      scheduleTextHighlightMemoHover(event);
+    }, true);
+    document.addEventListener('pointerup', clearTextHighlightLongPressTimer, true);
+    document.addEventListener('pointercancel', clearTextHighlightLongPressTimer, true);
+
+    document.addEventListener('click', (event) => {
+      if (textHighlightRangeAdjusting && !event.target.closest?.('#egov-ext-text-highlight-popup')) {
+        event.preventDefault();
+        event.stopPropagation();
+        event.stopImmediatePropagation();
+        return;
+      }
+      if (suppressLongPressClick) {
+        if (performance.now() > suppressLongPressClick.expiresAt) {
+          suppressLongPressClick = null;
+        } else if (matchesLongPressTarget(event.target, suppressLongPressClick.target)) {
+          event.preventDefault();
+          event.stopPropagation();
+          event.stopImmediatePropagation();
+          suppressLongPressClick = null;
+          return;
+        }
+      }
+      if (isTextHighlightMemoEditing() && !event.target.closest?.('#egov-ext-text-highlight-popup')) {
+        if (isTextHighlightMemoDirty()) {
+          event.preventDefault();
+          event.stopPropagation();
+          event.stopImmediatePropagation();
+          textHighlightPopup?.querySelector('textarea')?.focus();
+          return;
+        }
+        cancelTextHighlightMemoEdit({ focusButton: false });
+        hideTextHighlightPopup();
+      }
+    }, true);
+
+    document.addEventListener('contextmenu', (event) => {
+      if (!suppressLongPressClick || performance.now() > suppressLongPressClick.expiresAt) return;
+      if (!matchesLongPressTarget(event.target, suppressLongPressClick.target)) return;
+      event.preventDefault();
+      event.stopPropagation();
+    }, true);
+
+    document.addEventListener('mouseup', (event) => {
+      if (event.button !== 0 ||
+          event.target.closest?.('#egov-ext-text-highlight-popup, #egov-ext-text-highlight-memo-tooltip')) return;
+      if (!textHighlightRangeAdjusting && isTextHighlightMemoEditing()) return;
+      if (performance.now() < ignoreSelectionPopupUntil) return;
+      const clientX = event.clientX;
+      const clientY = event.clientY;
+
+      setTimeout(() => {
+        const selection = window.getSelection();
+        if (textHighlightRangeAdjusting) {
+          const adjustedRange = selection?.rangeCount === 1 ? selection.getRangeAt(0) : null;
+          applyAdjustedTextHighlightRange(adjustedRange, clientX, clientY);
+          return;
+        }
+        if (!selection || selection.rangeCount !== 1 || selection.isCollapsed || !selection.toString().trim()) {
+          const clickedSource = findTextHighlightAtPoint(clientX, clientY);
+          if (clickedSource && !isTextHighlightPriorityClickTarget(event.target)) {
+            showTextHighlightPopup(clickedSource.range, clientX, clientY, clickedSource);
+            return;
+          }
+          hideTextHighlightPopup();
+          return;
+        }
+        const range = selection.getRangeAt(0);
+        if (!isRangeInsideProvisionView(range)) {
+          hideTextHighlightPopup();
+          return;
+        }
+        if (findOverlappingTextHighlightRange(range)) {
+          hideTextHighlightPopup({ force: true });
+          showTextHighlightOverlapNotice(clientX, clientY);
+          return;
+        }
+        showTextHighlightPopup(range, clientX, clientY);
+      }, 0);
+    });
+
+    document.addEventListener('mousedown', (event) => {
+      if (event.target.closest?.('#egov-ext-text-highlight-popup')) return;
+      if (textHighlightRangeAdjusting) return;
+      if (isTextHighlightMemoEditing()) {
+        if (isTextHighlightMemoDirty()) {
+          event.preventDefault();
+          event.stopPropagation();
+          event.stopImmediatePropagation();
+          textHighlightPopup?.querySelector('textarea')?.focus();
+          return;
+        }
+        cancelTextHighlightMemoEdit({ focusButton: false });
+      }
+      hideTextHighlightPopup();
+    }, true);
+    document.addEventListener('keydown', (event) => {
+      if (event.key !== 'Escape') return;
+      if (isTextHighlightMemoEditing()) cancelTextHighlightMemoEdit();
+      else hideTextHighlightPopup();
+    });
+    document.addEventListener('scroll', () => {
+      textHighlightHitTestCache = null;
+      if (!hideTextHighlightPopup()) scheduleTextHighlightTargetOutline();
+      clearTextHighlightMemoHover({ immediate: true });
+    }, true);
+    window.addEventListener('blur', () => {
+      if (isTextHighlightMemoEditing() && !isTextHighlightMemoDirty()) {
+        cancelTextHighlightMemoEdit({ focusButton: false });
+      }
+      hideTextHighlightPopup();
+      clearTextHighlightMemoHover({ immediate: true });
+    });
+    window.addEventListener('resize', () => {
+      textHighlightHitTestCache = null;
+      if (!hideTextHighlightPopup()) scheduleTextHighlightTargetOutline();
+      clearTextHighlightMemoHover({ immediate: true });
+    });
+    window.addEventListener('pagehide', () => {
+      if (textHighlightSaveTimer) persistTextHighlightRecordsNow();
+    });
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'hidden' && textHighlightSaveTimer) persistTextHighlightRecordsNow();
+    });
+    observeTextHighlightDomChanges();
+    scheduleTextHighlightRestore(0);
   }
 
   function pushJumpHistory(num) {
@@ -256,12 +1824,29 @@
 
   function navigateJumpHistory(dir) {
     if (articleJumpHistory.length === 0) return;
-    const newCursor = articleJumpCursor + dir;
-    if (newCursor < 0 || newCursor >= articleJumpHistory.length) return;
+    const newCursor = Math.max(
+      0,
+      Math.min(articleJumpHistory.length - 1, articleJumpCursor + dir)
+    );
+    const returnPosition = activeJumpReturnPosition ? null : getCurrentJumpReturnPosition();
     articleJumpCursor = newCursor;
     const raw   = articleJumpHistory[articleJumpCursor];
-    const parts = raw.split('.');
-    jumpToArticleWithDetail(parts[0], parts[1] || null, parts[2] || null);
+    let moved = false;
+    if (raw.startsWith('#')) {
+      const target = getHashTargetElement(raw);
+      if (target instanceof Element) {
+        highlightAndScroll(target, 0.25, { showReturnButton: false });
+        history.replaceState(null, '', `#${encodeURIComponent(target.id)}`);
+        moved = true;
+      }
+    } else {
+      const parts = raw.split('.');
+      moved = jumpToArticleWithDetail(
+        parts[0], parts[1] || null, parts[2] || null,
+        { showReturnButton: false }
+      );
+    }
+    if (moved && returnPosition) showJumpReturnButton(returnPosition);
     showJumpHistoryIndicator();
   }
 
@@ -270,6 +1855,11 @@
   // ==================
   function numToDisplay(raw) {
     if (!raw) return '';
+    if (raw.startsWith('#')) {
+      const parsed = parseProvisionHash(raw);
+      const targetKey = getBookmarkTargetKey(parsed);
+      return targetKey ? getReferenceTargetLabel(targetKey) : raw;
+    }
     const parts = raw.split('.');
     // 枝番号は「第3条の2」「第3号の2」の順で表示する（単位の後に「の2」）
     const branch = (value, unit) => {
@@ -344,9 +1934,19 @@
     );
   }
 
-  function closeDialog() {
+  function closeDialog(options = {}) {
+    const deferBookmarkRender = options?.deferBookmarkRender === true;
+    const preserveHighlights = options?.preserveHighlights === true;
+    const closingBookmarkDialog = activeDialog?.classList.contains('egov-ext-bookmark-mode') === true;
     if (activeDialog) { activeDialog.remove(); activeDialog = null; }
-    clearHighlights();
+    if (!preserveHighlights) clearHighlights();
+    if (!closingBookmarkDialog || deferBookmarkRender) return;
+
+    articleBookmarkDialogSessionActive = false;
+    if (!articleBookmarkGuttersDirty) return;
+    articleBookmarkGuttersDirty = false;
+    articleBookmarkGutterSignature = getArticleBookmarkGutterSignature(articleBookmarksCache);
+    renderArticleBookmarkGutters();
   }
 
   async function copyTextToClipboard(text) {
@@ -415,7 +2015,7 @@
     if (['script', 'style', 'noscript', 'textarea', 'input', 'select', 'option'].includes(tag)) return false;
     if (el.closest('em.articleheading, .articleheading')) return false;
     if (!getParenProcessingContainer(el)) return false;
-    if (el.closest('.egov-ext-overlay, #TOC, #egov-ext-guide, #egov-jump-indicator, #egov-pin-indicator, #egov-ext-pin-toast')) return false;
+    if (el.closest('.egov-ext-overlay, #TOC, #egov-ext-guide, #egov-jump-indicator, #egov-page-indicator')) return false;
     return true;
   }
 
@@ -673,6 +2273,10 @@
 
     favoritesStore.replace(favorites);
     await saveFavoritesCache();
+    if (shouldFavorite) {
+      setupFavoriteScrollPersistence();
+      updateFavoriteScrollPosition(getCurrentScrollTop());
+    }
     return shouldFavorite;
   }
 
@@ -720,7 +2324,7 @@
       const nextFavorite = !isFavorite;
       await setCurrentLawFavorite(nextFavorite);
       updateFavoriteHeaderBadgeState(badge, nextFavorite);
-      showPinIndicator(nextFavorite ? 'お気に入りに追加しました' : 'お気に入りから外しました');
+      showPageIndicator(nextFavorite ? 'お気に入りに追加しました' : 'お気に入りから外しました');
     });
 
     host.appendChild(badge);
@@ -817,6 +2421,7 @@
       { id: 'egov-ext-external-references-button', label: '逆リンク', onClick: () => toggleExternalReferenceLinks() },
       { id: 'egov-ext-definition-button', label: '定義', onClick: toggleDefinitionHeaderLinks },
       { id: 'egov-ext-law-ref-mode-button', label: 'スクロール', onClick: toggleLawRefPageMode },
+      { id: 'egov-ext-highlight-list-button', label: 'メモ', onClick: () => showTextHighlightListDialog() },
     ];
     const buttons = configs.map(({ id, label, onClick }) => {
       let button = document.getElementById(id);
@@ -895,11 +2500,11 @@
   function openLightweightViewerFromPage() {
     const lawId = getCurrentLawIdFromUrl();
     if (!lawId) {
-      showPinIndicator('\u6cd5\u4ee4ID\u3092\u53d6\u5f97\u3067\u304d\u307e\u305b\u3093\u3067\u3057\u305f');
+      showPageIndicator('\u6cd5\u4ee4ID\u3092\u53d6\u5f97\u3067\u304d\u307e\u305b\u3093\u3067\u3057\u305f');
       return;
     }
     if (!openLightweightViewerDirectly(lawId)) {
-      showPinIndicator('\u8efd\u91cf\u30d3\u30e5\u30fc\u30a2\u3092\u958b\u3051\u307e\u305b\u3093\u3067\u3057\u305f');
+      showPageIndicator('\u8efd\u91cf\u30d3\u30e5\u30fc\u30a2\u3092\u958b\u3051\u307e\u305b\u3093\u3067\u3057\u305f');
     }
   }
 
@@ -932,11 +2537,11 @@
     setTimeout(() => observer.disconnect(), 10000);
   }
 
-  function showPinIndicator(message, anchorEl = null) {
-    let ind = document.getElementById('egov-pin-indicator');
+  function showPageIndicator(message, anchorEl = null) {
+    let ind = document.getElementById('egov-page-indicator');
     if (!ind) {
       ind = document.createElement('div');
-      ind.id = 'egov-pin-indicator';
+      ind.id = 'egov-page-indicator';
       ind.style.setProperty('position', 'fixed', 'important');
       ind.style.setProperty('z-index', '2147483647', 'important');
       ind.style.setProperty('padding', '8px 12px', 'important');
@@ -968,49 +2573,11 @@
     ind.style.setProperty('display', 'block', 'important');
     ind.style.setProperty('opacity', '1', 'important');
 
-    clearTimeout(pinIndicatorTimer);
-    pinIndicatorTimer = setTimeout(() => {
+    clearTimeout(pageIndicatorTimer);
+    pageIndicatorTimer = setTimeout(() => {
       ind.style.setProperty('opacity', '0', 'important');
       setTimeout(() => { ind.style.setProperty('display', 'none', 'important'); }, 180);
     }, 1400);
-  }
-
-  function normalizeColorPins(raw) {
-    const pins = {};
-    for (const slotKey of PIN_SLOT_ORDER) {
-      pins[slotKey] = raw && typeof raw === 'object' && raw[slotKey] && typeof raw[slotKey] === 'object'
-        ? raw[slotKey]
-        : null;
-    }
-    return pins;
-  }
-
-  async function getColorPins() {
-    try {
-      const data = await chrome.storage.session.get(['colorPins']);
-      return normalizeColorPins(data.colorPins);
-    } catch (_) {
-      return normalizeColorPins(null);
-    }
-  }
-
-  async function saveColorPins(colorPins) {
-    try {
-      await chrome.storage.session.set({ colorPins: normalizeColorPins(colorPins) });
-      return true;
-    } catch (_) {
-      return false;
-    }
-  }
-
-  function getArticleAbsoluteTop(el) {
-    const rect = el.getBoundingClientRect();
-    const container = getScrollContainer();
-    if (container) {
-      const cRect = container.getBoundingClientRect();
-      return rect.top - cRect.top + container.scrollTop;
-    }
-    return rect.top + window.scrollY;
   }
 
   function getArticleAtViewport25pct() {
@@ -1054,329 +2621,887 @@
     });
   }
 
-  function buildColorPinRecord(slotKey, articleEl) {
+  function getBookmarkTargetKey(parts) {
+    if (!parts?.article) return '';
+    const normalizePart = (value) => String(value || '').replace(/_/g, '-');
+    const provision = [parts.article, parts.paragraph, parts.item]
+      .map(normalizePart)
+      .filter(Boolean)
+      .join('.');
+    return parts.scope ? `${parts.scope}::${provision}` : provision;
+  }
+
+  function normalizeArticleBookmark(raw) {
+    if (!raw || typeof raw !== 'object') return null;
+    const lawId = String(raw.lawId || '').trim().slice(0, 40);
+    const targetKey = String(raw.targetKey || '').trim().slice(0, 120);
+    const parts = splitReferenceTargetKey(targetKey);
+    if (!lawId || !parts.article) return null;
     return {
-      slotKey,
-      lawId: getCurrentLawIdFromUrl(),
-      lawName: getCurrentLawName(),
-      articleId: articleEl.id || '',
-      scrollTop: Math.max(0, Math.round(getArticleAbsoluteTop(articleEl))),
-      updatedAt: Date.now(),
+      id: `${lawId}::${targetKey}`,
+      lawId,
+      lawName: String(raw.lawName || '').trim().slice(0, 500),
+      targetKey,
+      articleId: String(raw.articleId || '').slice(0, 500),
+      numberLabel: String(raw.numberLabel || getReferenceTargetLabel(targetKey)).slice(0, 200),
+      createdAt: Number.isFinite(Number(raw.createdAt)) ? Math.round(Number(raw.createdAt)) : Date.now(),
+      updatedAt: Number.isFinite(Number(raw.updatedAt)) ? Math.round(Number(raw.updatedAt)) : Date.now(),
     };
   }
 
-  function findPinSlotOnArticle(colorPins, lawId, articleId, excludeSlotKey) {
-    for (const slotKey of PIN_SLOT_ORDER) {
-      if (slotKey === excludeSlotKey) continue;
-      const pin = colorPins[slotKey];
-      if (pin && pin.lawId === lawId && pin.articleId === articleId) return slotKey;
+  function normalizeArticleBookmarks(raw) {
+    const result = [];
+    const seen = new Set();
+    for (const value of Array.isArray(raw) ? raw : []) {
+      const bookmark = normalizeArticleBookmark(value);
+      if (!bookmark || seen.has(bookmark.id)) continue;
+      seen.add(bookmark.id);
+      result.push(bookmark);
     }
-    return '';
+    return result;
   }
 
-  function getPinArticleElement(pin) {
-    if (!pin || pin.lawId !== getCurrentLawIdFromUrl()) return null;
-    if (pin.articleId) {
-      const direct = document.getElementById(pin.articleId);
-      if (direct) return direct;
+  function getArticleBookmarkGutterSignature(bookmarks = articleBookmarksCache) {
+    const lawId = getCurrentLawIdFromUrl();
+    if (!lawId) return '';
+    return `${lawId}\n${(Array.isArray(bookmarks) ? bookmarks : [])
+      .filter((bookmark) => bookmark?.lawId === lawId)
+      .map((bookmark) => bookmark.targetKey)
+      .sort((left, right) => left.localeCompare(right, 'ja', { numeric: true }))
+      .join('\n')}`;
+  }
+
+  async function getArticleBookmarks() {
+    if (articleBookmarksLoaded) return articleBookmarksCache;
+    try {
+      const stored = await chrome.storage.local.get([ARTICLE_BOOKMARKS_STORAGE_KEY]);
+      articleBookmarksCache = normalizeArticleBookmarks(stored[ARTICLE_BOOKMARKS_STORAGE_KEY]);
+    } catch (_) {
+      articleBookmarksCache = [];
     }
+    articleBookmarksLoaded = true;
+    return articleBookmarksCache;
+  }
 
-    const articles = getAllArticles();
-    if (articles.length === 0 || typeof pin.scrollTop !== 'number') return null;
-
-    let nearest = null;
-    let nearestDiff = Infinity;
-    for (const article of articles) {
-      const diff = Math.abs(getArticleAbsoluteTop(article) - pin.scrollTop);
-      if (diff < nearestDiff) {
-        nearest = article;
-        nearestDiff = diff;
+  async function saveArticleBookmarks(bookmarks) {
+    const normalized = normalizeArticleBookmarks(bookmarks);
+    const previousCache = articleBookmarksCache;
+    const previousLoaded = articleBookmarksLoaded;
+    // storage.onChangedより先にキャッシュを更新し、この画面自身の保存通知で
+    // 古い内容を使った全体再描画が始まらないようにする。
+    articleBookmarksCache = normalized;
+    articleBookmarksLoaded = true;
+    try {
+      await chrome.storage.local.set({ [ARTICLE_BOOKMARKS_STORAGE_KEY]: normalized });
+      return true;
+    } catch (_) {
+      if (articleBookmarksCache === normalized) {
+        articleBookmarksCache = previousCache;
+        articleBookmarksLoaded = previousLoaded;
       }
-    }
-    return nearestDiff <= 120 ? nearest : null;
-  }
-
-  function clearColorPinHighlights() {
-    for (const el of document.querySelectorAll('.egov-ext-color-pin')) {
-      el.classList.remove('egov-ext-color-pin');
-      el.style.removeProperty('--egov-pin-color');
-      delete el.dataset.egovPinKey;
-      delete el.dataset.egovPinSlot;
+      return false;
     }
   }
 
-  async function refreshColorPinHighlights() {
-    clearColorPinHighlights();
+  function getBookmarkableProvisionItems() {
+    if (articleBookmarkProvisionItemsCache) return articleBookmarkProvisionItemsCache;
+    const seen = new Set();
+    articleBookmarkProvisionItemsCache = collectProvisionLinkTargets()
+      .map((articleEl) => {
+        const parts = parseProvisionHash(`#${articleEl.id || ''}`);
+        // e-Govでは第1項が条見出しと同じ表示要素を共有するため、
+        // 法令内逆リンクと同様に条レベルへまとめ、二重の余白ボタンを作らない。
+        if (parts?.paragraph === '1' && !parts.item) return null;
+        const targetKey = getBookmarkTargetKey(parts);
+        return {
+          articleEl,
+          id: articleEl.id || '',
+          parts,
+          targetKey,
+          numberLabel: getReferenceTargetLabel(targetKey),
+        };
+      })
+      .filter((item) => item?.targetKey && item.articleEl.offsetParent !== null)
+      .filter((item) => {
+        if (seen.has(item.targetKey)) return false;
+        seen.add(item.targetKey);
+        return true;
+      });
+    return articleBookmarkProvisionItemsCache;
+  }
+
+  function findBookmarkNumberElement(item) {
+    const target = item?.articleEl;
+    const parts = item?.parts;
+    if (!(target instanceof Element) || !parts?.article) return null;
+    const selector = parts.item
+      ? ':scope > .itemtitle, :scope > .listtitle, :scope > [class*="ItemTitle"], :scope > [class*="Subitem"][class*="Title"]'
+      : parts.paragraph
+        ? ':scope > .paragraphtitle, :scope > .paragraphnum, :scope > [class*="ParagraphTitle"], :scope > [class*="ParagraphNum"]'
+        : ':scope > .articletitle, :scope > .articleheading, :scope > em.articleheading, :scope > ._div_ArticleTitle, :scope > [class*="ArticleTitle"], :scope > .articlecontent > .paragraph:first-of-type .paragraphtitle';
+    let title = null;
+    try {
+      title = target.matches(selector) ? target : target.querySelector(selector);
+    } catch (_) {}
+    return ensureReferenceNumberElement(title || target, parts);
+  }
+
+  function getBookmarkItemForRecord(bookmark, items = getBookmarkableProvisionItems()) {
+    if (!bookmark || bookmark.lawId !== getCurrentLawIdFromUrl()) return null;
+    const byId = bookmark.articleId ? items.find((item) => item.id === bookmark.articleId) : null;
+    return byId || items.find((item) => item.targetKey === bookmark.targetKey) || null;
+  }
+
+  function applyArticleBookmarkGutterState(button, item, marked) {
+    if (!(button instanceof HTMLButtonElement)) return;
+    button.classList.toggle('is-bookmarked', marked);
+    button.tabIndex = marked ? 0 : -1;
+    const label = `${item.numberLabel}のブックマークを${marked ? '削除' : '追加'}`;
+    button.setAttribute('aria-label', label);
+    button.title = label;
+  }
+
+  function createArticleBookmarkGutter(item, marked) {
+    const numberEl = findBookmarkNumberElement(item);
+    if (!(numberEl instanceof Element) || !(numberEl.parentNode instanceof Node)) return null;
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'egov-ext-bookmark-gutter';
+    button.dataset.bookmarkTargetKey = item.targetKey;
+    applyArticleBookmarkGutterState(button, item, marked);
+    button.addEventListener('click', (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      toggleArticleBookmark(item);
+    });
+    numberEl.classList.add('egov-ext-bookmark-number-host');
+    numberEl.parentNode.insertBefore(button, numberEl);
+    articleBookmarkGutterButtons.set(item.targetKey, button);
+    return button;
+  }
+
+  function updateArticleBookmarkGutter(item, marked) {
+    let button = articleBookmarkGutterButtons.get(item.targetKey);
+    if (!(button instanceof HTMLButtonElement) || !button.isConnected) {
+      button = [...document.querySelectorAll('.egov-ext-bookmark-gutter')]
+        .find((candidate) => candidate.dataset.bookmarkTargetKey === item.targetKey) || null;
+    }
+    if (!(button instanceof HTMLButtonElement)) {
+      button = createArticleBookmarkGutter(item, marked);
+    } else {
+      articleBookmarkGutterButtons.set(item.targetKey, button);
+      applyArticleBookmarkGutterState(button, item, marked);
+    }
+    return button;
+  }
+
+  async function renderArticleBookmarkGutters() {
+    const renderVersion = ++articleBookmarkRenderVersion;
+    articleBookmarkGutterButtons.clear();
+    document.querySelectorAll('.egov-ext-bookmark-gutter').forEach((button) => button.remove());
+    document.querySelectorAll('.egov-ext-bookmark-number-host').forEach((host) => {
+      host.classList.remove('egov-ext-bookmark-number-host');
+    });
+
     const lawId = getCurrentLawIdFromUrl();
     if (!lawId) return;
+    const bookmarks = await getArticleBookmarks();
+    if (renderVersion !== articleBookmarkRenderVersion) return;
+    articleBookmarkGutterSignature = getArticleBookmarkGutterSignature(bookmarks);
+    const bookmarkedKeys = new Set(
+      bookmarks.filter((bookmark) => bookmark.lawId === lawId).map((bookmark) => bookmark.targetKey)
+    );
 
-    const colorPins = await getColorPins();
-    for (const slotKey of PIN_SLOT_ORDER) {
-      const pin = colorPins[slotKey];
-      if (!pin || pin.lawId !== lawId) continue;
-      const article = getPinArticleElement(pin);
-      if (!article) continue;
-      article.classList.add('egov-ext-color-pin');
-      article.style.setProperty('--egov-pin-color', PIN_SLOT_CONFIG[slotKey].color);
-      article.dataset.egovPinSlot = slotKey;
-      article.dataset.egovPinKey = PIN_SLOT_CONFIG[slotKey].label;
+    for (const item of getBookmarkableProvisionItems()) {
+      if (renderVersion !== articleBookmarkRenderVersion) return;
+      const marked = bookmarkedKeys.has(item.targetKey);
+      createArticleBookmarkGutter(item, marked);
     }
   }
 
-  function ensurePinToast() {
-    let toast = document.getElementById('egov-ext-pin-toast');
-    if (toast) return toast;
-
-    toast = document.createElement('div');
-    toast.id = 'egov-ext-pin-toast';
-    toast.className = 'egov-ext-pin-toast';
-    toast.innerHTML = '<div class="egov-ext-pin-toast-slots"></div>';
-    toast.addEventListener('click', (e) => {
-      const slotEl = e.target.closest('.egov-ext-pin-slot');
-      if (!slotEl) return;
-      const slotKey = slotEl.dataset.slotKey;
-      if (!slotKey || !PIN_SLOT_ORDER.includes(slotKey)) return;
-      e.preventDefault();
-      e.stopPropagation();
-      handleColorPinShortcut(slotKey);
-    });
-    const host = ensureHeaderControlHost();
-    if (host) host.appendChild(toast);
-    else document.body.appendChild(toast);
-    return toast;
-  }
-
-  function positionPinToast(toast) {
-    const host = ensureHeaderControlHost();
-    if (host && toast.parentElement !== host) host.appendChild(toast);
-  }
-
-  function hidePinToast(force = false) {
-    if (!force && pinToastPinned) return;
-    const toast = document.getElementById('egov-ext-pin-toast');
-    pinToastVisible = false;
-    if (pinToastRenderRaf) {
-      cancelAnimationFrame(pinToastRenderRaf);
-      pinToastRenderRaf = 0;
-    }
-    clearTimeout(pinToastTimer);
-    pinToastTimer = null;
-    if (toast) toast.classList.remove('is-visible');
-  }
-
-  function schedulePinToastRender() {
-    if (pinToastRenderRaf) return;
-    pinToastRenderRaf = requestAnimationFrame(() => {
-      pinToastRenderRaf = 0;
-      if (pinToastVisible) renderPinToast();
-    });
-  }
-
-  async function renderPinToast() {
-    const toast = ensurePinToast();
-    const slotsEl = toast.querySelector('.egov-ext-pin-toast-slots');
-    const colorPins = await getColorPins();
-    const currentLawId = getCurrentLawIdFromUrl();
-
-    slotsEl.innerHTML = PIN_SLOT_ORDER.map((slotKey) => {
-      const pin = colorPins[slotKey];
-      const classes = [
-        'egov-ext-pin-slot',
-        pin ? 'is-set' : 'is-empty',
-        pin && pin.lawId === currentLawId ? 'is-current-law' : '',
-      ].filter(Boolean).join(' ');
-      const title = pin
-        ? `${slotKey}: ${pin.lawName || pin.lawId}`
-        : `${slotKey}: 未設定`;
-      return `
-        <div class="${classes}" data-slot-key="${slotKey}" title="${escapeHtml(title)}" style="--egov-pin-color:${PIN_SLOT_CONFIG[slotKey].color}">
-          <span class="egov-ext-pin-slot-dot">●</span>
-          <span class="egov-ext-pin-slot-key">${escapeHtml(slotKey)}</span>
-        </div>
-      `;
-    }).join('');
-
-    positionPinToast(toast);
-    toast.classList.add('is-visible');
-  }
-
-  function showPinToast(temporary = false) {
-    clearTimeout(pinToastTimer);
-    pinToastVisible = true;
-    if (!temporary) pinToastPinned = true;
-    schedulePinToastRender();
-    if (temporary) {
-      pinToastTimer = setTimeout(() => {
-        if (!pinToastPinned) hidePinToast(true);
-      }, 1600);
-    }
-  }
-
-  function togglePinToast() {
-    if (pinToastPinned) {
-      pinToastPinned = false;
-      hidePinToast(true);
-    } else {
-      pinToastPinned = true;
-      showPinToast(false);
-    }
-  }
-
-  async function refreshPinToastAfterMutation() {
-    if (pinToastPinned) {
-      schedulePinToastRender();
-      return;
-    }
-    showPinToast(true);
-  }
-
-  function ensureArticleVisibleForPin(article) {
-    if (!article) return;
-    const container = getScrollContainer();
-    const rect = article.getBoundingClientRect();
-    if (container) {
-      const cRect = container.getBoundingClientRect();
-      const fullyVisible = rect.top >= cRect.top && rect.bottom <= cRect.bottom;
-      if (!fullyVisible) scrollToElement25pct(article);
-      return;
-    }
-
-    const fullyVisible = rect.top >= 0 && rect.bottom <= window.innerHeight;
-    if (!fullyVisible) scrollToElement25pct(article);
-  }
-
-  async function placeColorPin(slotKey) {
-    const ready = await waitForArticles();
-    if (!ready) {
-      showPinIndicator('条文の読み込み完了後にもう一度試してください');
-      return;
-    }
-    const article = getArticleAtViewport25pct();
-    if (!article) {
-      showPinIndicator('条文が見つかりません');
-      return;
-    }
-
+  async function toggleArticleBookmark(item) {
+    if (!item?.targetKey || !item?.id) return false;
     const lawId = getCurrentLawIdFromUrl();
-    const colorPins = await getColorPins();
-    const newPin = buildColorPinRecord(slotKey, article);
-    const existingSlotPin = colorPins[slotKey];
-    const conflictingSlotKey = findPinSlotOnArticle(colorPins, lawId, newPin.articleId, slotKey);
-
-    if (existingSlotPin && existingSlotPin.lawId === lawId && existingSlotPin.articleId === newPin.articleId) {
-      colorPins[slotKey] = null;
-      if (!await saveColorPins(colorPins)) {
-        showPinIndicator('ピン解除の保存に失敗しました');
-        return;
-      }
-      await refreshColorPinHighlights();
-      await refreshPinToastAfterMutation();
-      showPinIndicator(`${slotKey} のピンを外しました`, article);
-      return;
+    if (!lawId) return false;
+    const id = `${lawId}::${item.targetKey}`;
+    const now = performance.now();
+    const lastToggleAt = articleBookmarkLastToggleAt.get(id);
+    if (articleBookmarkToggleLocks.has(id) ||
+        (typeof lastToggleAt === 'number' && now - lastToggleAt < ARTICLE_BOOKMARK_TOGGLE_DEBOUNCE_MS)) {
+      return false;
     }
-
-    if (conflictingSlotKey) {
-      if (!window.confirm(`この条文には ${conflictingSlotKey} のピンがあります。${slotKey} に入れ替えますか？`)) return;
-      colorPins[conflictingSlotKey] = null;
-    }
-
-    colorPins[slotKey] = newPin;
-    if (!await saveColorPins(colorPins)) {
-      showPinIndicator('ピン設定の保存に失敗しました');
-      return;
-    }
-    await refreshColorPinHighlights();
-    ensureArticleVisibleForPin(article);
-    await refreshPinToastAfterMutation();
-    showPinIndicator(`${slotKey} のピンを設定しました`, article);
-  }
-
-  async function jumpToStoredColorPin(pin) {
-    const ready = await waitForArticles();
-    if (!ready) return false;
-    const article = getPinArticleElement(pin);
-    if (article) {
-      clearHighlights();
-      scrollToElement25pct(article);
-      requestAnimationFrame(() => {
-        flashElementHighlight(article);
-      });
-      return true;
-    }
-    return false;
-  }
-
-  async function jumpToColorPinSlot(slotKey) {
-    const colorPins = await getColorPins();
-    const pin = colorPins[slotKey];
-    if (!pin) {
-      showPinIndicator(`${slotKey} のピンは未設定です`);
-      return;
-    }
-
-    if (pin.lawId === getCurrentLawIdFromUrl()) {
-      const ok = await jumpToStoredColorPin(pin);
-      if (ok) {
-        showPinIndicator(`${slotKey} のピンへ移動しました`);
-        return;
-      }
-    }
-
+    articleBookmarkToggleLocks.add(id);
     try {
-      const response = await chrome.runtime.sendMessage({ type: 'egov-jump-color-pin', pin });
-      if (!response || !response.ok) showPinIndicator('別タブのピン移動に失敗しました');
-    } catch (_) {
-      showPinIndicator('別タブのピン移動に失敗しました');
+      const bookmarks = [...await getArticleBookmarks()];
+      const index = bookmarks.findIndex((bookmark) => bookmark.id === id);
+      const removing = index >= 0;
+      if (removing) {
+        bookmarks.splice(index, 1);
+      } else {
+        bookmarks.push({
+          id,
+          lawId,
+          lawName: getCurrentLawName(),
+          targetKey: item.targetKey,
+          articleId: item.id,
+          numberLabel: item.numberLabel,
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+        });
+      }
+      const previousGutterSignature = articleBookmarkGutterSignature;
+      articleBookmarkGutterSignature = getArticleBookmarkGutterSignature(bookmarks);
+      // 追加・通常削除では全条文を作り直さず、操作対象だけ即時更新する。
+      updateArticleBookmarkGutter(item, !removing);
+      if (!await saveArticleBookmarks(bookmarks)) {
+        articleBookmarkGutterSignature = previousGutterSignature;
+        updateArticleBookmarkGutter(item, removing);
+        showPageIndicator('ブックマークの保存に失敗しました');
+        return false;
+      }
+      const completedAt = performance.now();
+      articleBookmarkLastToggleAt.set(id, completedAt);
+      setTimeout(() => {
+        if (articleBookmarkLastToggleAt.get(id) === completedAt) articleBookmarkLastToggleAt.delete(id);
+      }, ARTICLE_BOOKMARK_TOGGLE_DEBOUNCE_MS);
+      showPageIndicator(
+        `${item.numberLabel}のブックマークを${removing ? '削除' : '追加'}しました`,
+        item.articleEl,
+      );
+      return true;
+    } finally {
+      articleBookmarkToggleLocks.delete(id);
     }
   }
 
-  async function forceRemoveColorPinSlot(slotKey) {
-    const colorPins = await getColorPins();
-    const pin = colorPins[slotKey];
-    if (!pin) {
-      showPinIndicator(`${slotKey} のピンは未設定です`);
-      return;
+  async function removeArticleBookmark(bookmark) {
+    const bookmarks = [...await getArticleBookmarks()];
+    const next = bookmarks.filter((item) => item.id !== bookmark?.id);
+    if (next.length === bookmarks.length) return false;
+    if (!await saveArticleBookmarks(next)) {
+      showPageIndicator('ブックマークの削除に失敗しました');
+      return false;
     }
-
-    colorPins[slotKey] = null;
-    if (!await saveColorPins(colorPins)) {
-      showPinIndicator('ピン解除の保存に失敗しました');
-      return;
-    }
-    await refreshColorPinHighlights();
-    await refreshPinToastAfterMutation();
-    showPinIndicator(`${slotKey} のピンを強制解除しました`);
+    articleBookmarkGuttersDirty = true;
+    return true;
   }
 
-
-  async function handleColorPinShortcut(slotKey) {
+  async function toggleBookmarkAtCurrentPosition() {
     const ready = await waitForArticles();
     if (!ready) {
-      showPinIndicator('条文の読み込み完了後にもう一度試してください');
+      showPageIndicator('条文の読み込み完了後にもう一度試してください');
       return;
     }
-    const article = getArticleAtViewport25pct();
-    if (!article) {
-      showPinIndicator('条文が見つかりません');
+    const provisionItems = getBookmarkableProvisionItems();
+    const keyboardItem = keyboardBookmarkTargetId
+      ? provisionItems.find((candidate) => candidate.id === keyboardBookmarkTargetId)
+      : null;
+    keyboardBookmarkTargetId = '';
+    const item = keyboardItem || getProvisionAtViewport25pct(provisionItems);
+    if (!item) {
+      showPageIndicator('ブックマークできる条文が見つかりません');
       return;
     }
+    await toggleArticleBookmark(item);
+  }
 
-    const currentLawId = getCurrentLawIdFromUrl();
-    const currentArticleId = article.id || '';
-    const colorPins = await getColorPins();
-    const pin = colorPins[slotKey];
+  function buildBookmarkShortcutCodes(count) {
+    if (!count) return [];
+    const strokeCount = count <= 7
+      ? 1
+      : count <= 49
+        ? 2
+        : count <= 343
+          ? 3
+          : Math.ceil(Math.log(count) / Math.log(BOOKMARK_SHORTCUT_KEYS.length));
+    return Array.from({ length: count }, (_, index) => {
+      let value = index;
+      const chars = Array(strokeCount).fill(BOOKMARK_SHORTCUT_KEYS[0]);
+      for (let position = strokeCount - 1; position >= 0; position -= 1) {
+        chars[position] = BOOKMARK_SHORTCUT_KEYS[value % BOOKMARK_SHORTCUT_KEYS.length];
+        value = Math.floor(value / BOOKMARK_SHORTCUT_KEYS.length);
+      }
+      return chars.join('');
+    });
+  }
 
-    if (pin && pin.lawId === currentLawId && pin.articleId === currentArticleId) {
-      await placeColorPin(slotKey);
+  function sortCurrentLawBookmarkRows(bookmarks, provisionItems) {
+    const itemOrder = new Map(provisionItems.map((item, index) => [item.targetKey, index]));
+    return bookmarks
+      .filter((bookmark) => bookmark.lawId === getCurrentLawIdFromUrl())
+      .map((bookmark) => ({
+        bookmark,
+        item: getBookmarkItemForRecord(bookmark, provisionItems),
+      }))
+      .sort((left, right) => {
+        const leftIndex = itemOrder.get(left.bookmark.targetKey) ?? Number.MAX_SAFE_INTEGER;
+        const rightIndex = itemOrder.get(right.bookmark.targetKey) ?? Number.MAX_SAFE_INTEGER;
+        return leftIndex - rightIndex || left.bookmark.targetKey.localeCompare(right.bookmark.targetKey, 'ja', { numeric: true });
+      });
+  }
+
+  function getBookmarkRowBody(row) {
+    if (!row?.item) return '現在の法令本文からこの条文を見つけられませんでした。';
+    let body = normalizeProvisionText(getProvisionBodyText(row.item));
+    if (!body) return '（本文なし）';
+
+    // 法令内逆リンクと同様、条文番号は太字ラベル側だけに表示する。
+    if (!row.item.parts?.paragraph && !row.item.parts?.item) {
+      body = body.replace(/^(?:（[^）]*）|\([^)]*\))\s*/, '');
+    }
+    const displayParts = splitReferenceTargetKey(row.item.targetKey);
+    for (const candidate of getReferenceNumberCandidates(displayParts)) {
+      const numberText = normalizeProvisionText(candidate);
+      if (!numberText || !body.startsWith(numberText)) continue;
+      body = body.slice(numberText.length).replace(/^[\s　:：\-–—]+/, '').trim();
+      break;
+    }
+    return body || '（本文なし）';
+  }
+
+  function getBookmarkHistoryEntry(item) {
+    return item?.id ? `#${item.id}` : '';
+  }
+
+  function jumpToArticleBookmark(row) {
+    const target = row?.item?.articleEl;
+    if (!(target instanceof Element)) {
+      showPageIndicator('ブックマーク先の条文を見つけられませんでした');
+      return false;
+    }
+    keyboardBookmarkTargetId = '';
+    const currentItem = getProvisionAtViewport25pct(getBookmarkableProvisionItems());
+    const sourceHistoryEntry = getBookmarkHistoryEntry(currentItem);
+    const targetHistoryEntry = getBookmarkHistoryEntry(row.item);
+    if (sourceHistoryEntry) pushJumpHistory(sourceHistoryEntry);
+    closeDialog();
+    highlightAndScroll(target, 0.25, { showReturnButton: true });
+    if (targetHistoryEntry) pushJumpHistory(targetHistoryEntry);
+    history.replaceState(null, '', `#${encodeURIComponent(target.id)}`);
+    return true;
+  }
+
+  async function showBookmarkDialog({ refresh = false } = {}) {
+    const ready = await waitForArticles();
+    if (!ready) {
+      showPageIndicator('条文の読み込み完了後にもう一度試してください');
       return;
     }
+    const provisionItems = getBookmarkableProvisionItems();
+    const rows = sortCurrentLawBookmarkRows(await getArticleBookmarks(), provisionItems);
+    const shortcutCodes = buildBookmarkShortcutCodes(rows.length);
+    const multiStrokeHelp = rows.length >= 8
+      ? '、<kbd>;</kbd>/<kbd>Backspace</kbd>で最後の入力を取消'
+      : '';
+    articleBookmarkDialogSessionActive = true;
+    if (activeDialog) {
+      closeDialog({ deferBookmarkRender: refresh, preserveHighlights: refresh });
+    }
+    const dialog = createDialog(`
+      <div class="egov-ext-dialog-header">
+        <div>
+          <div class="egov-ext-dialog-title">条文ブックマーク</div>
+          <div class="egov-ext-bookmark-key-status" aria-live="polite" hidden></div>
+        </div>
+        <button type="button" class="egov-ext-close" aria-label="閉じる">×</button>
+        </div>
+        <div class="egov-ext-bookmark-dialog-body">
+          <div class="egov-ext-bookmark-help">
+          <kbd>ASDFJKL</kbd>で選択・ジャンプ、<kbd>n</kbd>/<kbd>p</kbd>で移動、<kbd>Enter</kbd>でジャンプ、<kbd>Space</kbd>で削除${multiStrokeHelp}、<kbd>b</kbd>/<kbd>Esc</kbd>で閉じる
+        </div>
+        <div class="egov-ext-bookmark-list" role="listbox" tabindex="0">
+          ${rows.length ? rows.map((row, index) => `
+            <div class="egov-ext-bookmark-row" role="option" data-index="${index}" data-shortcut="${shortcutCodes[index]}">
+              <div class="egov-ext-bookmark-shortcut" aria-label="ショートカット ${shortcutCodes[index].toUpperCase()}">
+                ${[...shortcutCodes[index]].map((key) => `<kbd>${key.toUpperCase()}</kbd>`).join('')}
+              </div>
+              <div class="egov-ext-bookmark-content">
+                <div class="egov-ext-bookmark-number">${escapeHtml(row.bookmark.numberLabel || getReferenceTargetLabel(row.bookmark.targetKey))}</div>
+                <div class="egov-ext-bookmark-text">${escapeHtml(getBookmarkRowBody(row))}</div>
+              </div>
+              <button type="button" class="egov-ext-bookmark-delete" data-index="${index}" aria-label="ブックマークを削除" title="ブックマークを削除">×</button>
+            </div>
+          `).join('') : '<div class="egov-ext-bookmark-empty">この法令にはブックマークがありません。</div>'}
+        </div>
+      </div>
+    `, 'egov-ext-bookmark-mode');
 
-    if (pin) {
-      await jumpToColorPinSlot(slotKey);
-      return;
+    const list = dialog.querySelector('.egov-ext-bookmark-list');
+    const status = dialog.querySelector('.egov-ext-bookmark-key-status');
+    const rowElements = [...dialog.querySelectorAll('.egov-ext-bookmark-row')];
+    let prefix = '';
+    let selectedVisibleIndex = -1;
+    let selectionMode = 'none';
+    let visibleIndexes = rows.map((_row, index) => index);
+
+    function updateRows({ scroll = false } = {}) {
+      visibleIndexes = [];
+      rowElements.forEach((rowEl, index) => {
+        const visible = !prefix || shortcutCodes[index].startsWith(prefix);
+        rowEl.hidden = !visible;
+        if (visible) visibleIndexes.push(index);
+      });
+      if (selectedVisibleIndex >= visibleIndexes.length) {
+        selectedVisibleIndex = -1;
+        selectionMode = 'none';
+      }
+      rowElements.forEach((rowEl) => rowEl.classList.remove('is-selected', 'is-pointer-selected'));
+      const selectedIndex = visibleIndexes[selectedVisibleIndex];
+      const selected = Number.isInteger(selectedIndex) ? rowElements[selectedIndex] : null;
+      if (selectionMode === 'keyboard') selected?.classList.add('is-selected');
+      if (selectionMode === 'pointer') selected?.classList.add('is-pointer-selected');
+      if (selectionMode === 'keyboard') selected?.setAttribute('aria-selected', 'true');
+      rowElements.filter((rowEl) => rowEl !== selected).forEach((rowEl) => rowEl.removeAttribute('aria-selected'));
+      if (selectionMode !== 'keyboard') selected?.removeAttribute('aria-selected');
+      status.hidden = !prefix;
+      status.textContent = prefix ? `入力: ${prefix.toUpperCase()}（${visibleIndexes.length}件）` : '';
+      if (scroll) {
+        const scrollTarget = selected || rowElements[visibleIndexes[0]];
+        scrollTarget?.scrollIntoView({ block: 'nearest' });
+      }
     }
 
-    await placeColorPin(slotKey);
+    function moveSelection(delta) {
+      if (!visibleIndexes.length) return;
+      if (selectedVisibleIndex < 0) {
+        selectedVisibleIndex = delta > 0 ? 0 : visibleIndexes.length - 1;
+      } else {
+        selectedVisibleIndex = (selectedVisibleIndex + delta + visibleIndexes.length) % visibleIndexes.length;
+      }
+      selectionMode = 'keyboard';
+      updateRows({ scroll: true });
+    }
+
+    async function removeSelected({ confirmRemoval }) {
+      const rowIndex = visibleIndexes[selectedVisibleIndex];
+      const row = Number.isInteger(rowIndex) ? rows[rowIndex] : null;
+      if (!row) return;
+      const label = row.bookmark.numberLabel || getReferenceTargetLabel(row.bookmark.targetKey);
+      if (confirmRemoval && !window.confirm(`「${label}」のブックマークを削除しますか？`)) return;
+      if (await removeArticleBookmark(row.bookmark)) {
+        showPageIndicator(`${label}のブックマークを削除しました`);
+        await showBookmarkDialog({ refresh: true });
+      }
+    }
+
+    list.addEventListener('click', (event) => {
+      const deleteButton = event.target.closest('.egov-ext-bookmark-delete');
+      if (deleteButton) {
+        event.preventDefault();
+        event.stopPropagation();
+        const row = rows[Number(deleteButton.dataset.index)];
+        if (!row) return;
+        removeArticleBookmark(row.bookmark).then((removed) => {
+          if (!removed) return;
+          showPageIndicator(`${row.bookmark.numberLabel}のブックマークを削除しました`);
+          showBookmarkDialog({ refresh: true });
+        });
+        return;
+      }
+      const rowEl = event.target.closest('.egov-ext-bookmark-row');
+      const row = rowEl ? rows[Number(rowEl.dataset.index)] : null;
+      if (row) jumpToArticleBookmark(row);
+    });
+
+    // CSSの:hoverでは、ダイアログを開いた瞬間に静止中のポインターと重なった行も
+    // 強調される。実際にポインターが動いたときだけ仮選択として表示する。
+    list.addEventListener('pointermove', (event) => {
+      const rowEl = event.target.closest('.egov-ext-bookmark-row');
+      const rowIndex = rowEl ? Number(rowEl.dataset.index) : -1;
+      const visibleIndex = visibleIndexes.indexOf(rowIndex);
+      if (visibleIndex < 0) {
+        if (selectionMode === 'pointer') {
+          selectedVisibleIndex = -1;
+          selectionMode = 'none';
+          updateRows();
+        }
+        return;
+      }
+      if (selectionMode === 'pointer' && selectedVisibleIndex === visibleIndex) return;
+      selectedVisibleIndex = visibleIndex;
+      selectionMode = 'pointer';
+      updateRows();
+    });
+    list.addEventListener('pointerleave', () => {
+      if (selectionMode !== 'pointer') return;
+      selectedVisibleIndex = -1;
+      selectionMode = 'none';
+      updateRows();
+    });
+
+    dialog.addEventListener('keydown', (event) => {
+      if (event.ctrlKey || event.altKey || event.metaKey) return;
+      const lowerKey = event.key.toLowerCase();
+      if (event.key === 'Escape' || lowerKey === 'b') {
+        event.preventDefault();
+        event.stopPropagation();
+        closeDialog();
+        return;
+      }
+      if (lowerKey === 'n' || event.key === 'ArrowDown') {
+        event.preventDefault();
+        moveSelection(+1);
+        return;
+      }
+      if (lowerKey === 'p' || event.key === 'ArrowUp') {
+        event.preventDefault();
+        moveSelection(-1);
+        return;
+      }
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        const rowIndex = visibleIndexes[selectedVisibleIndex];
+        const row = Number.isInteger(rowIndex) ? rows[rowIndex] : null;
+        if (row) jumpToArticleBookmark(row);
+        return;
+      }
+      if (event.key === ' ' || event.code === 'Space') {
+        event.preventDefault();
+        if (!event.repeat) removeSelected({ confirmRemoval: true });
+        return;
+      }
+      if (event.key === 'Backspace' || event.key === ';' || event.key === '；' || event.code === 'Semicolon') {
+        event.preventDefault();
+        if (!prefix) return;
+        prefix = prefix.slice(0, -1);
+        selectedVisibleIndex = -1;
+        selectionMode = 'none';
+        updateRows();
+        return;
+      }
+      if (!BOOKMARK_SHORTCUT_KEYS.includes(lowerKey) || !shortcutCodes.length) return;
+      event.preventDefault();
+      if (event.repeat) return;
+      const nextPrefix = `${prefix}${lowerKey}`;
+      if (!shortcutCodes.some((code) => code.startsWith(nextPrefix))) return;
+      prefix = nextPrefix;
+      selectedVisibleIndex = -1;
+      selectionMode = 'none';
+      updateRows({ scroll: true });
+      if (visibleIndexes.length === 1) {
+        const row = rows[visibleIndexes[0]];
+        if (row) jumpToArticleBookmark(row);
+        return;
+      }
+      const exactIndex = shortcutCodes.findIndex((code) => code === prefix);
+      if (exactIndex >= 0) {
+        selectedVisibleIndex = visibleIndexes.indexOf(exactIndex);
+        selectionMode = 'keyboard';
+        updateRows({ scroll: true });
+      }
+    });
+
+    updateRows();
+    list.focus();
+  }
+
+  function getTextHighlightListLabel(row) {
+    const formatKey = (key) => {
+      const portableKey = String(key || '');
+      return portableKey ? getReferenceTargetLabel(portableKey) : '';
+    };
+    const start = formatKey(row?.record?.u || row?.record?.k);
+    const end = formatKey(row?.record?.v || row?.record?.u || row?.record?.k);
+    if (start && end && start !== end) return `${start}～${end}`;
+    return start || end || '位置不明';
+  }
+
+  async function getCurrentTextHighlightListRows() {
+    await loadTextHighlightRecords();
+    await restoreTextHighlights();
+    const live = new Map();
+    Object.entries(textHighlightRanges).forEach(([colorKey, ranges]) => {
+      ranges.forEach((range) => {
+        const id = textHighlightRangeRecordId.get(range);
+        if (id && !live.has(id)) live.set(id, { colorKey, range });
+      });
+    });
+    return getTextHighlightDisplayRecords().map((record) => {
+      const source = live.get(record.id) || null;
+      return {
+        record,
+        colorKey: source?.colorKey || record.c,
+        range: source?.range || null,
+        text: source?.range
+          ? normalizeProvisionText(source.range.toString())
+          : normalizeProvisionText(`${record.q || ''}${record.z ? `…${record.z}` : ''}`),
+      };
+    }).sort((first, second) => {
+      if (first.range && second.range) {
+        try {
+          return first.range.compareBoundaryPoints(Range.START_TO_START, second.range);
+        } catch (_) {}
+      }
+      if (first.range) return -1;
+      if (second.range) return 1;
+      return 0;
+    });
+  }
+
+  function removeTextHighlightListRow(row, { confirmRemoval = false } = {}) {
+    const record = row?.record;
+    if (!record?.id) return false;
+    const label = getTextHighlightListLabel(row);
+    if (record.m) {
+      if (!window.confirm('ハイライトとともにメモも削除されますが良いですか？')) return false;
+    } else if (confirmRemoval && !window.confirm(`「${label}」のハイライトを削除しますか？`)) {
+      return false;
+    }
+    Object.keys(textHighlightRanges).forEach((colorKey) => {
+      textHighlightRanges[colorKey] = textHighlightRanges[colorKey]
+        .filter((range) => textHighlightRangeRecordId.get(range) !== record.id);
+      refreshTextHighlightColor(colorKey);
+    });
+    textHighlightRecords.delete(record.id);
+    textHighlightDirtyRecordIds.delete(record.id);
+    textHighlightDeletedRecordIds.add(record.id);
+    persistTextHighlightRecordsSoon();
+    scheduleTextHighlightRestoreNotice(getUnrestoredTextHighlightRecords(), 0);
+    return true;
+  }
+
+  function jumpToTextHighlightListRow(row) {
+    const range = row?.range;
+    if (!range?.startContainer?.isConnected) {
+      showPageIndicator('ハイライト位置を本文から見つけられませんでした');
+      return false;
+    }
+    const target = getTextHighlightPortableAnchor(range.startContainer) ||
+      getRangeContainerElement(range.startContainer);
+    closeDialog();
+    if (target instanceof Element) {
+      highlightAndScroll(target, 0.25, { showReturnButton: true });
+      if (target.id) history.replaceState(null, '', `#${encodeURIComponent(target.id)}`);
+    }
+    return true;
+  }
+
+  async function showTextHighlightListDialog({ refresh = false } = {}) {
+    if (isTextHighlightMemoDirty()) {
+      textHighlightPopup?.querySelector('textarea')?.focus();
+      return;
+    }
+    hideTextHighlightPopup({ force: true });
+    hideTextHighlightMemoTooltip();
+    const rows = await getCurrentTextHighlightListRows();
+    const shortcutCodes = buildBookmarkShortcutCodes(rows.length);
+    const multiStrokeHelp = rows.length >= 8
+      ? '、<kbd>;</kbd>/<kbd>Backspace</kbd>で最後の入力を取消'
+      : '';
+    if (activeDialog) closeDialog({ deferBookmarkRender: refresh, preserveHighlights: true });
+    const dialog = createDialog(`
+      <div class="egov-ext-dialog-header">
+        <div>
+          <div class="egov-ext-dialog-title">ハイライト・メモ（${rows.length}/${TEXT_HIGHLIGHT_DISPLAY_LIMIT}）</div>
+          <div class="egov-ext-bookmark-key-status" aria-live="polite" hidden></div>
+        </div>
+        <button type="button" class="egov-ext-close" aria-label="閉じる">×</button>
+      </div>
+      <div class="egov-ext-bookmark-dialog-body">
+        <div class="egov-ext-bookmark-help">
+          <kbd>ASDFJKL</kbd>で選択・ジャンプ、<kbd>n</kbd>/<kbd>p</kbd>で移動、<kbd>Enter</kbd>でジャンプ、<kbd>Space</kbd>で削除${multiStrokeHelp}、<kbd>m</kbd>/<kbd>Esc</kbd>で閉じる
+        </div>
+        <div class="egov-ext-bookmark-list" role="listbox" tabindex="0">
+          ${rows.length ? rows.map((row, index) => `
+            <div class="egov-ext-bookmark-row" role="option" data-index="${index}" data-shortcut="${shortcutCodes[index]}">
+              <div class="egov-ext-bookmark-shortcut" aria-label="ショートカット ${shortcutCodes[index].toUpperCase()}">
+                ${[...shortcutCodes[index]].map((key) => `<kbd>${key.toUpperCase()}</kbd>`).join('')}
+              </div>
+              <div class="egov-ext-bookmark-content egov-ext-highlight-list-content">
+                <div class="egov-ext-highlight-list-main">
+                  <span class="egov-ext-highlight-list-color is-${escapeHtml(row.colorKey)}" aria-hidden="true"></span>
+                  <span class="egov-ext-bookmark-number">${escapeHtml(getTextHighlightListLabel(row))}</span>
+                  <span class="egov-ext-bookmark-text">${escapeHtml(row.text || '（本文なし）')}</span>
+                </div>
+                ${row.record.m ? `<div class="egov-ext-highlight-list-memo">${escapeHtml(String(row.record.m).replace(/\s+/g, ' ').trim())}</div>` : ''}
+              </div>
+              <button type="button" class="egov-ext-bookmark-delete" data-index="${index}" aria-label="ハイライトを削除" title="ハイライトを削除">×</button>
+            </div>
+          `).join('') : '<div class="egov-ext-bookmark-empty">この法令にはハイライト・メモがありません。</div>'}
+        </div>
+        <div class="egov-ext-highlight-list-tooltip" role="tooltip" hidden></div>
+      </div>
+    `, 'egov-ext-bookmark-mode');
+
+    const list = dialog.querySelector('.egov-ext-bookmark-list');
+    const status = dialog.querySelector('.egov-ext-bookmark-key-status');
+    const memoTooltip = dialog.querySelector('.egov-ext-highlight-list-tooltip');
+    const rowElements = [...dialog.querySelectorAll('.egov-ext-bookmark-row')];
+    let prefix = '';
+    let selectedVisibleIndex = -1;
+    let selectionMode = 'none';
+    let visibleIndexes = rows.map((_row, index) => index);
+    let memoTooltipVersion = 0;
+
+    function hideMemoTooltip() {
+      memoTooltipVersion += 1;
+      memoTooltip.hidden = true;
+      memoTooltip.textContent = '';
+    }
+
+    function showMemoTooltip(rowIndex, rowEl) {
+      memoTooltipVersion += 1;
+      const memo = String(rows[rowIndex]?.record?.m || '');
+      if (!memo.trim() || !(rowEl instanceof Element) || rowEl.hidden) {
+        hideMemoTooltip();
+        return;
+      }
+      memoTooltip.textContent = memo;
+      memoTooltip.hidden = false;
+      const rowRect = rowEl.getBoundingClientRect();
+      const tooltipRect = memoTooltip.getBoundingClientRect();
+      const margin = 10;
+      const left = Math.max(margin, Math.min(rowRect.left + 72, window.innerWidth - tooltipRect.width - margin));
+      const below = rowRect.bottom + 6;
+      const top = below + tooltipRect.height <= window.innerHeight - margin
+        ? below
+        : Math.max(margin, rowRect.top - tooltipRect.height - 6);
+      memoTooltip.style.left = `${Math.round(left)}px`;
+      memoTooltip.style.top = `${Math.round(top)}px`;
+    }
+
+    function scheduleMemoTooltip(rowIndex, rowEl) {
+      const version = ++memoTooltipVersion;
+      requestAnimationFrame(() => {
+        if (version === memoTooltipVersion) showMemoTooltip(rowIndex, rowEl);
+      });
+    }
+
+    function updateRows({ scroll = false } = {}) {
+      visibleIndexes = [];
+      rowElements.forEach((rowEl, index) => {
+        const visible = !prefix || shortcutCodes[index].startsWith(prefix);
+        rowEl.hidden = !visible;
+        if (visible) visibleIndexes.push(index);
+      });
+      if (selectedVisibleIndex >= visibleIndexes.length) {
+        selectedVisibleIndex = -1;
+        selectionMode = 'none';
+      }
+      rowElements.forEach((rowEl) => rowEl.classList.remove('is-selected', 'is-pointer-selected'));
+      const selectedIndex = visibleIndexes[selectedVisibleIndex];
+      const selected = Number.isInteger(selectedIndex) ? rowElements[selectedIndex] : null;
+      if (selectionMode === 'keyboard') selected?.classList.add('is-selected');
+      if (selectionMode === 'pointer') selected?.classList.add('is-pointer-selected');
+      if (selectionMode === 'keyboard') selected?.setAttribute('aria-selected', 'true');
+      rowElements.filter((rowEl) => rowEl !== selected).forEach((rowEl) => rowEl.removeAttribute('aria-selected'));
+      if (selectionMode !== 'keyboard') selected?.removeAttribute('aria-selected');
+      status.hidden = !prefix;
+      status.textContent = prefix ? `入力: ${prefix.toUpperCase()}（${visibleIndexes.length}件）` : '';
+      if (scroll) (selected || rowElements[visibleIndexes[0]])?.scrollIntoView({ block: 'nearest' });
+      if (selected) {
+        const selectedRowIndex = visibleIndexes[selectedVisibleIndex];
+        scheduleMemoTooltip(selectedRowIndex, selected);
+      } else {
+        hideMemoTooltip();
+      }
+    }
+
+    function moveSelection(delta) {
+      if (!visibleIndexes.length) return;
+      selectedVisibleIndex = selectedVisibleIndex < 0
+        ? (delta > 0 ? 0 : visibleIndexes.length - 1)
+        : (selectedVisibleIndex + delta + visibleIndexes.length) % visibleIndexes.length;
+      selectionMode = 'keyboard';
+      updateRows({ scroll: true });
+    }
+
+    async function removeRow(row, confirmRemoval) {
+      if (!removeTextHighlightListRow(row, { confirmRemoval })) return;
+      showPageIndicator(`${getTextHighlightListLabel(row)}のハイライトを削除しました`);
+      await showTextHighlightListDialog({ refresh: true });
+    }
+
+    list.addEventListener('click', (event) => {
+      const deleteButton = event.target.closest('.egov-ext-bookmark-delete');
+      if (deleteButton) {
+        event.preventDefault();
+        event.stopPropagation();
+        const row = rows[Number(deleteButton.dataset.index)];
+        if (row) removeRow(row, false);
+        return;
+      }
+      const rowEl = event.target.closest('.egov-ext-bookmark-row');
+      const row = rowEl ? rows[Number(rowEl.dataset.index)] : null;
+      if (row) jumpToTextHighlightListRow(row);
+    });
+    list.addEventListener('pointermove', (event) => {
+      const rowEl = event.target.closest('.egov-ext-bookmark-row');
+      const rowIndex = rowEl ? Number(rowEl.dataset.index) : -1;
+      const visibleIndex = visibleIndexes.indexOf(rowIndex);
+      if (visibleIndex < 0) {
+        if (selectionMode === 'pointer') {
+          selectedVisibleIndex = -1;
+          selectionMode = 'none';
+          updateRows();
+        }
+        return;
+      }
+      if (selectionMode === 'pointer' && selectedVisibleIndex === visibleIndex) {
+        showMemoTooltip(rowIndex, rowEl);
+        return;
+      }
+      selectedVisibleIndex = visibleIndex;
+      selectionMode = 'pointer';
+      updateRows();
+    });
+    list.addEventListener('pointerleave', () => {
+      if (selectionMode !== 'pointer') return;
+      selectedVisibleIndex = -1;
+      selectionMode = 'none';
+      updateRows();
+    });
+    list.addEventListener('scroll', () => {
+      const rowIndex = visibleIndexes[selectedVisibleIndex];
+      const rowEl = Number.isInteger(rowIndex) ? rowElements[rowIndex] : null;
+      if (rowEl) showMemoTooltip(rowIndex, rowEl);
+      else hideMemoTooltip();
+    }, { passive: true });
+    dialog.addEventListener('keydown', (event) => {
+      if (event.ctrlKey || event.altKey || event.metaKey) return;
+      const lower = event.key.toLowerCase();
+      if (event.key === 'Escape' || lower === 'm' || lower === 'b') {
+        event.preventDefault();
+        event.stopPropagation();
+        closeDialog();
+        return;
+      }
+      if (lower === 'n' || event.key === 'ArrowDown') { event.preventDefault(); moveSelection(1); return; }
+      if (lower === 'p' || event.key === 'ArrowUp') { event.preventDefault(); moveSelection(-1); return; }
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        const rowIndex = visibleIndexes[selectedVisibleIndex];
+        if (Number.isInteger(rowIndex)) jumpToTextHighlightListRow(rows[rowIndex]);
+        return;
+      }
+      if (event.key === ' ' || event.code === 'Space') {
+        event.preventDefault();
+        const rowIndex = visibleIndexes[selectedVisibleIndex];
+        if (!event.repeat && Number.isInteger(rowIndex)) removeRow(rows[rowIndex], true);
+        return;
+      }
+      if (event.key === 'Backspace' || event.key === ';' || event.key === '；' || event.code === 'Semicolon') {
+        event.preventDefault();
+        if (!prefix) return;
+        prefix = prefix.slice(0, -1);
+        selectedVisibleIndex = -1;
+        selectionMode = 'none';
+        updateRows();
+        return;
+      }
+      if (!BOOKMARK_SHORTCUT_KEYS.includes(lower) || !shortcutCodes.length) return;
+      event.preventDefault();
+      if (event.repeat) return;
+      const nextPrefix = `${prefix}${lower}`;
+      if (!shortcutCodes.some((code) => code.startsWith(nextPrefix))) return;
+      prefix = nextPrefix;
+      selectedVisibleIndex = -1;
+      selectionMode = 'none';
+      updateRows({ scroll: true });
+      if (visibleIndexes.length === 1) jumpToTextHighlightListRow(rows[visibleIndexes[0]]);
+    });
+    updateRows();
+    list.focus();
   }
 
   const KANJI_NUMS = ['〇','一','二','三','四','五','六','七','八','九',
@@ -1531,12 +3656,10 @@
 
     if (isInputActive()) return;
 
+    // ブックマーク一覧のキー操作は、モーダル自身のハンドラーに任せる。
+    if (activeDialog?.classList.contains('egov-ext-bookmark-mode')) return;
+
     if (e.key === 'Escape') {
-      if (pinToastVisible && !pinToastPinned) {
-        e.preventDefault();
-        hidePinToast(true);
-        return;
-      }
       if (activeDialog) { e.preventDefault(); closeDialog(); }
       return;
     }
@@ -1554,14 +3677,19 @@
 
     // ダイアログ非表示時のみ有効なキー
     if (!activeDialog) {
+      if (e.key !== ' ' && lowerKey !== 'n' && lowerKey !== 'p') keyboardBookmarkTargetId = '';
       if (e.shiftKey && lowerKey === 'g') { e.preventDefault(); toggleParenthesesMute('nested'); return; }
-      if (e.shiftKey && PIN_SLOT_ORDER.includes(lowerKey)) { e.preventDefault(); forceRemoveColorPinSlot(lowerKey); return; }
       if (e.shiftKey && lowerKey === 't') { e.preventDefault(); showLawTocDialog({ initialFocus: 'natural' }); return; }
       if (e.key === 'g') { e.preventDefault(); toggleParenthesesMute('flat'); return; }
       if (e.key === 'h') { e.preventDefault(); navigateJumpHistory(-1); return; }
       if (e.key === 'l') { e.preventDefault(); navigateJumpHistory(+1); return; }
-      if (e.key === 'b') { e.preventDefault(); togglePinToast(); return; }
-      if (PIN_SLOT_ORDER.includes(lowerKey)) { e.preventDefault(); handleColorPinShortcut(lowerKey); return; }
+      if (e.key === 'b') { e.preventDefault(); showBookmarkDialog(); return; }
+      if (e.key === 'm') { e.preventDefault(); showTextHighlightListDialog(); return; }
+      if (e.key === ' ' || e.code === 'Space') {
+        e.preventDefault();
+        if (!e.repeat) toggleBookmarkAtCurrentPosition();
+        return;
+      }
       if (e.key === 'd') { e.preventDefault(); scrollPage(+0.8); return; }
       if (e.key === 'u') { e.preventDefault(); scrollPage(-0.8); return; }
       if (e.key === 'n') { e.preventDefault(); navigateArticle(+1); return; }
@@ -1594,6 +3722,13 @@
     }
   }, true);
 
+  document.addEventListener('wheel', () => {
+    keyboardBookmarkTargetId = '';
+  }, { capture: true, passive: true });
+  document.addEventListener('pointerdown', () => {
+    keyboardBookmarkTargetId = '';
+  }, true);
+
   // ==================
   // ダイアログ生成ファクトリ
   // ==================
@@ -1620,7 +3755,7 @@
     const isFavorite = favorites.some((f) => f.lawId === law.lawId);
     const nextFavorite = !isFavorite;
     await setCurrentLawFavorite(nextFavorite);
-    showPinIndicator(nextFavorite ? 'お気に入りに追加しました' : 'お気に入りから外しました');
+    showPageIndicator(nextFavorite ? 'お気に入りに追加しました' : 'お気に入りから外しました');
   }
 
   function getArticleLinkLabel(articleEl, index) {
@@ -2300,24 +4435,24 @@
     try {
       const ready = await waitForArticles(10000);
       if (!ready || getAllArticles().length === 0) {
-        if (notify) showPinIndicator('定義用語ガイド: 条文の読み込み完了後にもう一度試してください');
+        if (notify) showPageIndicator('定義用語ガイド: 条文の読み込み完了後にもう一度試してください');
         return;
       }
       const signature = getDefinitionApplySignature();
       if (!notify && signature && signature === definitionApplySignature && document.querySelector('.egov-ext-defined-term')) return;
       clearDefinitionTooltips();
       const startedAt = performance.now();
-      if (notify) showPinIndicator('定義用語ガイドを解析しています');
+      if (notify) showPageIndicator('定義用語ガイドを解析しています');
       definitionMap = extractDefinitions();
       if (!definitionMap.size) {
-        if (notify) showPinIndicator('定義用語ガイド: 定義用語は見つかりませんでした');
+        if (notify) showPageIndicator('定義用語ガイド: 定義用語は見つかりませんでした');
         return;
       }
       const markedCount = markDefinedTerms(definitionMap);
       definitionApplySignature = signature;
       console.debug(`[e-Gov Enhancer] 定義用語ガイド: extract+mark ${(performance.now() - startedAt).toFixed(1)}ms (${definitionMap.size} terms / ${markedCount} marks)`);
       if (notify) {
-        showPinIndicator(
+        showPageIndicator(
           markedCount > 0
             ? `定義用語ガイドを有効化しました（${definitionMap.size}語 / ${markedCount}箇所）`
             : `定義用語は${definitionMap.size}語見つかりましたが、本文中の表示箇所はありませんでした`
@@ -2325,7 +4460,7 @@
       }
     } catch (error) {
       console.warn('[e-Gov Enhancer] 定義用語ガイドの解析に失敗しました', error);
-      showPinIndicator('定義用語ガイドの解析に失敗しました');
+      showPageIndicator('定義用語ガイドの解析に失敗しました');
     }
   }
 
@@ -2496,13 +4631,13 @@
   async function showArticleLinkCopyDialog() {
     const ready = await waitForArticles();
     if (!ready) {
-      showPinIndicator('条文の読み込み完了後にもう一度試してください');
+      showPageIndicator('条文の読み込み完了後にもう一度試してください');
       return;
     }
 
     const items = getProvisionLinkCopyItems();
     if (items.length === 0) {
-      showPinIndicator('コピーできる条文リンクが見つかりません');
+      showPageIndicator('コピーできる条文リンクが見つかりません');
       return;
     }
 
@@ -2578,10 +4713,10 @@
       const selected = items[selectedIndex];
       const copied = await copyTextToClipboard(buildProvisionCopyPayload(selected, mode));
       if (copied) {
-        showPinIndicator('条文リンクをコピーしました', selected.articleEl);
+        showPageIndicator('条文リンクをコピーしました', selected.articleEl);
         closeDialog();
       } else {
-        showPinIndicator('クリップボードへのコピーに失敗しました', selected.articleEl);
+        showPageIndicator('クリップボードへのコピーに失敗しました', selected.articleEl);
       }
     }
 
@@ -2803,7 +4938,8 @@
   // ==================
   // 条文ジャンプ（条のみ）
   // ==================
-  function jumpToArticle(num) {
+  function jumpToArticle(num, options = {}) {
+    const showReturnButton = options.showReturnButton !== false;
     const norm = num.replace(/[のノ]/g, '_').replace(/[-－‐ー]/g, '_').replace(/\s+/g, '');
 
     const idPatterns = [
@@ -2824,7 +4960,7 @@
               el = el.parentElement;
             }
           }
-          highlightAndScroll(target, 0.25, { showReturnButton: true });
+          highlightAndScroll(target, 0.25, { showReturnButton });
           return true;
         }
       } catch (_) {}
@@ -2837,7 +4973,7 @@
       if (el.children.length > 3) continue;
       const text = el.textContent.trim();
       if (text.length > 60) continue;
-      if (exactPattern.test(text)) { highlightAndScroll(el, 0.25, { showReturnButton: true }); return true; }
+      if (exactPattern.test(text)) { highlightAndScroll(el, 0.25, { showReturnButton }); return true; }
     }
     return false;
   }
@@ -2845,8 +4981,9 @@
   // ==================
   // 項・号まで含む詳細ジャンプ
   // ==================
-  function jumpToArticleWithDetail(articleNum, paraNum, itemNum) {
-    if (!paraNum) return jumpToArticle(articleNum);
+  function jumpToArticleWithDetail(articleNum, paraNum, itemNum, options = {}) {
+    const showReturnButton = options.showReturnButton !== false;
+    if (!paraNum) return jumpToArticle(articleNum, { showReturnButton });
 
     const na = articleNum.replace(/[のノ]/g, '_').replace(/[-－‐ー]/g, '_').replace(/\s+/g, '');
     const np = String(paraNum).trim();
@@ -2882,7 +5019,7 @@
 
     if (!paraEl) return false;
 
-    if (!ni) { highlightAndScroll(paraEl, 0.25, { showReturnButton: true }); return true; }
+    if (!ni) { highlightAndScroll(paraEl, 0.25, { showReturnButton }); return true; }
 
     let itemEl = null;
     for (const sel of [
@@ -2916,7 +5053,7 @@
     }
 
     if (!itemEl) return false;
-    highlightAndScroll(itemEl, 0.25, { showReturnButton: true });
+    highlightAndScroll(itemEl, 0.25, { showReturnButton });
     return true;
   }
 
@@ -3124,7 +5261,9 @@
     const rawText = String(raw || '').trim();
     if (!rawText) return [];
 
-    const segmentSets = rawText.split('-').map((segment) => getReferenceNumberSegmentVariants(segment));
+    // e-GovのDOM IDは枝番号を「At_7_2」、保存用キーは「7-2」と表す。
+    // どちらから呼ばれても「第七条の二」を正しく特定できるよう両方を区切りとして扱う。
+    const segmentSets = rawText.split(/[-_]/).map((segment) => getReferenceNumberSegmentVariants(segment));
     const combined = [''];
     for (const variants of segmentSets) {
       const current = combined.splice(0);
@@ -3481,7 +5620,7 @@
     try {
       const ready = await waitForArticles(10000);
       if (!ready) {
-        if (!silent) showPinIndicator('条文の読み込み完了後にもう一度試してください');
+        if (!silent) showPageIndicator('条文の読み込み完了後にもう一度試してください');
         return false;
       }
 
@@ -3495,7 +5634,7 @@
         : {};
       externalReferencesEnabled = true;
       applyExternalReferenceLinksForLaw(lawReferences);
-      if (!silent) showPinIndicator('逆参照リンクを設定しました');
+      if (!silent) showPageIndicator('逆参照リンクを設定しました');
       return true;
     } finally {
       externalReferencesLoading = false;
@@ -3509,7 +5648,7 @@
     referenceAnalysisGeneration += 1;
     clearExternalReferenceLinks();
     updateHeaderToggleButtonStates();
-    if (!silent) showPinIndicator('逆参照リンクを無効化しました');
+    if (!silent) showPageIndicator('逆参照リンクを無効化しました');
   }
 
   function toggleExternalReferenceLinks() {
@@ -3558,6 +5697,7 @@
 
   function invalidateArticleCache() {
     articleElementsCache = null;
+    articleBookmarkProvisionItemsCache = null;
   }
 
   async function getFavoritesCache() {
@@ -3620,6 +5760,7 @@
     if (targetIdx < 0 || targetIdx >= articles.length) return;
 
     const targetEl = articles[targetIdx];
+    keyboardBookmarkTargetId = targetEl.id || '';
 
     clearHighlights();
     scrollToElement25pct(targetEl);
@@ -3675,6 +5816,45 @@
     }
   }
 
+  function getCurrentFavoriteLocation() {
+    const articles = getAllArticles();
+    if (!articles.length) return null;
+    const container = getScrollContainer();
+    const containerRect = container?.getBoundingClientRect();
+    const viewportTop = containerRect?.top || 0;
+    let current = articles[0];
+    for (const article of articles) {
+      if (article.getBoundingClientRect().top > viewportTop + 1) break;
+      current = article;
+    }
+    const parsed = parseProvisionHash(`#${current.id || ''}`);
+    if (!parsed?.article) return null;
+    const articleKey = canonicalizeReferenceTargetKey(
+      `${parsed.scope ? `${parsed.scope}::` : ''}${parsed.article}`
+    );
+    if (!articleKey) return null;
+    const rect = current.getBoundingClientRect();
+    const offset = Math.max(0, Math.min(1, (viewportTop - rect.top) / Math.max(1, rect.height)));
+    return { articleKey, offset };
+  }
+
+  function scrollToStoredFavoriteLocation(articleKey, offset = 0) {
+    const target = findReferenceTargetElement(articleKey);
+    if (!(target instanceof Element)) return false;
+    const normalizedOffset = Math.max(0, Math.min(1, Number(offset) || 0));
+    const container = getScrollContainer();
+    const rect = target.getBoundingClientRect();
+    if (container) {
+      const containerRect = container.getBoundingClientRect();
+      const top = rect.top - containerRect.top + container.scrollTop + rect.height * normalizedOffset;
+      container.scrollTo({ top: Math.max(0, top), behavior: 'instant' });
+    } else {
+      const top = rect.top + window.scrollY + rect.height * normalizedOffset;
+      window.scrollTo({ top: Math.max(0, top), behavior: 'instant' });
+    }
+    return true;
+  }
+
   async function updateFavoriteScrollPosition(scrollTop) {
     const lawId = getCurrentLawIdFromUrl();
     if (!lawId) return;
@@ -3685,9 +5865,20 @@
       if (idx === -1) return;
 
       const normalizedTop = Math.max(0, Math.round(Number(scrollTop) || 0));
-      if ((favorites[idx].lastScrollTop ?? 0) === normalizedTop) return;
+      const location = getCurrentFavoriteLocation();
+      const normalizedOffset = location ? Math.round(location.offset * 10000) / 10000 : undefined;
+      if ((favorites[idx].lastScrollTop ?? 0) === normalizedTop &&
+          (!location || (favorites[idx].lastArticleKey === location.articleKey &&
+            favorites[idx].lastArticleOffset === normalizedOffset))) return;
 
-      favorites[idx] = { ...favorites[idx], lastScrollTop: normalizedTop };
+      favorites[idx] = {
+        ...favorites[idx],
+        lastScrollTop: normalizedTop,
+        ...(location ? {
+          lastArticleKey: location.articleKey,
+          lastArticleOffset: normalizedOffset,
+        } : {}),
+      };
       favoritesStore.replace(favorites);
       await saveFavoritesCache();
     } catch (_) {}
@@ -3703,12 +5894,16 @@
 
   function setupFavoriteScrollPersistence() {
     const lawId = getCurrentLawIdFromUrl();
-    if (!lawId) return;
+    if (!lawId || favoriteScrollPersistenceSetup) return;
+    favoriteScrollPersistenceSetup = true;
 
     let saveEnabled = false;
     getFavoritesCache().then((favorites) => {
       saveEnabled = favorites.some((f) => f.lawId === lawId);
-      if (!saveEnabled) return;
+      if (!saveEnabled) {
+        favoriteScrollPersistenceSetup = false;
+        return;
+      }
 
       const container = getScrollContainer();
       const target = container || window;
@@ -3717,7 +5912,9 @@
       document.addEventListener('visibilitychange', () => {
         if (document.visibilityState === 'hidden') updateFavoriteScrollPosition(getCurrentScrollTop());
       });
-    }).catch(() => {});
+    }).catch(() => {
+      favoriteScrollPersistenceSetup = false;
+    });
   }
 
   async function restoreFavoriteScrollOnLoad() {
@@ -3727,10 +5924,15 @@
     try {
       const favorites = await getFavoritesCache();
       const fav = favorites.find((f) => f.lawId === lawId);
-      if (!fav || typeof fav.lastScrollTop !== 'number') return false;
+      if (!fav) return false;
 
       const restore = () => {
-        scrollToStoredTop(fav.lastScrollTop, 'instant');
+        const restoredSharedLocation = typeof fav.lastArticleKey === 'string' &&
+          scrollToStoredFavoriteLocation(fav.lastArticleKey, fav.lastArticleOffset);
+        if (!restoredSharedLocation) {
+          if (typeof fav.lastScrollTop !== 'number') return false;
+          scrollToStoredTop(fav.lastScrollTop, 'instant');
+        }
         favoriteScrollRestored = true;
         return true;
       };
@@ -4372,8 +6574,8 @@
       if (!query) return;
       if (query !== lastExecutedQuery) {
         lastExecutedQuery = query;
-        pushHistory(searchHistory, query);
-        performSearch(query, resultEl);
+        const matchCount = performSearch(query, resultEl);
+        if (matchCount > 0) pushHistory(searchHistory, query);
         markSearchExecuted();
         navigate(1, resultEl);
         refocusSearchInput();
@@ -4387,8 +6589,8 @@
       if (!query) return;
       if (query !== lastExecutedQuery) {
         lastExecutedQuery = query;
-        pushHistory(searchHistory, query);
-        performSearch(query, resultEl);
+        const matchCount = performSearch(query, resultEl);
+        if (matchCount > 0) pushHistory(searchHistory, query);
         markSearchExecuted();
         navigateFromViewportStart(resultEl);
         refocusSearchInput();
@@ -4402,8 +6604,8 @@
       if (!query) return;
       if (query !== lastExecutedQuery) {
         lastExecutedQuery = query;
-        pushHistory(searchHistory, query);
-        performSearch(query, resultEl);
+        const matchCount = performSearch(query, resultEl);
+        if (matchCount > 0) pushHistory(searchHistory, query);
         markSearchExecuted();
         navigateFromViewportStart(resultEl);
         refocusSearchInput();
@@ -4461,7 +6663,7 @@
 
   function performSearch(query, resultEl) {
     clearHighlights();
-    if (!query) { if (resultEl) resultEl.textContent = ''; return; }
+    if (!query) { if (resultEl) resultEl.textContent = ''; return 0; }
     searchState.highlights   = markText(query);
     searchState.currentIndex = -1;
     if (resultEl) {
@@ -4473,6 +6675,7 @@
         resultEl.className   = 'egov-ext-result egov-ext-result-success';
       }
     }
+    return searchState.highlights.length;
   }
 
   function navigateFromViewportStart(resultEl) {
@@ -4550,13 +6753,23 @@
   function scrollRangeToView(range) {
     const rect = range.getBoundingClientRect();
     const container = getScrollContainer();
+    const searchDialog = activeDialog?.classList.contains('egov-ext-search-mode')
+      ? activeDialog.querySelector('.egov-ext-dialog')
+      : null;
+    const dialogBottom = searchDialog?.getBoundingClientRect().bottom || 0;
+    const gap = 16;
     if (container) {
       const cRect  = container.getBoundingClientRect();
       const absTop = rect.top - cRect.top + container.scrollTop;
-      container.scrollTo({ top: Math.max(0, absTop - container.clientHeight * 0.25), behavior: scrollBehavior });
+      const preferredOffset = container.clientHeight * 0.25;
+      const unobscuredOffset = Math.max(0, dialogBottom + gap - cRect.top);
+      const targetOffset = Math.min(container.clientHeight - gap, Math.max(preferredOffset, unobscuredOffset));
+      container.scrollTo({ top: Math.max(0, absTop - targetOffset), behavior: scrollBehavior });
     } else {
       const absTop = rect.top + window.scrollY;
-      window.scrollTo({ top: Math.max(0, absTop - window.innerHeight * 0.25), behavior: scrollBehavior });
+      const preferredOffset = window.innerHeight * 0.25;
+      const targetOffset = Math.min(window.innerHeight - gap, Math.max(preferredOffset, dialogBottom + gap));
+      window.scrollTo({ top: Math.max(0, absTop - targetOffset), behavior: scrollBehavior });
     }
   }
 
@@ -4642,6 +6855,43 @@
     let focusedIdx   = -1;
     let hoverEnabled = false;
 
+    const lawNameTooltip = document.createElement('div');
+    lawNameTooltip.className = 'egov-ext-law-name-tooltip';
+    lawNameTooltip.setAttribute('role', 'tooltip');
+    lawNameTooltip.hidden = true;
+    dialog.appendChild(lawNameTooltip);
+
+    function hideLawNameTooltip() {
+      lawNameTooltip.hidden = true;
+      lawNameTooltip.textContent = '';
+    }
+
+    function showLawNameTooltip(item) {
+      const nameEl = item?.querySelector('.egov-ext-law-result-name');
+      if (!nameEl || nameEl.scrollWidth <= nameEl.clientWidth + 1) {
+        hideLawNameTooltip();
+        return;
+      }
+
+      lawNameTooltip.textContent = nameEl.textContent.trim();
+      lawNameTooltip.hidden = false;
+
+      const itemRect = item.getBoundingClientRect();
+      const nameRect = nameEl.getBoundingClientRect();
+      const tooltipRect = lawNameTooltip.getBoundingClientRect();
+      const viewportPadding = 8;
+      const gap = 6;
+      const maxLeft = Math.max(viewportPadding, window.innerWidth - tooltipRect.width - viewportPadding);
+      const left = Math.min(Math.max(viewportPadding, nameRect.left), maxLeft);
+      const fitsBelow = itemRect.bottom + gap + tooltipRect.height <= window.innerHeight - viewportPadding;
+      const top = fitsBelow
+        ? itemRect.bottom + gap
+        : Math.max(viewportPadding, itemRect.top - tooltipRect.height - gap);
+
+      lawNameTooltip.style.left = `${left}px`;
+      lawNameTooltip.style.top = `${top}px`;
+    }
+
     function isFav(lawId) { return favorites.some(f => f.lawId === lawId); }
 
     function toggleFav(law) {
@@ -4657,8 +6907,19 @@
       focusedIdx = idx;
       const items = listEl.querySelectorAll('.egov-ext-law-result-item');
       items.forEach((li, i) => li.classList.toggle('focused', i === idx));
-      if (idx >= 0 && items[idx]) items[idx].scrollIntoView({ block: 'nearest' });
+      if (idx >= 0 && items[idx]) {
+        items[idx].scrollIntoView({ block: 'nearest' });
+        showLawNameTooltip(items[idx]);
+      } else {
+        hideLawNameTooltip();
+      }
     }
+
+    // 入力欄へ戻った時や検索語を編集した時は、以前の結果選択を解除する。
+    // 選択を残すと、検索のための Enter でその法令を開いてしまう。
+    input.addEventListener('focus', () => setFocus(-1));
+    input.addEventListener('pointerdown', () => setFocus(-1));
+    input.addEventListener('input', () => setFocus(-1));
 
     function openLaw(law) {
       window.open(buildLawUrl(law.lawId), '_blank');
@@ -4666,6 +6927,7 @@
     }
 
     function renderResults() {
+      hideLawNameTooltip();
       listEl.innerHTML = '';
       if (results.length === 0) { listEl.style.setProperty('display', 'none', 'important'); return; }
       listEl.style.setProperty('display', 'block', 'important');
@@ -4696,6 +6958,12 @@
       });
       focusedIdx = -1;
     }
+
+    listEl.addEventListener('scroll', () => {
+      const items = listEl.querySelectorAll('.egov-ext-law-result-item');
+      if (focusedIdx >= 0 && items[focusedIdx]) showLawNameTooltip(items[focusedIdx]);
+      else hideLawNameTooltip();
+    });
 
     async function doSearch() {
       const query = input.value.trim();
@@ -5033,8 +7301,9 @@
     const npRow = [...guideTable.querySelectorAll('tr')].find((tr) => tr.querySelector('td')?.textContent.includes('n'));
     if (npRow) {
       npRow.insertAdjacentHTML('beforebegin', `
-        <tr><td><kbd>b</kbd></td><td>ピン状態の常時表示切り替え</td></tr>
-        <tr><td><kbd>i</kbd> <kbd>o</kbd> <kbd>j</kbd> <kbd>k</kbd> <kbd>m</kbd></td><td>対応色のピンを設定 / 解除 / 移動</td></tr>
+        <tr><td><kbd>b</kbd></td><td>条文ブックマーク一覧を開く / 閉じる</td></tr>
+        <tr><td><kbd>m</kbd></td><td>ハイライト・メモ一覧を開く / 閉じる</td></tr>
+        <tr><td><kbd>Space</kbd></td><td>現在位置の条文ブックマークを追加 / 削除</td></tr>
       `);
     }
 
@@ -5111,36 +7380,22 @@
     });
   }
 
-  function setupColorPinFeatures() {
-    runWhenIdle(() => refreshColorPinHighlights(), 1200);
-    // pinToastDefaultVisible は起動時に既に読み込み済み
-    pinToastPinned = pinToastDefaultVisible;
-    if (pinToastPinned) runWhenIdle(() => showPinToast(false), 1200);
-    else hidePinToast(true);
+  function setupArticleBookmarkFeatures() {
+    runWhenIdle(() => renderArticleBookmarkGutters(), 1200);
     if (getAllArticles().length > 0) return;
 
     const observer = new MutationObserver(() => {
       if (getAllArticles().length === 0) return;
       observer.disconnect();
-      refreshColorPinHighlights();
+      renderArticleBookmarkGutters();
     });
     observer.observe(document.documentElement, { childList: true, subtree: true });
     setTimeout(() => observer.disconnect(), 10000);
   }
 
-  chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
-    if (message?.type !== 'egov-perform-color-pin-jump') return undefined;
-
-    jumpToStoredColorPin(message.pin)
-      .then((ok) => {
-        if (ok) refreshColorPinHighlights();
-        sendResponse({ ok });
-      })
-      .catch(() => sendResponse({ ok: false }));
-    return true;
-  });
-
   async function initializeLawPageFeatures() {
+    const highlightSettings = await chrome.storage.local.get([TEXT_HIGHLIGHT_ENABLED_KEY]).catch(() => ({}));
+    textHighlightFeatureEnabled = highlightSettings[TEXT_HIGHLIGHT_ENABLED_KEY] !== false;
     invalidateArticleCache();
     const articleRoot = document.querySelector('#provisionview') || document.documentElement;
     observeArticleChanges({
@@ -5148,6 +7403,8 @@
       shouldInvalidate: shouldInvalidateArticleCache,
       onInvalidate() {
         invalidateArticleCache();
+        runWhenIdle(() => renderArticleBookmarkGutters(), 500);
+        if (textHighlightFeatureEnabled) scheduleTextHighlightRestore();
         if (defTooltipEnabled && postLoadEnrichmentReady) scheduleApplyDefinitionTooltips();
       },
     });
@@ -5170,7 +7427,8 @@
     runWhenIdle(ensureShortcutGuide, 900);
     runWhenIdle(applyDefaultLawSidebarVisibility, 900);
     runWhenIdle(setupFavoriteHeaderBadge, 1200);
-    runWhenIdle(setupColorPinFeatures, 1600);
+    runWhenIdle(setupArticleBookmarkFeatures, 1600);
+    if (textHighlightFeatureEnabled) setupTextHighlightInteractions();
     setupDefinitionTooltipInteractions();
     setupExternalReferenceInteractions();
     runAfterPageLoadWhenIdle(() => {
@@ -5185,7 +7443,7 @@
       });
       chrome.storage.local.get(['externalReferencesAutoEnable', REVERSE_REFERENCE_SCOPE_KEY], ({ externalReferencesAutoEnable, reverseReferenceScope: storedReverseReferenceScope }) => {
         reverseReferenceScope = normalizeReverseReferenceScope(storedReverseReferenceScope);
-        if (externalReferencesAutoEnable !== false) autoEnableExternalReferenceLinks();
+        if (externalReferencesAutoEnable === true) autoEnableExternalReferenceLinks();
       });
     }, 2500);
     restoreFavoriteScrollOnLoad()

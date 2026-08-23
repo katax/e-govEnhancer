@@ -1467,7 +1467,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const display = hasMore ? laws.slice(0, 30) : laws;
       // currentResults は showResults 内で表示順（sortedLaws）に確定させる
       showResults(display, query, hasMore);
-      pushQueryHistory(query);
+      if (display.length > 0) pushQueryHistory(query);
     } catch (err) {
       showError(`エラー: ${err.message}`);
     } finally {

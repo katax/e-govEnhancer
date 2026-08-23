@@ -11,7 +11,7 @@
     <header class="options-header">
       <div>
         <h1>e-Gov法令検索 Enhancer</h1>
-        <p class="options-subtitle">設定と使い方ガイド</p>
+        <p class="options-subtitle">設定</p>
       </div>
       <a id="openManualPageLink" href="docs/user-manual.html" class="ext-link options-manual-link" target="_blank" rel="noopener">マニュアルはこちら</a>
     </header>
@@ -63,6 +63,17 @@
             </label>
             <label class="toggle-switch">
               <input type="checkbox" id="lawRefClickToggle">
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+
+          <div class="setting-row">
+            <label class="setting-label" for="textHighlightsEnabledToggle">
+              <span class="setting-title">ハイライト・メモ機能</span>
+              <span class="setting-desc">法令本文のハイライト、メモの作成・表示・編集を有効にします。オフにしても保存済みのデータは削除されません。</span>
+            </label>
+            <label class="toggle-switch">
+              <input type="checkbox" id="textHighlightsEnabledToggle">
               <span class="toggle-slider"></span>
             </label>
           </div>
@@ -144,16 +155,6 @@
             </label>
           </div>
 
-          <div class="setting-row">
-            <label class="setting-label" for="pinToastToggle">
-              <span class="setting-title">ピン状態の常時表示</span>
-              <span class="setting-desc">法令ページ上でピンの状態を常に表示します。</span>
-            </label>
-            <label class="toggle-switch">
-              <input type="checkbox" id="pinToastToggle">
-              <span class="toggle-slider"></span>
-            </label>
-          </div>
         </div>
       </section>
 
@@ -172,6 +173,63 @@
             <p>
               ショートカットキーは <a id="openShortcutsPageLink" href="#" class="ext-link">Chrome のショートカット設定ページ</a> から変更できます。
             </p>
+          </div>
+        </div>
+      </section>
+
+      <section class="card" id="googleDriveSyncCard" hidden>
+        <div class="card-header">
+          <span class="card-icon">☁</span>
+          <h2>Google Drive同期</h2>
+        </div>
+        <div class="card-body">
+          <div class="setting-row">
+            <label class="setting-label" for="googleDriveFavoritesSyncToggle">
+              <span class="setting-title">異なる端末間での同期を有効にする</span>
+            </label>
+            <label class="toggle-switch">
+              <input type="checkbox" id="googleDriveFavoritesSyncToggle">
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+
+          <div class="drive-sync-details is-disabled" id="googleDriveFavoritesSyncDetails">
+            <div class="setting-row">
+              <label class="setting-label" for="googleDriveSyncFavoritesToggle">
+                <span class="setting-title">お気に入りと条文ブックマークを同期する</span>
+                <span class="setting-desc">同期が競合した場合は新しい情報でお気に入りと条文ブックマーク全体を上書きします。</span>
+              </label>
+              <label class="toggle-switch">
+                <input type="checkbox" id="googleDriveSyncFavoritesToggle" checked>
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+
+            <div class="setting-row">
+              <label class="setting-label" for="googleDriveSyncHighlightsToggle">
+                <span class="setting-title">ハイライト/メモを同期する</span>
+                <span class="setting-desc">異なる端末の情報を統合し、重複するハイライトやメモも残します。</span>
+              </label>
+              <label class="toggle-switch">
+                <input type="checkbox" id="googleDriveSyncHighlightsToggle" checked>
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+
+            <div class="drive-sync-account">
+              <span class="drive-sync-account-label">連携アカウント</span>
+              <strong id="googleDriveFavoritesAccount">未連携</strong>
+            </div>
+            <div class="backup-actions">
+              <button type="button" class="action-btn" id="googleDriveFavoritesSyncNowBtn">今すぐ同期</button>
+              <button type="button" class="action-btn" id="googleDriveFavoritesDisconnectBtn">認証を解除</button>
+            </div>
+            <div class="backup-status" id="googleDriveFavoritesSyncStatus" aria-live="polite"></div>
+            <div class="backup-summary" id="googleDriveFavoritesSyncSummary"></div>
+          </div>
+
+          <div class="info-box">
+            <p>同期ファイルはGoogle Driveのアプリ専用の非表示領域に保存されます。Google Drive内のほかのファイルにはアクセスしません。</p>
           </div>
         </div>
       </section>
@@ -201,6 +259,29 @@
 
       <section class="card">
         <div class="card-header">
+          <span class="card-icon">🖍</span>
+          <h2>メモとハイライトの保存と読み込み</h2>
+        </div>
+        <div class="card-body">
+          <p>すべての法令のメモとハイライトを、まとめて保存・読み込みできます。</p>
+
+          <div class="backup-actions">
+            <button type="button" class="action-btn action-btn-primary" id="exportTextHighlightsBtn">保存</button>
+            <button type="button" class="action-btn" id="importTextHighlightsBtn">読み込み</button>
+            <input type="file" id="importTextHighlightsInput" accept="application/json,.json" hidden>
+          </div>
+
+          <div class="backup-status" id="textHighlightsTransferStatus" aria-live="polite"></div>
+          <div class="backup-summary" id="textHighlightsTransferSummary"></div>
+
+          <div class="info-box">
+            <p>読み込むと、現在保存されているすべてのメモとハイライトが、ファイルの内容に置き換わります。</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-header">
           <span class="card-icon">↩</span>
           <h2>逆参照リンク用ファイルのエクスポートと読み込み</h2>
         </div>
@@ -218,36 +299,6 @@
 
           <div class="info-box">
             <p>読み込み時に JSON の文法と、法令ID・参照先キー・リンク元配列の形式を確認します。読み込んだデータは拡張内に保存され、同梱データより優先して使われます。</p>
-          </div>
-        </div>
-      </section>
-
-      <section class="card">
-        <div class="card-header">
-          <span class="card-icon">🧭</span>
-          <h2>使い方ガイド</h2>
-        </div>
-        <div class="card-body">
-          <div class="usage-item">
-            <div class="usage-icon-wrap">🔎</div>
-            <div class="usage-content">
-              <h3>ポップアップで法令を検索</h3>
-              <p>
-                拡張のショートカットを押すとポップアップが開きます。
-                法令名やキーワードを入力して検索すると、新しいタブで e-Gov 法令検索の結果が表示されます。
-              </p>
-            </div>
-          </div>
-
-          <div class="usage-item">
-            <div class="usage-icon-wrap">📌</div>
-            <div class="usage-content">
-              <h3>お気に入りと履歴を使う</h3>
-              <p>
-                検索結果の <kbd>★</kbd> や履歴パネルの <kbd>Shift</kbd>+<kbd>Enter</kbd> でお気に入り登録できます。
-                お気に入りはフォルダで整理でき、ドラッグ操作で並べ替えもできます。
-              </p>
-            </div>
           </div>
         </div>
       </section>
@@ -284,7 +335,8 @@
               <tr><td><kbd>Esc</kbd></td><td>ダイアログを閉じる</td></tr>
               <tr><td><kbd>f</kbd></td><td>現在の法令をお気に入り登録 / 解除</td></tr>
               <tr><td><kbd>a</kbd></td><td>条文リンクをコピー</td></tr>
-              <tr><td><kbd>b</kbd></td><td>ピン状態の表示を切り替え</td></tr>
+              <tr><td><kbd>b</kbd></td><td>条文ブックマーク一覧を開く / 閉じる</td></tr>
+              <tr><td><kbd>Space</kbd></td><td>現在位置の条文ブックマークを追加 / 削除</td></tr>
               <tr><td><kbd>t</kbd></td><td>目次ダイアログを開く</td></tr>
               <tr><td><kbd>Shift</kbd>+<kbd>T</kbd></td><td>現在位置に合わせて目次ダイアログを開く</td></tr>
             </tbody>
@@ -303,7 +355,7 @@
             <a href="https://laws.e-gov.go.jp/" target="_blank" rel="noopener">e-Gov 法令検索</a>
             をより便利に使うための補助ツールです。
           </p>
-          <p class="version-info">バージョン 2.4.1</p>
+          <p class="version-info">バージョン 2.5.1</p>
         </div>
       </section>
     </main>

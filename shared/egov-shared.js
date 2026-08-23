@@ -1009,6 +1009,124 @@
     return range;
   }
 
+  function rangeFromTextAnchorOffsets(startAnchor, startOffset, endAnchor, endOffset, options = {}) {
+    if (!(startAnchor instanceof Element) || !(endAnchor instanceof Element) ||
+        !Number.isInteger(startOffset) || !Number.isInteger(endOffset) || startOffset < 0 || endOffset <= 0) {
+      return null;
+    }
+    const startText = collectSearchTextSegments(startAnchor, options);
+    const endText = startAnchor === endAnchor ? startText : collectSearchTextSegments(endAnchor, options);
+    const startProbe = rangeFromSearchOffsets(startText.segments, startOffset, startOffset + 1);
+    const endProbe = rangeFromSearchOffsets(endText.segments, endOffset - 1, endOffset);
+    if (!startProbe || !endProbe) return null;
+    try {
+      const range = document.createRange();
+      range.setStart(startProbe.startContainer, startProbe.startOffset);
+      range.setEnd(endProbe.endContainer, endProbe.endOffset);
+      return range.collapsed ? null : range;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  function rangeFromNormalizedTextAnchorOffsets(startAnchor, startOffset, endAnchor, endOffset, options = {}) {
+    if (!(startAnchor instanceof Element) || !(endAnchor instanceof Element) ||
+        !Number.isInteger(startOffset) || !Number.isInteger(endOffset) || startOffset < 0 || endOffset <= 0) {
+      return null;
+    }
+    const collectCharacters = (anchor) => {
+      const characters = [];
+      const { segments } = collectSearchTextSegments(anchor, options);
+      segments.forEach(({ node, text }) => {
+        for (let index = 0; index < text.length; index += 1) {
+          if (!/\s/.test(text[index])) characters.push({ node, offset: index });
+        }
+      });
+      return characters;
+    };
+    const startCharacters = collectCharacters(startAnchor);
+    const endCharacters = startAnchor === endAnchor ? startCharacters : collectCharacters(endAnchor);
+    const startCharacter = startCharacters[startOffset];
+    const endCharacter = endCharacters[endOffset - 1];
+    if (!startCharacter || !endCharacter) return null;
+    try {
+      const range = document.createRange();
+      range.setStart(startCharacter.node, startCharacter.offset);
+      range.setEnd(endCharacter.node, endCharacter.offset + 1);
+      return range.collapsed ? null : range;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  function getTextRangeClientRects(range, { excludeSelector = '' } = {}) {
+    if (!range || range.collapsed || !range.startContainer?.isConnected || !range.endContainer?.isConnected) return [];
+    const common = range.commonAncestorContainer;
+    const nodes = [];
+    if (common.nodeType === Node.TEXT_NODE) {
+      nodes.push(common);
+    } else {
+      const walker = document.createTreeWalker(common, NodeFilter.SHOW_TEXT);
+      let node;
+      while ((node = walker.nextNode())) nodes.push(node);
+    }
+
+    const rects = [];
+    for (const node of nodes) {
+      const parent = node.parentElement;
+      if (!node.textContent || !parent || (excludeSelector && parent.closest(excludeSelector))) continue;
+      try {
+        if (!range.intersectsNode(node)) continue;
+        const start = node === range.startContainer ? range.startOffset : 0;
+        const end = node === range.endContainer ? range.endOffset : node.textContent.length;
+        if (end <= start) continue;
+        const textRange = document.createRange();
+        textRange.setStart(node, start);
+        textRange.setEnd(node, end);
+        if (!textRange.toString().trim()) continue;
+        Array.from(textRange.getClientRects()).forEach((rect) => {
+          if (rect.width > 0.5 && rect.height > 0.5) rects.push(rect);
+        });
+      } catch (_) {}
+    }
+    return rects;
+  }
+
+  function getTextRangeText(range, { excludeSelector = '' } = {}) {
+    if (!range || range.collapsed || !range.startContainer?.isConnected || !range.endContainer?.isConnected) return '';
+    const common = range.commonAncestorContainer;
+    const nodes = [];
+    if (common.nodeType === Node.TEXT_NODE) {
+      nodes.push(common);
+    } else {
+      const walker = document.createTreeWalker(common, NodeFilter.SHOW_TEXT);
+      let node;
+      while ((node = walker.nextNode())) nodes.push(node);
+    }
+    const parts = [];
+    for (const node of nodes) {
+      const parent = node.parentElement;
+      if (!node.textContent || !parent || (excludeSelector && parent.closest(excludeSelector))) continue;
+      try {
+        if (!range.intersectsNode(node)) continue;
+        const start = node === range.startContainer ? range.startOffset : 0;
+        const end = node === range.endContainer ? range.endOffset : node.textContent.length;
+        if (end > start) parts.push(node.textContent.slice(start, end));
+      } catch (_) {}
+    }
+    return parts.join('');
+  }
+
+  function getNormalizedTextSignature(value) {
+    const normalized = String(value || '').replace(/\s+/g, '');
+    let hash = 2166136261;
+    for (let index = 0; index < normalized.length; index += 1) {
+      hash ^= normalized.charCodeAt(index);
+      hash = Math.imul(hash, 16777619);
+    }
+    return `${normalized.length.toString(36)}-${(hash >>> 0).toString(36)}`;
+  }
+
   function getJapanDateString(date = new Date()) {
     const parts = new Intl.DateTimeFormat('en-CA', {
       timeZone: 'Asia/Tokyo',
@@ -1181,6 +1299,9 @@
     getLawFields,
     getReferenceDomParts,
     getReverseReferenceScopeFlags,
+    getNormalizedTextSignature,
+    getTextRangeClientRects,
+    getTextRangeText,
     idbRequest,
     isAllowedDefinitionBoundaryChar,
     isJapaneseWordChar,
@@ -1193,6 +1314,8 @@
     parseJapaneseReferenceNumber,
     parseProvisionPathFromEgovUrl,
     rangeFromSearchOffsets,
+    rangeFromNormalizedTextAnchorOffsets,
+    rangeFromTextAnchorOffsets,
     readCachedLiteLawXml,
     searchLawsByTitle,
     sortReferenceSources,

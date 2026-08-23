@@ -241,6 +241,12 @@ body[data-content-width="narrow"] .law-content {
   margin: 0 auto;
 }
 
+body[data-reference-viewer-open="true"]:not([data-compare-mode="on"])[data-content-width="medium"] #law-content,
+body[data-reference-viewer-open="true"]:not([data-compare-mode="on"])[data-content-width="narrow"] #law-content {
+  margin-left: 0;
+  margin-right: auto;
+}
+
 .compare-search {
   display: flex;
   flex-direction: column;
@@ -362,6 +368,11 @@ body[data-content-width="narrow"] .law-content {
   scroll-margin-top: 142px;
 }
 
+#law-content .law-article {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 240px;
+}
+
 .article-title {
   margin: 0 0 8px;
   color: #17202a;
@@ -396,6 +407,48 @@ body[data-content-width="narrow"] .law-content {
 
 .law-text { min-width: 0; }
 .law-text p { margin: 0 0 4px; }
+
+.lite-bookmark-number-host {
+  position: relative;
+}
+
+.lite-bookmark-gutter {
+  appearance: none;
+  position: absolute;
+  top: 0;
+  left: -27px;
+  width: 24px;
+  height: 24px;
+  padding: 3px 6px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.12s ease, background 0.12s ease;
+}
+
+.lite-bookmark-gutter.is-bookmarked,
+.lite-bookmark-gutter:hover,
+.lite-bookmark-gutter:focus-visible {
+  opacity: 1;
+}
+
+.lite-bookmark-gutter.is-bookmarked::before {
+  content: "";
+  display: block;
+  width: 12px;
+  height: 18px;
+  border-radius: 1px 1px 0 0;
+  background: #1976d2;
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 82%, 0 100%);
+}
+
+.lite-bookmark-gutter:hover,
+.lite-bookmark-gutter:focus-visible {
+  background: rgba(25, 118, 210, 0.12);
+  outline: none;
+}
 
 .lite-jump-flash {
   animation: lite-jump-flash 1.25s ease-out;
@@ -544,7 +597,188 @@ body[data-content-width="narrow"] .law-content {
 
 .egov-lite-reference-viewer-popup {
   width: min(780px, calc(100vw - 20px));
-  height: min(720px, calc(100vh - 20px));
+  height: min(480px, calc(100vh - 20px));
+}
+
+.egov-lite-reference-viewer-head {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+  padding: 10px 12px;
+  border-bottom: 1px solid #dce2ec;
+  background: #f4f7fb;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+
+.egov-lite-reference-viewer-popup.is-dragging .egov-lite-reference-viewer-head {
+  cursor: grabbing;
+}
+
+.egov-lite-reference-viewer-popup.is-compact-side .egov-lite-reference-viewer-head {
+  align-items: stretch;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.egov-lite-reference-viewer-popup.is-compact-side .egov-lite-reference-viewer-actions {
+  flex: 1 1 100%;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.egov-lite-reference-viewer-heading {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.egov-lite-reference-viewer-title {
+  overflow: hidden;
+  color: #243044;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.4;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.egov-lite-reference-viewer-meta {
+  overflow: hidden;
+  margin-top: 2px;
+  color: #657185;
+  font-size: 11px;
+  line-height: 1.4;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.egov-lite-reference-viewer-actions {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 6px;
+}
+
+.egov-lite-reference-scroll,
+.egov-lite-reference-open-tab {
+  border: 1px solid #9eb4d1;
+  border-radius: 6px;
+  background: #fff;
+  color: #174f87;
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.3;
+  padding: 6px 9px;
+}
+
+.egov-lite-reference-scroll:hover,
+.egov-lite-reference-scroll:focus-visible,
+.egov-lite-reference-open-tab:hover,
+.egov-lite-reference-open-tab:focus-visible {
+  border-color: #6f96c3;
+  background: #eaf3ff;
+  outline: none;
+}
+
+.egov-lite-reference-scroll:disabled {
+  border-color: #d5dbe3;
+  background: #f4f5f7;
+  color: #9aa3af;
+  cursor: wait;
+}
+
+.egov-lite-reference-pin {
+  display: grid;
+  width: 30px;
+  height: 30px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: #687487;
+  cursor: pointer;
+  font: inherit;
+  font-size: 15px;
+  line-height: 1;
+  padding: 0;
+  place-items: center;
+}
+
+.egov-lite-reference-pin span {
+  display: block;
+  filter: grayscale(1);
+  opacity: 0.58;
+  transform: rotate(38deg);
+  transition: transform 0.12s ease, filter 0.12s ease, opacity 0.12s ease;
+}
+
+.egov-lite-reference-pin:hover,
+.egov-lite-reference-pin:focus-visible {
+  border-color: #b7c5d8;
+  background: #eaf0f7;
+  outline: none;
+}
+
+.egov-lite-reference-pin.is-active {
+  border-color: #6f96c3;
+  background: #dcecff;
+  box-shadow: inset 0 0 0 1px rgba(29, 111, 214, 0.12);
+}
+
+.egov-lite-reference-pin.is-active span {
+  filter: none;
+  opacity: 1;
+  transform: rotate(0deg);
+}
+
+.egov-lite-reference-viewer-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  padding: 18px 20px 28px;
+  background: #fff;
+  color: #26343d;
+  font-size: var(--reader-font-size);
+  line-height: 1.9;
+  overscroll-behavior: contain;
+}
+
+.egov-lite-reference-viewer-article > .law-article {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: 0;
+}
+
+.egov-lite-reference-viewer-body a {
+  color: #075d8f;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
+}
+
+.egov-lite-reference-viewer-target {
+  border-radius: 4px;
+  outline: 3px solid rgba(29, 111, 214, 0.42);
+  outline-offset: 4px;
+  background: rgba(29, 111, 214, 0.08);
+}
+
+.egov-lite-reference-viewer-status {
+  display: grid;
+  min-height: 180px;
+  place-items: center;
+  color: #657185;
+  font-size: 13px;
+  line-height: 1.7;
+  text-align: center;
+}
+
+.egov-lite-reference-viewer-status.is-error {
+  color: #a33a35;
 }
 
 .egov-lite-reference-popup-head {
@@ -595,6 +829,16 @@ body[data-content-width="narrow"] .law-content {
 .egov-lite-reference-close:focus-visible {
   background: rgba(20, 28, 40, 0.08);
   outline: none;
+}
+
+.egov-lite-reference-viewer-popup .egov-lite-reference-close {
+  display: grid;
+  width: 36px;
+  height: 36px;
+  flex: 0 0 36px;
+  font-size: 26px;
+  padding: 0;
+  place-items: center;
 }
 
 .egov-lite-reference-list {
@@ -802,6 +1046,211 @@ body[data-paren-mode] .egov-lite-paren.is-hover {
   min-height: 0;
   overflow: auto;
   padding: 14px;
+}
+
+.lite-bookmark-overlay {
+  align-items: center;
+  padding-top: 0;
+  background: rgba(15, 23, 42, 0.26);
+  backdrop-filter: blur(2px);
+}
+
+.lite-bookmark-dialog {
+  width: 80vw !important;
+  height: 80vh;
+  max-width: 80vw !important;
+  max-height: 80vh;
+  background: rgba(255, 255, 255, 0.60);
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  backdrop-filter: blur(16px) saturate(125%);
+}
+
+.lite-bookmark-dialog .lite-dialog-header {
+  background: rgba(36, 62, 85, 0.82);
+}
+
+.lite-bookmark-key-status {
+  margin-top: 2px;
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.lite-bookmark-dialog-body {
+  display: flex;
+  flex: 1 1 auto;
+  min-height: 0;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+}
+
+.lite-bookmark-help {
+  flex: 0 0 auto;
+  color: #334155;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.lite-bookmark-help kbd,
+.lite-bookmark-shortcut kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  margin-right: 3px;
+  padding: 0 5px;
+  border: 1px solid rgba(100, 116, 139, 0.55);
+  border-radius: 5px;
+  background: rgba(255, 255, 255, 0.72);
+  box-shadow: 0 1px 1px rgba(15, 23, 42, 0.12);
+  color: #1e293b;
+  font-family: inherit;
+  font-size: 11px;
+}
+
+.lite-bookmark-list {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  border: 1px solid rgba(148, 163, 184, 0.4);
+  border-radius: 10px;
+  background: rgba(248, 250, 252, 0.46);
+  outline: none;
+}
+
+.lite-bookmark-row {
+  display: grid;
+  grid-template-columns: minmax(56px, auto) minmax(0, 1fr) 34px;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.32);
+  color: #1f2937;
+  cursor: pointer;
+}
+
+.lite-bookmark-row[hidden] { display: none; }
+
+.lite-bookmark-row.is-selected,
+.lite-bookmark-row.is-pointer-selected {
+  background: rgba(216, 239, 218, 0.9);
+  box-shadow: inset 4px 0 #2e7d32;
+}
+
+.lite-bookmark-shortcut { display: flex; }
+
+.lite-bookmark-content {
+  display: flex;
+  align-items: baseline;
+  min-width: 0;
+  gap: 10px;
+  white-space: nowrap;
+}
+
+.lite-highlight-list-content {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 3px;
+  white-space: normal;
+}
+
+.lite-highlight-list-main {
+  display: flex;
+  align-items: baseline;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.lite-highlight-list-main .lite-bookmark-text {
+  margin-left: 10px;
+}
+
+.lite-highlight-list-color {
+  flex: 0 0 auto;
+  align-self: center;
+  width: 10px;
+  height: 10px;
+  margin-right: 7px;
+  border: 1px solid rgba(31, 41, 55, 0.18);
+  border-radius: 3px;
+}
+
+.lite-highlight-list-color.is-yellow { background: #fff3a6; }
+.lite-highlight-list-color.is-pink { background: #ffd6df; }
+.lite-highlight-list-color.is-green { background: #d9f2d7; }
+
+.lite-highlight-list-memo {
+  overflow: hidden;
+  color: #6b4d18;
+  font-size: 12px;
+  line-height: 1.45;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lite-highlight-list-tooltip {
+  position: fixed;
+  z-index: 2147483647;
+  box-sizing: border-box;
+  width: max-content;
+  max-width: min(520px, calc(100vw - 20px));
+  max-height: min(320px, calc(100vh - 20px));
+  overflow: auto;
+  padding: 9px 11px;
+  border: 1px solid rgba(143, 116, 43, 0.42);
+  border-radius: 7px;
+  background: #fffbea;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.2);
+  color: #4f421f;
+  font-size: 13px;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+  pointer-events: none;
+  white-space: pre-wrap;
+}
+
+.lite-highlight-list-tooltip[hidden] {
+  display: none;
+}
+
+.lite-bookmark-number {
+  flex: 0 0 auto;
+  color: #1e293b;
+  font-weight: 700;
+}
+
+.lite-bookmark-text {
+  min-width: 0;
+  overflow: hidden;
+  color: #475569;
+  text-overflow: ellipsis;
+}
+
+.lite-bookmark-delete {
+  width: 30px;
+  height: 30px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #64748b;
+  cursor: pointer;
+  font-size: 18px;
+}
+
+.lite-bookmark-delete:hover,
+.lite-bookmark-delete:focus-visible {
+  background: rgba(190, 24, 93, 0.1);
+  color: #be185d;
+  outline: none;
+}
+
+.lite-bookmark-empty {
+  padding: 28px;
+  color: #64748b;
+  text-align: center;
 }
 
 .lite-input-row {
@@ -1031,4 +1480,282 @@ body[data-paren-mode] .egov-lite-paren.is-hover {
   #revision-select { min-width: min(100%, 260px); }
   .viewer-shell { padding: 12px; }
   .law-content { padding: 20px 16px 44px; }
+}
+
+::highlight(egov-ext-text-highlight-yellow) { background-color: #fff3a6; color: inherit; }
+::highlight(egov-ext-text-highlight-pink) { background-color: #ffd6df; color: inherit; }
+::highlight(egov-ext-text-highlight-green) { background-color: #d9f2d7; color: inherit; }
+
+#egov-ext-text-highlight-target-outline {
+  position: fixed !important;
+  inset: 0 !important;
+  display: block !important;
+  z-index: 2147483646 !important;
+  pointer-events: none !important;
+}
+
+#egov-ext-text-highlight-target-outline .egov-ext-text-highlight-target-segment {
+  position: absolute !important;
+  box-sizing: border-box !important;
+  border: 2px solid #e53935 !important;
+  border-radius: 3px !important;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.8) !important;
+}
+
+#egov-ext-text-highlight-restore-notice {
+  position: fixed !important;
+  right: 16px !important;
+  top: 16px !important;
+  bottom: auto !important;
+  z-index: 2147483647 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: stretch !important;
+  gap: 8px !important;
+  box-sizing: border-box !important;
+  max-width: min(460px, calc(100vw - 32px)) !important;
+  padding: 10px 12px !important;
+  border: 1px solid #d79a32 !important;
+  border-radius: 8px !important;
+  background: #fff9e8 !important;
+  box-shadow: 0 6px 20px rgba(20, 28, 40, 0.2) !important;
+  color: #3f3422 !important;
+  font: 13px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
+}
+
+#egov-ext-text-highlight-restore-notice .egov-ext-text-highlight-restore-message {
+  display: block !important;
+}
+
+#egov-ext-text-highlight-restore-notice .egov-ext-text-highlight-restore-actions {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  justify-content: flex-end !important;
+  gap: 8px !important;
+}
+
+#egov-ext-text-highlight-restore-notice button {
+  flex: 0 0 auto !important;
+  margin: 0 !important;
+  padding: 5px 10px !important;
+  border: 1px solid #9b6b1e !important;
+  border-radius: 6px !important;
+  background: #fff !important;
+  color: #60430f !important;
+  font: 600 12px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
+  cursor: pointer !important;
+}
+
+#egov-ext-text-highlight-restore-notice button:hover,
+#egov-ext-text-highlight-restore-notice button:focus-visible {
+  background: #fff1c7 !important;
+  outline: 2px solid rgba(155, 107, 30, 0.22) !important;
+  outline-offset: 1px !important;
+}
+
+#egov-ext-text-highlight-restore-notice .egov-ext-text-highlight-restore-delete {
+  border-color: #b65a62 !important;
+  color: #9b2f3a !important;
+}
+
+#egov-ext-text-highlight-restore-notice .egov-ext-text-highlight-restore-delete:hover,
+#egov-ext-text-highlight-restore-notice .egov-ext-text-highlight-restore-delete:focus-visible {
+  background: #fff0f2 !important;
+  outline-color: rgba(155, 47, 58, 0.22) !important;
+}
+
+#egov-ext-text-highlight-popup {
+  position: fixed !important;
+  z-index: 2147483647 !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 5px !important;
+  padding: 6px !important;
+  border: 1px solid #cfd6df !important;
+  border-radius: 8px !important;
+  background: #fff !important;
+  box-shadow: 0 5px 16px rgba(20, 28, 40, 0.2) !important;
+}
+
+#egov-ext-text-highlight-popup .egov-ext-text-highlight-swatch {
+  width: 24px !important;
+  height: 24px !important;
+  min-width: 24px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 1px solid rgba(31, 41, 55, 0.2) !important;
+  border-radius: 6px !important;
+  appearance: none !important;
+  cursor: pointer !important;
+  box-shadow: none !important;
+}
+
+#egov-ext-text-highlight-popup .egov-ext-text-highlight-swatch:hover,
+#egov-ext-text-highlight-popup .egov-ext-text-highlight-swatch:focus-visible {
+  border-color: #52657a !important;
+  outline: 2px solid rgba(53, 113, 180, 0.28) !important;
+  outline-offset: 1px !important;
+}
+
+#egov-ext-text-highlight-popup .egov-ext-text-highlight-swatch.is-active {
+  border-color: #43566c !important;
+  box-shadow: inset 0 0 0 2px #fff, 0 0 0 2px #43566c !important;
+}
+
+#egov-ext-text-highlight-popup .egov-ext-text-highlight-swatch.is-yellow { background: #fff3a6 !important; }
+#egov-ext-text-highlight-popup .egov-ext-text-highlight-swatch.is-pink { background: #ffd6df !important; }
+#egov-ext-text-highlight-popup .egov-ext-text-highlight-swatch.is-green { background: #d9f2d7 !important; }
+
+#egov-ext-text-highlight-popup .egov-ext-text-highlight-divider {
+  align-self: stretch !important;
+  width: 1px !important;
+  margin: 1px !important;
+  background: #d9dee5 !important;
+}
+
+#egov-ext-text-highlight-popup .egov-ext-text-highlight-range-button,
+#egov-ext-text-highlight-popup .egov-ext-text-highlight-memo-button,
+#egov-ext-text-highlight-popup .egov-ext-text-highlight-remove {
+  height: 24px !important;
+  min-width: 38px !important;
+  margin: 0 !important;
+  padding: 0 7px !important;
+  border: 1px solid #cfd6df !important;
+  border-radius: 6px !important;
+  background: #f7f8fa !important;
+  color: #405066 !important;
+  cursor: pointer !important;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
+  box-shadow: none !important;
+}
+
+#egov-ext-text-highlight-popup .egov-ext-text-highlight-range-button:hover,
+#egov-ext-text-highlight-popup .egov-ext-text-highlight-range-button:focus-visible,
+#egov-ext-text-highlight-popup .egov-ext-text-highlight-range-button[aria-pressed="true"],
+#egov-ext-text-highlight-popup .egov-ext-text-highlight-memo-button:hover,
+#egov-ext-text-highlight-popup .egov-ext-text-highlight-memo-button:focus-visible,
+#egov-ext-text-highlight-popup .egov-ext-text-highlight-memo-button[aria-expanded="true"] {
+  border-color: #58718d !important;
+  background: #edf4fb !important;
+  color: #244a70 !important;
+  outline: none !important;
+}
+
+#egov-ext-text-highlight-popup .egov-ext-text-highlight-remove {
+  width: 24px !important;
+  min-width: 24px !important;
+  padding: 0 0 2px !important;
+  color: #596574 !important;
+  font-size: 18px !important;
+}
+
+#egov-ext-text-highlight-popup .egov-ext-text-highlight-remove:hover,
+#egov-ext-text-highlight-popup .egov-ext-text-highlight-remove:focus-visible {
+  border-color: #9e4b55 !important;
+  background: #fff0f2 !important;
+  color: #a13240 !important;
+  outline: 2px solid rgba(161, 50, 64, 0.18) !important;
+  outline-offset: 1px !important;
+}
+
+#egov-ext-text-highlight-popup .egov-ext-text-highlight-memo-editor {
+  position: absolute !important;
+  top: calc(100% + 6px) !important;
+  left: 0 !important;
+  display: none !important;
+  box-sizing: border-box !important;
+  width: min(540px, calc(100vw - 16px)) !important;
+  padding: 7px !important;
+  border: 1px solid #cfd6df !important;
+  border-radius: 8px !important;
+  background: #fff !important;
+  box-shadow: 0 7px 20px rgba(20, 28, 40, 0.2) !important;
+}
+
+#egov-ext-text-highlight-popup .egov-ext-text-highlight-memo-editor.is-visible { display: block !important; }
+#egov-ext-text-highlight-popup.memo-above .egov-ext-text-highlight-memo-editor { top: auto !important; bottom: calc(100% + 6px) !important; }
+#egov-ext-text-highlight-popup.memo-align-right .egov-ext-text-highlight-memo-editor { right: 0 !important; left: auto !important; }
+
+#egov-ext-text-highlight-popup .egov-ext-text-highlight-memo-input {
+  display: block !important;
+  box-sizing: border-box !important;
+  width: 100% !important;
+  min-height: 128px !important;
+  margin: 0 !important;
+  padding: 6px 7px !important;
+  resize: vertical !important;
+  border: 1px solid #b8c3d0 !important;
+  border-radius: 5px !important;
+  background: #fff !important;
+  color: #26374a !important;
+  font: 13px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
+}
+
+#egov-ext-text-highlight-popup .egov-ext-text-highlight-memo-input:focus {
+  border-color: #4b79a8 !important;
+  outline: 2px solid rgba(75, 121, 168, 0.18) !important;
+  outline-offset: 0 !important;
+}
+
+#egov-ext-text-highlight-popup .egov-ext-text-highlight-memo-footer {
+  display: flex !important;
+  align-items: flex-end !important;
+  justify-content: space-between !important;
+  gap: 10px !important;
+  min-height: 15px !important;
+  margin-top: 5px !important;
+}
+
+#egov-ext-text-highlight-popup .egov-ext-text-highlight-memo-status {
+  color: #a74432 !important;
+  font: 11px/1.3 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
+  text-align: left !important;
+}
+
+#egov-ext-text-highlight-popup .egov-ext-text-highlight-memo-hint {
+  flex: 0 0 auto !important;
+  margin-left: auto !important;
+  color: #6b7582 !important;
+  font: 11px/1.3 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
+  text-align: right !important;
+}
+
+#egov-ext-text-highlight-memo-tooltip {
+  position: fixed !important;
+  z-index: 2147483646 !important;
+  box-sizing: border-box !important;
+  max-width: min(360px, calc(100vw - 16px)) !important;
+  max-height: min(240px, calc(100vh - 16px)) !important;
+  overflow: hidden !important;
+  padding: 8px 10px !important;
+  border: 1px solid #c9d2dd !important;
+  border-radius: 7px !important;
+  background: #fffef4 !important;
+  box-shadow: 0 6px 18px rgba(20, 28, 40, 0.18) !important;
+  color: #293849 !important;
+  font: 13px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
+  white-space: pre-wrap !important;
+  overflow-wrap: anywhere !important;
+  cursor: pointer !important;
+  pointer-events: auto !important;
+}
+
+#egov-ext-text-highlight-memo-tooltip.is-yellow { border-color: #eadf9b !important; background: #fffbea !important; }
+#egov-ext-text-highlight-memo-tooltip.is-pink { border-color: #e8c6ce !important; background: #fff1f4 !important; }
+#egov-ext-text-highlight-memo-tooltip.is-green { border-color: #c7dfc5 !important; background: #eff9ee !important; }
+#egov-ext-text-highlight-memo-tooltip:hover { filter: brightness(0.995) !important; }
+
+#egov-ext-text-highlight-overlap-notice {
+  position: fixed !important;
+  z-index: 2147483647 !important;
+  max-width: min(360px, calc(100vw - 16px)) !important;
+  box-sizing: border-box !important;
+  padding: 7px 10px !important;
+  border: 1px solid #d99ca3 !important;
+  border-radius: 7px !important;
+  background: #fff4f5 !important;
+  box-shadow: 0 5px 16px rgba(20, 28, 40, 0.16) !important;
+  color: #8b303b !important;
+  font: 12px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
+  pointer-events: none !important;
 }

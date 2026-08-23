@@ -1,8 +1,15 @@
 document.addEventListener('DOMContentLoaded', async () => {
+  const googleDriveSyncCard = document.getElementById('googleDriveSyncCard');
+  // 一般公開時は、各端末の定期同期が Google Drive API のプロジェクト共通クォータを消費し、
+  // 利用者の増加によって無料枠超過やレート制限を招くおそれがあるため、同期設定を一時的に非表示にする。
+  // 同期頻度や利用量の制御を見直して再公開する際は、この値を true に変更する。
+  const GOOGLE_DRIVE_SYNC_OPTIONS_VISIBLE = false;
+  googleDriveSyncCard.hidden = !GOOGLE_DRIVE_SYNC_OPTIONS_VISIBLE;
+
   const smoothToggle = document.getElementById('smoothScrollToggle');
   const liteModeDefaultToggle = document.getElementById('liteModeDefaultToggle');
   const hideLawSidebarDefaultToggle = document.getElementById('hideLawSidebarDefaultToggle');
-  const pinToastToggle = document.getElementById('pinToastToggle');
+  const textHighlightsEnabledToggle = document.getElementById('textHighlightsEnabledToggle');
   const lawRefClickToggle = document.getElementById('lawRefClickToggle');
   const lawRefHoverPopupToggle = document.getElementById('lawRefHoverPopupToggle');
   const lawRefHoverPopupRow = document.getElementById('lawRefHoverPopupRow');
@@ -13,11 +20,25 @@ document.addEventListener('DOMContentLoaded', async () => {
   const defTooltipClickOnlyRow = document.getElementById('defTooltipClickOnlyRow');
   const externalReferencesAutoEnableToggle = document.getElementById('externalReferencesAutoEnableToggle');
   const reverseReferenceScopeSelect = document.getElementById('reverseReferenceScopeSelect');
+  const googleDriveFavoritesSyncToggle = document.getElementById('googleDriveFavoritesSyncToggle');
+  const googleDriveFavoritesSyncDetails = document.getElementById('googleDriveFavoritesSyncDetails');
+  const googleDriveSyncFavoritesToggle = document.getElementById('googleDriveSyncFavoritesToggle');
+  const googleDriveSyncHighlightsToggle = document.getElementById('googleDriveSyncHighlightsToggle');
+  const googleDriveFavoritesAccount = document.getElementById('googleDriveFavoritesAccount');
+  const googleDriveFavoritesSyncNowBtn = document.getElementById('googleDriveFavoritesSyncNowBtn');
+  const googleDriveFavoritesDisconnectBtn = document.getElementById('googleDriveFavoritesDisconnectBtn');
+  const googleDriveFavoritesSyncStatus = document.getElementById('googleDriveFavoritesSyncStatus');
+  const googleDriveFavoritesSyncSummary = document.getElementById('googleDriveFavoritesSyncSummary');
   const exportFavoritesBtn = document.getElementById('exportFavoritesBtn');
   const importFavoritesBtn = document.getElementById('importFavoritesBtn');
   const importFavoritesInput = document.getElementById('importFavoritesInput');
   const favoritesTransferStatus = document.getElementById('favoritesTransferStatus');
   const favoritesTransferSummary = document.getElementById('favoritesTransferSummary');
+  const exportTextHighlightsBtn = document.getElementById('exportTextHighlightsBtn');
+  const importTextHighlightsBtn = document.getElementById('importTextHighlightsBtn');
+  const importTextHighlightsInput = document.getElementById('importTextHighlightsInput');
+  const textHighlightsTransferStatus = document.getElementById('textHighlightsTransferStatus');
+  const textHighlightsTransferSummary = document.getElementById('textHighlightsTransferSummary');
   const exportReferencesBtn = document.getElementById('exportReferencesBtn');
   const importReferencesBtn = document.getElementById('importReferencesBtn');
   const importReferencesInput = document.getElementById('importReferencesInput');
@@ -26,6 +47,20 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   const FAVORITES_EXPORT_TYPE = 'egov-extension-favorites';
   const FAVORITES_EXPORT_VERSION = 1;
+  const GOOGLE_DRIVE_SYNC_KEYS = Object.freeze({
+    enabled: 'googleDriveFavoritesSyncEnabled',
+    accountEmail: 'googleDriveFavoritesAccountEmail',
+    lastSyncAt: 'googleDriveFavoritesLastSyncAt',
+    lastError: 'googleDriveFavoritesLastError',
+    syncFavorites: 'googleDriveSyncFavoritesEnabled',
+    syncHighlights: 'googleDriveSyncHighlightsEnabled',
+  });
+  const TEXT_HIGHLIGHTS_EXPORT_TYPE = 'egov-extension-text-highlights';
+  const TEXT_HIGHLIGHTS_EXPORT_VERSION = 1;
+  const TEXT_HIGHLIGHTS_STORAGE_PREFIX = 'textHighlights:v1:';
+  const TEXT_HIGHLIGHTS_RECORD_LIMIT = 10000;
+  const TEXT_HIGHLIGHTS_FILE_SIZE_LIMIT = 25 * 1024 * 1024;
+  const TEXT_HIGHLIGHTS_COLORS = new Set(['yellow', 'pink', 'green']);
   const { FAVORITES_MAX, persistLocal: persistSharedLocal } = globalThis.EgovApp;
   const persistLocal = (items) => persistSharedLocal(items, { errorLabel: '設定の保存' });
   const {
@@ -44,20 +79,20 @@ document.addEventListener('DOMContentLoaded', async () => {
   smoothToggle.checked = false;
   liteModeDefaultToggle.checked = false;
   hideLawSidebarDefaultToggle.checked = false;
-  pinToastToggle.checked = true;
+  textHighlightsEnabledToggle.checked = true;
   lawRefClickToggle.checked = true;
   lawRefHoverPopupToggle.checked = false;
   lawRefOtherLawPopupToggle.checked = true;
   liteDefTooltipToggle.checked = true;
   defTooltipClickOnlyToggle.checked = true;
-  externalReferencesAutoEnableToggle.checked = true;
+  externalReferencesAutoEnableToggle.checked = false;
   reverseReferenceScopeSelect.value = 'both';
 
   chrome.storage.local.get([
     'scrollBehavior',
     'liteModeDefault',
     'hideLawSidebarDefault',
-    'pinToastDefaultVisible',
+    'textHighlightsEnabled',
     'lawRefClickEnabled',
     'lawRefHoverPopup',
     'lawRefOtherLawPopup',
@@ -65,11 +100,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     'defTooltipClickOnly',
     'externalReferencesAutoEnable',
     REVERSE_REFERENCE_SCOPE_KEY,
+    ...Object.values(GOOGLE_DRIVE_SYNC_KEYS),
   ]).then(({
     scrollBehavior,
     liteModeDefault,
     hideLawSidebarDefault,
-    pinToastDefaultVisible,
+    textHighlightsEnabled,
     lawRefClickEnabled,
     lawRefHoverPopup,
     lawRefOtherLawPopup,
@@ -77,22 +113,44 @@ document.addEventListener('DOMContentLoaded', async () => {
     defTooltipClickOnly,
     externalReferencesAutoEnable,
     reverseReferenceScope,
+    googleDriveFavoritesSyncEnabled,
+    googleDriveFavoritesAccountEmail,
+    googleDriveFavoritesLastSyncAt,
+    googleDriveFavoritesLastError,
+    googleDriveSyncFavoritesEnabled,
+    googleDriveSyncHighlightsEnabled,
   }) => {
     smoothToggle.checked = (scrollBehavior === 'smooth');
     liteModeDefaultToggle.checked = (typeof liteModeDefault === 'boolean') ? liteModeDefault : false;
     hideLawSidebarDefaultToggle.checked = (typeof hideLawSidebarDefault === 'boolean') ? hideLawSidebarDefault : false;
-    pinToastToggle.checked = (typeof pinToastDefaultVisible === 'boolean') ? pinToastDefaultVisible : true;
+    textHighlightsEnabledToggle.checked = textHighlightsEnabled !== false;
     lawRefClickToggle.checked = (typeof lawRefClickEnabled === 'boolean') ? lawRefClickEnabled : true;
     lawRefHoverPopupToggle.checked = (typeof lawRefHoverPopup === 'boolean') ? lawRefHoverPopup : false;
     lawRefOtherLawPopupToggle.checked = (typeof lawRefOtherLawPopup === 'boolean') ? lawRefOtherLawPopup : true;
     liteDefTooltipToggle.checked = (typeof liteDefTooltipEnabled === 'boolean') ? liteDefTooltipEnabled : true;
     defTooltipClickOnlyToggle.checked = (typeof defTooltipClickOnly === 'boolean') ? defTooltipClickOnly : true;
-    externalReferencesAutoEnableToggle.checked = (typeof externalReferencesAutoEnable === 'boolean') ? externalReferencesAutoEnable : true;
+    externalReferencesAutoEnableToggle.checked = (typeof externalReferencesAutoEnable === 'boolean') ? externalReferencesAutoEnable : false;
     reverseReferenceScopeSelect.value = normalizeReverseReferenceScope(reverseReferenceScope);
+    renderGoogleDriveSyncState({
+      enabled: googleDriveFavoritesSyncEnabled === true,
+      accountEmail: googleDriveFavoritesAccountEmail || '',
+      lastSyncAt: Number(googleDriveFavoritesLastSyncAt) || 0,
+      lastError: googleDriveFavoritesLastError || '',
+      syncFavorites: googleDriveSyncFavoritesEnabled !== false,
+      syncHighlights: googleDriveSyncHighlightsEnabled !== false,
+    });
     updateLawRefHoverPopupRow();
     updateDefTooltipClickOnlyRow();
   }).catch((error) => {
     console.warn('[e-Gov Enhancer] 設定の読み込みに失敗しました', error);
+    renderGoogleDriveSyncState({
+      enabled: false,
+      accountEmail: '',
+      lastSyncAt: 0,
+      lastError: '',
+      syncFavorites: true,
+      syncHighlights: true,
+    });
     updateLawRefHoverPopupRow();
     updateDefTooltipClickOnlyRow();
   });
@@ -126,14 +184,82 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   const favoritesUi = createTransferUi(favoritesTransferStatus, favoritesTransferSummary);
+  const textHighlightsUi = createTransferUi(textHighlightsTransferStatus, textHighlightsTransferSummary);
   const referencesUi = createTransferUi(referencesTransferStatus, referencesTransferSummary);
+  const googleDriveSyncUi = createTransferUi(googleDriveFavoritesSyncStatus, googleDriveFavoritesSyncSummary);
 
   const setTransferStatus = (message, tone) => favoritesUi.setStatus(message, tone);
   const clearTransferStatus = () => favoritesUi.clearStatus();
   const setTransferSummary = (message) => favoritesUi.setSummary(message);
+  const setTextHighlightsTransferStatus = (message, tone) => textHighlightsUi.setStatus(message, tone);
+  const clearTextHighlightsTransferStatus = () => textHighlightsUi.clearStatus();
+  const setTextHighlightsTransferSummary = (message) => textHighlightsUi.setSummary(message);
   const setReferencesTransferStatus = (message, tone) => referencesUi.setStatus(message, tone);
   const clearReferencesTransferStatus = () => referencesUi.clearStatus();
   const setReferencesTransferSummary = (message) => referencesUi.setSummary(message);
+
+  function formatGoogleDriveSyncTime(value) {
+    if (!Number.isFinite(value) || value <= 0) return 'まだ同期していません';
+    try {
+      return `最終同期: ${new Intl.DateTimeFormat('ja-JP', {
+        year: 'numeric', month: '2-digit', day: '2-digit',
+        hour: '2-digit', minute: '2-digit', second: '2-digit',
+      }).format(new Date(value))}`;
+    } catch (_) {
+      return '同期済み';
+    }
+  }
+
+  function renderGoogleDriveSyncState({
+    enabled,
+    accountEmail,
+    lastSyncAt,
+    lastError,
+    syncFavorites = true,
+    syncHighlights = true,
+  }) {
+    googleDriveFavoritesSyncToggle.checked = enabled === true;
+    googleDriveFavoritesSyncDetails.classList.toggle('is-disabled', enabled !== true);
+    googleDriveSyncFavoritesToggle.checked = syncFavorites !== false;
+    googleDriveSyncHighlightsToggle.checked = syncHighlights !== false;
+    googleDriveFavoritesAccount.textContent = accountEmail || (enabled ? 'Googleアカウント' : '未連携');
+    googleDriveFavoritesSyncNowBtn.disabled = enabled !== true;
+    googleDriveFavoritesDisconnectBtn.disabled = enabled !== true;
+    googleDriveSyncUi.setSummary(enabled ? formatGoogleDriveSyncTime(Number(lastSyncAt) || 0) : '');
+    if (lastError) googleDriveSyncUi.setStatus(lastError, 'error');
+    else googleDriveSyncUi.clearStatus();
+  }
+
+  async function readGoogleDriveSyncState() {
+    const stored = await chrome.storage.local.get(Object.values(GOOGLE_DRIVE_SYNC_KEYS));
+    return {
+      enabled: stored[GOOGLE_DRIVE_SYNC_KEYS.enabled] === true,
+      accountEmail: String(stored[GOOGLE_DRIVE_SYNC_KEYS.accountEmail] || ''),
+      lastSyncAt: Number(stored[GOOGLE_DRIVE_SYNC_KEYS.lastSyncAt]) || 0,
+      lastError: String(stored[GOOGLE_DRIVE_SYNC_KEYS.lastError] || ''),
+      syncFavorites: stored[GOOGLE_DRIVE_SYNC_KEYS.syncFavorites] !== false,
+      syncHighlights: stored[GOOGLE_DRIVE_SYNC_KEYS.syncHighlights] !== false,
+    };
+  }
+
+  async function refreshGoogleDriveSyncState() {
+    renderGoogleDriveSyncState(await readGoogleDriveSyncState());
+  }
+
+  function setGoogleDriveSyncBusy(busy, message = '') {
+    googleDriveFavoritesSyncToggle.disabled = busy;
+    googleDriveSyncFavoritesToggle.disabled = busy;
+    googleDriveSyncHighlightsToggle.disabled = busy;
+    googleDriveFavoritesSyncNowBtn.disabled = busy || !googleDriveFavoritesSyncToggle.checked;
+    googleDriveFavoritesDisconnectBtn.disabled = busy || !googleDriveFavoritesSyncToggle.checked;
+    if (message) googleDriveSyncUi.setStatus(message, 'info');
+  }
+
+  async function sendGoogleDriveSyncMessage(message) {
+    const response = await chrome.runtime.sendMessage(message);
+    if (!response?.ok) throw new Error(response?.error || 'Google Drive同期を完了できませんでした。');
+    return response;
+  }
 
   function runReloadLawTabs() {
     reloadLawTabsIfConfirmed().catch((error) => {
@@ -319,6 +445,123 @@ document.addEventListener('DOMContentLoaded', async () => {
     ].join(' / ');
   }
 
+  function isTextHighlightLawId(value) {
+    return /^[0-9A-Z]{12,20}$/.test(String(value || ''));
+  }
+
+  function sanitizeTextHighlightRecord(raw, path) {
+    if (!isPlainObject(raw)) throw new Error(`${path} がオブジェクトではありません。`);
+
+    const id = String(raw.id || '');
+    const color = String(raw.c || '');
+    const anchorId = String(raw.a || '');
+    const start = Number(raw.s);
+    const end = Number(raw.e);
+    const length = Number(raw.l);
+    if (!id || id.length > 80) throw new Error(`${path}.id が不正です。`);
+    if (!TEXT_HIGHLIGHTS_COLORS.has(color)) throw new Error(`${path}.c が不正です。`);
+    if (!anchorId || anchorId.length > 500) throw new Error(`${path}.a が不正です。`);
+    if (!Number.isSafeInteger(start) || !Number.isSafeInteger(end) || !Number.isSafeInteger(length) ||
+        start < 0 || end <= start || length <= 0) {
+      throw new Error(`${path} の範囲情報が不正です。`);
+    }
+    const stringFields = [
+      ['h', 120, false], ['k', 100, false], ['q', 256, true], ['z', 128, false],
+      ['p', 32, false], ['n', 32, false], ['m', 2000, false],
+    ];
+    for (const [field, maxLength, required] of stringFields) {
+      if (typeof raw[field] !== 'string' || (required && !raw[field]) || raw[field].length > maxLength) {
+        throw new Error(`${path}.${field} が不正です。`);
+      }
+    }
+    if (!Number.isFinite(raw.t) || raw.t < 0) throw new Error(`${path}.t が不正です。`);
+    const hasPortableRange = raw.u !== undefined || raw.v !== undefined || raw.x !== undefined ||
+      raw.y !== undefined || raw.f !== undefined;
+    if (!hasPortableRange ||
+        typeof raw.u !== 'string' || !raw.u || raw.u.length > 120 ||
+         typeof raw.v !== 'string' || !raw.v || raw.v.length > 120 ||
+         !Number.isSafeInteger(raw.x) || raw.x < 0 ||
+         !Number.isSafeInteger(raw.y) || raw.y <= 0 ||
+         raw.f !== 2 ||
+         !(raw.w === undefined || (typeof raw.w === 'string' && raw.w.length <= 32))) {
+      throw new Error(`${path} のモード共有用範囲情報が不正です。`);
+    }
+
+    const sanitized = {
+      id,
+      c: color,
+      a: anchorId,
+      h: raw.h,
+      k: raw.k,
+      s: start,
+      e: end,
+      l: length,
+      q: raw.q,
+      z: raw.z,
+      p: raw.p,
+      n: raw.n,
+      m: raw.m,
+      t: raw.t,
+    };
+    if (hasPortableRange) {
+      sanitized.u = raw.u;
+      sanitized.v = raw.v;
+      sanitized.x = raw.x;
+      sanitized.y = raw.y;
+      sanitized.f = 2;
+      if (raw.w) sanitized.w = raw.w;
+    }
+    return sanitized;
+  }
+
+  function validateTextHighlightsImport(raw) {
+    if (!isPlainObject(raw)) throw new Error('JSON のトップレベルがオブジェクトではありません。');
+    if (raw.type !== TEXT_HIGHLIGHTS_EXPORT_TYPE) {
+      throw new Error('メモとハイライトのエクスポートファイルではありません。');
+    }
+    if (raw.version !== TEXT_HIGHLIGHTS_EXPORT_VERSION) {
+      throw new Error(`対応していないバージョンです: ${String(raw.version)}`);
+    }
+    if (!isPlainObject(raw.laws)) throw new Error('laws がオブジェクトではありません。');
+
+    const laws = {};
+    let highlightCount = 0;
+    let memoCount = 0;
+    for (const [lawId, rawRecords] of Object.entries(raw.laws)) {
+      if (!isTextHighlightLawId(lawId)) throw new Error(`法令IDが不正です: ${lawId}`);
+      if (!Array.isArray(rawRecords)) throw new Error(`laws.${lawId} が配列ではありません。`);
+      if (rawRecords.length > TEXT_HIGHLIGHTS_RECORD_LIMIT) {
+        throw new Error(`${lawId} のハイライトは最大 ${TEXT_HIGHLIGHTS_RECORD_LIMIT} 件までです。`);
+      }
+      const ids = new Set();
+      const records = rawRecords.map((record, index) => {
+        const sanitized = sanitizeTextHighlightRecord(record, `laws.${lawId}[${index}]`);
+        if (ids.has(sanitized.id)) throw new Error(`${lawId} に重複したハイライトIDがあります。`);
+        ids.add(sanitized.id);
+        if (sanitized.m) memoCount += 1;
+        return sanitized;
+      });
+      if (records.length) laws[lawId] = records;
+      highlightCount += records.length;
+    }
+
+    return {
+      type: TEXT_HIGHLIGHTS_EXPORT_TYPE,
+      version: TEXT_HIGHLIGHTS_EXPORT_VERSION,
+      exportedAt: typeof raw.exportedAt === 'string' ? raw.exportedAt : '',
+      laws,
+      summary: { lawCount: Object.keys(laws).length, highlightCount, memoCount },
+    };
+  }
+
+  function buildTextHighlightsSummary(summary = {}) {
+    return [
+      `法令 ${summary.lawCount || 0} 件`,
+      `ハイライト ${summary.highlightCount || 0} 件`,
+      `メモ ${summary.memoCount || 0} 件`,
+    ].join(' / ');
+  }
+
   function sanitizeFavoriteRecord(raw, index, folderIds) {
     if (!isPlainObject(raw)) {
       throw new Error(`favorites[${index}] がオブジェクトではありません。`);
@@ -344,6 +587,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (!(raw.lastScrollTop === undefined || (Number.isFinite(raw.lastScrollTop) && raw.lastScrollTop >= 0))) {
       throw new Error(`favorites[${index}].lastScrollTop が不正です。`);
     }
+    if (!(raw.lastArticleKey === undefined || isNonEmptyString(raw.lastArticleKey))) {
+      throw new Error(`favorites[${index}].lastArticleKey が不正です。`);
+    }
+    if (!(raw.lastArticleOffset === undefined ||
+      (Number.isFinite(raw.lastArticleOffset) && raw.lastArticleOffset >= 0 && raw.lastArticleOffset <= 1))) {
+      throw new Error(`favorites[${index}].lastArticleOffset が不正です。`);
+    }
 
     const favorite = {
       lawId: raw.lawId.trim(),
@@ -355,6 +605,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     if (raw.lastScrollTop !== undefined) {
       favorite.lastScrollTop = Math.round(raw.lastScrollTop);
+    }
+    if (raw.lastArticleKey !== undefined) {
+      favorite.lastArticleKey = raw.lastArticleKey.trim();
+      favorite.lastArticleOffset = raw.lastArticleOffset === undefined ? 0 : raw.lastArticleOffset;
     }
 
     return favorite;
@@ -527,6 +781,86 @@ document.addEventListener('DOMContentLoaded', async () => {
     setTransferSummary(summary);
   }
 
+  async function exportTextHighlights() {
+    clearTextHighlightsTransferStatus();
+    setTextHighlightsTransferSummary('');
+
+    const stored = await chrome.storage.local.get(null);
+    const laws = {};
+    for (const [key, value] of Object.entries(stored)) {
+      if (!key.startsWith(TEXT_HIGHLIGHTS_STORAGE_PREFIX) || !Array.isArray(value) || !value.length) continue;
+      const lawId = key.slice(TEXT_HIGHLIGHTS_STORAGE_PREFIX.length);
+      if (isTextHighlightLawId(lawId)) laws[lawId] = value;
+    }
+    const payload = validateTextHighlightsImport({
+      type: TEXT_HIGHLIGHTS_EXPORT_TYPE,
+      version: TEXT_HIGHLIGHTS_EXPORT_VERSION,
+      exportedAt: new Date().toISOString(),
+      laws,
+    });
+    const exportPayload = {
+      type: payload.type,
+      version: payload.version,
+      exportedAt: payload.exportedAt,
+      laws: payload.laws,
+    };
+
+    downloadJson(
+      `e-GovEnhancerHighlightsMemos-${formatDateForFileName()}.json`,
+      `${JSON.stringify(exportPayload, null, 2)}\n`,
+    );
+    setTextHighlightsTransferStatus('メモとハイライトを JSON で保存しました。', 'success');
+    setTextHighlightsTransferSummary(buildTextHighlightsSummary(payload.summary));
+  }
+
+  async function importTextHighlights(file) {
+    if (!file) return;
+
+    clearTextHighlightsTransferStatus();
+    setTextHighlightsTransferSummary('');
+    if (file.size > TEXT_HIGHLIGHTS_FILE_SIZE_LIMIT) {
+      setTextHighlightsTransferStatus('読み込めません: ファイルサイズは25MBまでです。', 'error');
+      return;
+    }
+
+    let parsed;
+    try {
+      parsed = JSON.parse(await file.text());
+    } catch (_) {
+      setTextHighlightsTransferStatus('JSON の読み込みに失敗しました。ファイルが壊れている可能性があります。', 'error');
+      return;
+    }
+
+    let validated;
+    try {
+      validated = validateTextHighlightsImport(parsed);
+    } catch (error) {
+      setTextHighlightsTransferStatus(`読み込めません: ${error.message}`, 'error');
+      return;
+    }
+
+    const summary = buildTextHighlightsSummary(validated.summary);
+    const ok = window.confirm(`現在のメモとハイライトを、読み込んだ内容に置き換えますか？\n\n${summary}`);
+    if (!ok) {
+      setTextHighlightsTransferStatus('読み込みをキャンセルしました。', 'info');
+      return;
+    }
+
+    const current = await chrome.storage.local.get(null);
+    const currentKeys = Object.keys(current).filter((key) => key.startsWith(TEXT_HIGHLIGHTS_STORAGE_PREFIX));
+    const importedItems = {};
+    for (const [lawId, records] of Object.entries(validated.laws)) {
+      importedItems[`${TEXT_HIGHLIGHTS_STORAGE_PREFIX}${lawId}`] = records;
+    }
+    const importedKeys = new Set(Object.keys(importedItems));
+    if (importedKeys.size) await chrome.storage.local.set(importedItems);
+    const obsoleteKeys = currentKeys.filter((key) => !importedKeys.has(key));
+    if (obsoleteKeys.length) await chrome.storage.local.remove(obsoleteKeys);
+
+    setTextHighlightsTransferStatus('メモとハイライトを読み込みました。', 'success');
+    setTextHighlightsTransferSummary(summary);
+  }
+
   async function exportReferences() {
     clearReferencesTransferStatus();
     setReferencesTransferSummary('');
@@ -607,8 +941,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     persistLocal({ hideLawSidebarDefault: hideLawSidebarDefaultToggle.checked });
   });
 
-  pinToastToggle.addEventListener('change', () => {
-    persistLocal({ pinToastDefaultVisible: pinToastToggle.checked });
+  textHighlightsEnabledToggle.addEventListener('change', async () => {
+    const saved = await persistLocal({ textHighlightsEnabled: textHighlightsEnabledToggle.checked });
+    if (saved) runReloadLawTabs();
   });
 
   lawRefClickToggle.addEventListener('change', () => {
@@ -648,6 +983,105 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (saved) runReloadLawTabs();
   });
 
+  googleDriveFavoritesSyncToggle.addEventListener('change', async () => {
+    const enabling = googleDriveFavoritesSyncToggle.checked;
+    setGoogleDriveSyncBusy(true, enabling
+      ? 'Googleアカウントを選択して、Driveへのアクセスを許可してください。'
+      : 'Google Drive同期を停止しています。');
+    try {
+      await sendGoogleDriveSyncMessage({
+        type: enabling
+          ? 'egov-google-drive-favorites-enable'
+          : 'egov-google-drive-favorites-disable',
+      });
+      await refreshGoogleDriveSyncState();
+      if (enabling) googleDriveSyncUi.setStatus('Google Drive同期を有効にしました。', 'success');
+    } catch (error) {
+      googleDriveFavoritesSyncToggle.checked = !enabling;
+      googleDriveSyncUi.setStatus(error.message, 'error');
+      await refreshGoogleDriveSyncState().catch(() => {});
+    } finally {
+      setGoogleDriveSyncBusy(false);
+    }
+  });
+
+  async function updateGoogleDriveCategory(toggle, storageKey, label) {
+    const enabled = toggle.checked;
+    setGoogleDriveSyncBusy(true, `${label}の同期設定を更新しています。`);
+    try {
+      await chrome.storage.local.set({ [storageKey]: enabled });
+      if (enabled) {
+        await sendGoogleDriveSyncMessage({ type: 'egov-google-drive-favorites-sync-now' });
+      }
+      await refreshGoogleDriveSyncState();
+      googleDriveSyncUi.setStatus(`${label}の同期を${enabled ? '有効' : '無効'}にしました。`, 'success');
+    } catch (error) {
+      toggle.checked = !enabled;
+      googleDriveSyncUi.setStatus(error.message, 'error');
+      await refreshGoogleDriveSyncState().catch(() => {});
+    } finally {
+      setGoogleDriveSyncBusy(false);
+    }
+  }
+
+  googleDriveSyncFavoritesToggle.addEventListener('change', () => {
+    updateGoogleDriveCategory(
+      googleDriveSyncFavoritesToggle,
+      GOOGLE_DRIVE_SYNC_KEYS.syncFavorites,
+      'お気に入り／条文ブックマーク',
+    );
+  });
+
+  googleDriveSyncHighlightsToggle.addEventListener('change', () => {
+    updateGoogleDriveCategory(
+      googleDriveSyncHighlightsToggle,
+      GOOGLE_DRIVE_SYNC_KEYS.syncHighlights,
+      'ハイライト／メモ',
+    );
+  });
+
+  googleDriveFavoritesSyncNowBtn.addEventListener('click', async () => {
+    setGoogleDriveSyncBusy(true, 'Google Driveと同期しています。');
+    try {
+      const result = await sendGoogleDriveSyncMessage({ type: 'egov-google-drive-favorites-sync-now' });
+      await refreshGoogleDriveSyncState();
+      const summary = [];
+      if (googleDriveSyncFavoritesToggle.checked) {
+        summary.push(`お気に入り ${result.favoriteCount || 0} 件`, `条文ブックマーク ${result.bookmarkCount || 0} 件`);
+      }
+      if (googleDriveSyncHighlightsToggle.checked) {
+        summary.push(`ハイライト ${result.highlightCount || 0} 件`, `メモ ${result.memoCount || 0} 件`);
+      }
+      googleDriveSyncUi.setStatus(`同期しました${summary.length ? `（${summary.join(' / ')}）` : ''}。`, 'success');
+    } catch (error) {
+      googleDriveSyncUi.setStatus(error.message, 'error');
+    } finally {
+      setGoogleDriveSyncBusy(false);
+    }
+  });
+
+  googleDriveFavoritesDisconnectBtn.addEventListener('click', async () => {
+    const confirmed = window.confirm(
+      'Google Driveとの認証を解除しますか？\n\n端末上とGoogle Drive上のお気に入り、条文ブックマーク、ハイライト、メモは削除されません。',
+    );
+    if (!confirmed) return;
+    setGoogleDriveSyncBusy(true, 'Google Driveとの認証を解除しています。');
+    try {
+      await sendGoogleDriveSyncMessage({ type: 'egov-google-drive-favorites-disable' });
+      await refreshGoogleDriveSyncState();
+    } catch (error) {
+      googleDriveSyncUi.setStatus(error.message, 'error');
+      await refreshGoogleDriveSyncState().catch(() => {});
+    } finally {
+      setGoogleDriveSyncBusy(false);
+    }
+  });
+
+  chrome.storage.onChanged.addListener((changes, area) => {
+    if (area !== 'local' || !Object.values(GOOGLE_DRIVE_SYNC_KEYS).some((key) => changes[key])) return;
+    refreshGoogleDriveSyncState().catch(() => {});
+  });
+
   exportFavoritesBtn.addEventListener('click', () => {
     exportFavorites().catch((error) => {
       setTransferStatus(`エクスポートに失敗しました: ${error.message}`, 'error');
@@ -663,6 +1097,24 @@ document.addEventListener('DOMContentLoaded', async () => {
     const file = importFavoritesInput.files?.[0];
     importFavorites(file).catch((error) => {
       setTransferStatus(`インポートに失敗しました: ${error.message}`, 'error');
+    });
+  });
+
+  exportTextHighlightsBtn.addEventListener('click', () => {
+    exportTextHighlights().catch((error) => {
+      setTextHighlightsTransferStatus(`保存に失敗しました: ${error.message}`, 'error');
+    });
+  });
+
+  importTextHighlightsBtn.addEventListener('click', () => {
+    importTextHighlightsInput.value = '';
+    importTextHighlightsInput.click();
+  });
+
+  importTextHighlightsInput.addEventListener('change', () => {
+    const file = importTextHighlightsInput.files?.[0];
+    importTextHighlights(file).catch((error) => {
+      setTextHighlightsTransferStatus(`読み込みに失敗しました: ${error.message}`, 'error');
     });
   });
 

@@ -132,15 +132,16 @@
   }
   .chip-normal { background: var(--accent-soft); color: var(--accent); }
   .chip-lite   { background: #ecfdf5; color: #059669; }
-  @media (prefers-color-scheme: dark) { .chip-lite { background: #10261d; color: #34d399; } }
+  .chip-both   { background: #f5f3ff; color: #7c3aed; }
+  @media (prefers-color-scheme: dark) {
+    .chip-lite { background: #10261d; color: #34d399; }
+    .chip-both { background: #251b3d; color: #c4b5fd; }
+  }
 
   .backtop { font-size: 12.5px; margin-top: 18px; }
   .backtop a { color: var(--ink-faint); text-decoration: none; }
   .backtop a:hover { color: var(--accent); }
 
-  .pin-dots span {
-    display: inline-block; width: 12px; height: 12px; border-radius: 50%; margin: 0 3px; vertical-align: -1px;
-  }
   figure.shot {
     margin: 20px auto; text-align: center;
   }
@@ -163,7 +164,7 @@
   <h1>e-Gov法令検索 Enhancer<br>ユーザーマニュアル</h1>
   <div class="sub">e-Gov法令検索（laws.e-gov.go.jp）をキーボード中心で快適に使うためのChrome拡張機能</div>
   <div class="badges">
-    <span class="badge">Version 2.4.1 時点</span>
+    <span class="badge">Version 2.5.0 時点</span>
     <span class="badge">対象: laws.e-gov.go.jp</span>
   </div>
 </header>
@@ -194,7 +195,7 @@
         <li><a href="#normal-copy">条文リンクコピー</a></li>
         <li><a href="#normal-lawsearch">法令検索ダイアログ</a></li>
         <li><a href="#normal-fav">お気に入り</a></li>
-        <li><a href="#normal-pin">カラーピン</a></li>
+        <li><a href="#normal-bookmark">条文ブックマーク</a></li>
         <li><a href="#normal-paren">括弧内の表示抑制</a></li>
         <li><a href="#normal-num">漢数字⇔アラビア数字</a></li>
         <li><a href="#normal-kana">カタカナ→ひらがな変換</a></li>
@@ -203,6 +204,7 @@
         <li><a href="#normal-ref">逆参照リンク（引用元の表示）</a></li>
         <li><a href="#normal-linkpopup">法令リンクのポップアップ抑止</a></li>
         <li><a href="#normal-guide">ショートカットガイドと有効/無効切替</a></li>
+        <li><a href="#normal-highlight-memo">ハイライトとメモ</a></li>
       </ol>
     </li>
     <li><a href="#lite">法令画面：Liteモード</a>
@@ -340,9 +342,7 @@
       <tr><td>ページ上部</td><td><b>逆リンク</b></td><td>逆参照リンクを有効化／無効化（<kbd>e</kbd>と同じ）</td></tr>
       <tr><td>ページ上部</td><td><b>定義</b></td><td>定義語リンクを有効化／無効化</td></tr>
       <tr><td>ページ上部</td><td><b>Liteボタン</b></td><td>Liteモードに切り替え</td></tr>
-      <tr><td>ページ上部</td><td><b>ピン状態トースト</b>
-        <span class="pin-dots"><span style="background:#f9a8b4"></span><span style="background:#fcd34d"></span><span style="background:#86efac"></span><span style="background:#93c5fd"></span><span style="background:#c4b5fd"></span></span></td>
-        <td>カラーピン5スロット（i o j k m）の使用状況を常時表示。クリックでも操作可</td></tr>
+      <tr><td>条・項・号の左端</td><td><b>青いしおりアイコン</b></td><td>空欄をクリックして追加。表示されたアイコンをクリックして削除</td></tr>
       <tr><td>ページ右下</td><td><b>⌨️ ガイドボタン</b></td><td>ホバーでショートカット一覧を表示。クリックでショートカット有効/無効を切替（青=有効/灰=無効）</td></tr>
       <tr><td>ページ左下（ジャンプ後）</td><td><b>「Rでジャンプ前の位置に戻る」ボタン</b></td><td>条文ジャンプや定義語リンクで移動した後に表示。クリックまたは <kbd>r</kbd> で戻る</td></tr>
     </table></div>
@@ -363,8 +363,8 @@
       <tr><td class="key"><kbd>a</kbd></td><td>条文リンクコピー</td><td><a href="#normal-copy">3.7</a></td></tr>
       <tr><td class="key"><kbd>Alt</kbd>+<kbd>R</kbd></td><td>現在の法令名で法令検索</td><td><a href="#normal-lawsearch">3.8</a></td></tr>
       <tr><td class="key"><kbd>f</kbd></td><td>お気に入りに追加／解除</td><td><a href="#normal-fav">3.9</a></td></tr>
-      <tr><td class="key"><kbd>i</kbd> <kbd>o</kbd> <kbd>j</kbd> <kbd>k</kbd> <kbd>m</kbd></td><td>カラーピンの設定／移動</td><td><a href="#normal-pin">3.10</a></td></tr>
-      <tr><td class="key"><kbd>b</kbd></td><td>ピン状態トーストの表示切替</td><td><a href="#normal-pin">3.10</a></td></tr>
+      <tr><td class="key"><kbd>Space</kbd></td><td>現在位置の条文ブックマークを追加／削除</td><td><a href="#normal-bookmark">3.10</a></td></tr>
+      <tr><td class="key"><kbd>b</kbd></td><td>条文ブックマーク一覧を開く／閉じる</td><td><a href="#normal-bookmark">3.10</a></td></tr>
       <tr><td class="key"><kbd>g</kbd> / <kbd>Shift</kbd>+<kbd>G</kbd></td><td>括弧内の表示抑制</td><td><a href="#normal-paren">3.11</a></td></tr>
       <tr><td class="key"><kbd>c</kbd></td><td>漢数字⇔アラビア数字</td><td><a href="#normal-num">3.12</a></td></tr>
       <tr><td class="key"><kbd>Alt</kbd>+<kbd>H</kbd></td><td>カタカナ→ひらがな変換</td><td><a href="#normal-kana">3.13</a></td></tr>
@@ -474,24 +474,20 @@ https://laws.e-gov.go.jp/law/405AC0000000088#Mp-Ch_1-At_2-Pr_1-It_4</pre>
 
   <section id="normal-fav">
     <h3><span class="num">3.9</span>お気に入り</h3>
-    <p><kbd>f</kbd> または法令名横の★ボタンで、現在の法令をお気に入りに追加／解除します。お気に入りはメインウィンドウ・Liteモードと共通です。</p>
+    <p><kbd>f</kbd> または法令名横の★ボタンで、現在の法令をお気に入りに追加／解除します。お気に入りはメインウィンドウ・Liteモードと共通です。お気に入りの法令では最後に読んでいた条文位置も記憶され、通常モードとLiteモードの間で共有されます。</p>
   </section>
 
-  <section id="normal-pin">
-    <h3><span class="num">3.10</span>カラーピン</h3>
-    <p>読み比べ中の位置を最大5か所記憶できる「しおり」機能です。スロットは
-      <kbd>i</kbd><kbd>o</kbd><kbd>j</kbd><kbd>k</kbd><kbd>m</kbd> の5つで、それぞれ色が割り当てられています。</p>
-    <div class="table-scroll"><table>
-      <tr><th>状況</th><th>スロットキーを押すと</th></tr>
-      <tr><td>スロットが空</td><td>現在表示中の条文位置に<b>ピンを設置</b></td></tr>
-      <tr><td>同じ法令のピンがある</td><td>その位置へ<b>ジャンプ</b></td></tr>
-      <tr><td>別の法令のピンがある</td><td>その法令のタブへ<b>切り替えてジャンプ</b>（タブがなければ新しく開く）</td></tr>
-    </table></div>
+  <section id="normal-bookmark">
+    <h3><span class="num">3.10</span>条文ブックマーク</h3>
+    <p>条・項・号ごとにブックマークを保存できます。条文番号の左側にある空欄をクリックすると追加され、青いしおりアイコンをクリックすると削除されます。<kbd>n</kbd>/<kbd>p</kbd>で目的の条へ移動した後、<kbd>Space</kbd>でも追加／削除できます。</p>
     <ul>
-      <li><kbd>Shift</kbd>+スロットキー — ピンを解除します。</li>
-      <li><kbd>b</kbd> — ページ上部のピン状態トーストの表示／非表示を切り替えます。トースト上のクリックでも設置・ジャンプ・解除ができます。</li>
+      <li><kbd>b</kbd> — 画面の80%サイズのブックマーク一覧を開きます。もう一度<kbd>b</kbd>または<kbd>Esc</kbd>で閉じます。</li>
+      <li>一覧には条文番号を太字、その本文を続けて1行で表示します。クリックまたは<kbd>Enter</kbd>でその条文へ移動します。移動はジャンプ履歴に残り、<kbd>r</kbd>で元の位置へ戻れます。</li>
+      <li>一覧は<kbd>n</kbd>/<kbd>p</kbd>で移動できます。選択中に<kbd>Space</kbd>を押すと、確認後にブックマークを削除します。各行の×ボタンは確認なしで削除します。</li>
+      <li><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd><kbd>F</kbd><kbd>J</kbd><kbd>K</kbd><kbd>L</kbd>で項目を選択できます。各項目にはこれらのキーの組み合わせが割り当てられ、7件以下は1打、8〜49件は2打、50件以上は3打です。複数打では入力のたびに候補を絞り込みます。</li>
+      <li>ブックマークが8件以上ある場合は、<kbd>;</kbd>または<kbd>Backspace</kbd>で最後のキー入力を取り消せます。</li>
     </ul>
-    <div class="note">ピンはブラウザを終了すると消えます（セッション限りの保存です）。</div>
+    <div class="note">ブックマークはブラウザに永続保存され、Google Drive同期の「お気に入りと条文ブックマーク」の対象にもなります。</div>
   </section>
 
   <section id="normal-paren">
@@ -544,7 +540,7 @@ https://laws.e-gov.go.jp/law/405AC0000000088#Mp-Ch_1-At_2-Pr_1-It_4</pre>
   <section id="normal-ref">
     <h3><span class="num">3.16</span>逆参照リンク（引用元の表示）</h3>
     <p><kbd>e</kbd> または上部の「逆リンク」ボタンで有効化すると、<b>同じ法令内や他の法令から参照（引用）されている条・項・号</b>の番号がクリック可能になり、クリックすると参照元の一覧がポップアップ表示されます。一覧から参照元の条文を開くこともできます。</p>
-    <p>オプションの「逆参照リンクの対象」で、「同一法令内のみ」「他法令からのみ」「同一法令内＆他法令から」を選択できます。変更時は、設定を正しく反映するため開いている法令タブの再読み込みを確認します。</p>
+    <p>逆参照リンクの起動時自動有効化は初期状態ではオフです。オプションの「逆参照リンクの対象」で、「同一法令内のみ」「他法令からのみ」「同一法令内＆他法令から」を選択できます。変更時は、設定を正しく反映するため開いている法令タブの再読み込みを確認します。</p>
     <p>附則から参照されている場合も、参照元と逆リンク対象の条番号には「附則」を付け、「附則第三条」のように表示します。一覧から該当する附則の条文へ移動でき、本則と附則に同じ条番号があっても別々に扱います。</p>
     <p>一覧上部のタイトルバーには条文番号や区切りの「&gt;」を表示せず、現在の動作を「他条文リンクはスクロール／他法令リンクはポップアップ」のように太字で表示します。</p>
     <ul>
@@ -573,6 +569,43 @@ https://laws.e-gov.go.jp/law/405AC0000000088#Mp-Ch_1-At_2-Pr_1-It_4</pre>
       <li>ガイド右上の「マニュアル」ボタンから、このマニュアルを開けます。マニュアルを開くキーボードショートカットはありません。</li>
       <li><kbd>Alt</kbd>+<kbd>P</kbd> または ⌨️ ボタンのクリックで、ページ上のショートカットを一括で有効／無効にできます（ボタンが青=有効、灰=無効）。e-Gov上でテキスト選択・入力作業を多くするときに便利です。</li>
     </ul>
+    <p class="backtop"><a href="#toc">↑ 目次へ戻る</a></p>
+  </section>
+
+  <section id="normal-highlight-memo">
+    <h3><span class="num">3.19</span>ハイライトとメモ<span class="mode-chip chip-both">通常 / Lite</span></h3>
+    <p>法令本文の気になる箇所を範囲選択し、薄い黄色・薄いピンク・薄い緑のいずれかでハイライトできます。ハイライトにはメモも付けられます。操作方法と保存内容は通常モード・Liteモードで共通です。</p>
+    <figure class="shot wide">
+      <img src="images/highlight-memo.png" alt="黄色のハイライトにメモを入力している画面。メモ入力欄の下に色選択、メモ、削除のボタンが表示されている" width="1303" height="452">
+      <figcaption>ハイライトのメモ編集画面。色を選ぶか <kbd>Ctrl</kbd>+<kbd>Enter</kbd> で確定します</figcaption>
+    </figure>
+
+    <h4>ハイライトを付ける・変更する</h4>
+    <ol>
+      <li>本文をマウスで範囲選択すると、カーソルの近くに小さな操作パネルが表示されます。</li>
+      <li>操作パネルが表示されている間は、ハイライト・メモの対象範囲が赤い枠で示されます。操作パネルを閉じると赤い枠も消えます。</li>
+      <li>黄色・ピンク・緑のボタンを選ぶと、その色でハイライトされます。</li>
+      <li>既存のハイライトを長押しすると操作パネルが開き、色の変更や削除ができます。</li>
+    </ol>
+
+    <h4>メモを付ける・編集する</h4>
+    <ul>
+      <li>操作パネルの「メモ」を押すと入力欄が開きます。入力欄は3行より長いメモにも対応しています。</li>
+      <li>色のボタンを選ぶか、<kbd>Ctrl</kbd>+<kbd>Enter</kbd> でメモを確定します。新しいハイライトで色を選んでいない場合、<kbd>Ctrl</kbd>+<kbd>Enter</kbd> は黄色を選んだときと同じ動作になります。</li>
+      <li>「メモ」をもう一度押すか <kbd>Esc</kbd> を押すと編集をキャンセルします。内容を変更していた場合は、保存せず閉じてよいか確認が表示されます。</li>
+      <li>未保存の変更がある間は入力欄の左下に案内が表示され、確定またはキャンセルするまで操作パネルは閉じません。変更がなければ、入力欄からフォーカスが外れたときに閉じます。</li>
+      <li>メモ付きのハイライトを長押しすると、入力欄が最初から開きます。</li>
+    </ul>
+
+    <h4>メモを読む・削除する</h4>
+    <ul>
+      <li>メモ付きのハイライトにマウスを重ねると、ハイライトより一段薄い同系色のメモが表示されます。メモはマウスと一緒には動かず、ハイライトから外れても0.5秒間、またはメモ上にマウスがある間は表示されたままです。</li>
+      <li>表示中のメモをクリックすると、メモ編集画面が開きます。</li>
+      <li>メモ付きのハイライトを削除するときは、ハイライトとメモを一緒に削除してよいか確認が表示されます。</li>
+    </ul>
+
+    <div class="note">リンク・逆リンク・定義リンクと重なる箇所では、通常のクリックはリンクを開き、長押しはハイライトの操作パネルを開きます。同じ法令のハイライトとメモは、複数の条文をまたぐ範囲も含めて通常モード・Liteモードで共有され、ページを再読み込みしても復元されます。法令本文の改正などで元の範囲を安全に特定できない場合は、誤った箇所への復元を避けるため表示されないことがあります。</div>
+    <p>法令の改正などにより復元できなかったハイライトがある場合は、画面右上に件数と「テキスト保存」「削除」「無視」が表示されます。「テキスト保存」を押すと、復元できなかった各ハイライトの開始位置・終了位置とメモ（メモがない場合は「なし」）をテキストファイルへ保存できます。「削除」を押すと確認後に復元できなかった項目を保存データから削除します。「無視」は保存データを変更せず、そのページを再読み込みするまで通知だけを非表示にします。後から復元できた項目は、保存・削除の対象から自動的に除かれます。</p>
     <p class="backtop"><a href="#toc">↑ 目次へ戻る</a></p>
   </section>
 </section>
@@ -632,6 +665,8 @@ https://laws.e-gov.go.jp/law/405AC0000000088#Mp-Ch_1-At_2-Pr_1-It_4</pre>
       <tr><td class="key"><kbd>0</kbd>〜<kbd>9</kbd></td><td>条文ジャンプダイアログ</td></tr>
       <tr><td class="key"><kbd>h</kbd> / <kbd>l</kbd></td><td>条文ジャンプ履歴を前後移動</td></tr>
       <tr><td class="key"><kbd>r</kbd></td><td>ジャンプ前の位置に戻る</td></tr>
+      <tr><td class="key"><kbd>Space</kbd></td><td>現在位置の条文ブックマークを追加／削除</td></tr>
+      <tr><td class="key"><kbd>b</kbd></td><td>条文ブックマーク一覧を開く／閉じる</td></tr>
       <tr><td class="key"><kbd>n</kbd> / <kbd>p</kbd></td><td>次／前の条へ移動</td></tr>
       <tr><td class="key"><kbd>d</kbd> / <kbd>u</kbd></td><td>下／上へ80%スクロール</td></tr>
       <tr><td class="key"><kbd>s</kbd></td><td>ページ内検索（<kbd>Enter</kbd>次 / <kbd>Shift</kbd>+<kbd>Enter</kbd>前 / <kbd>Ctrl</kbd>+<kbd>Enter</kbd>現在位置から）</td></tr>
@@ -646,7 +681,7 @@ https://laws.e-gov.go.jp/law/405AC0000000088#Mp-Ch_1-At_2-Pr_1-It_4</pre>
       <tr><td class="key"><kbd>?</kbd></td><td>ショートカット一覧を表示</td></tr>
       <tr><td class="key"><kbd>Esc</kbd></td><td>ダイアログを閉じる</td></tr>
     </table></div>
-    <p>定義用語ガイド（<a href="#normal-def">3.15</a>）はLiteモードでも同じように動作します。<kbd>?</kbd>で開く一覧の右上にある「マニュアル」ボタンから、このマニュアルを開けます。</p>
+    <p>条文ブックマークと定義用語ガイド（<a href="#normal-bookmark">3.10</a>、<a href="#normal-def">3.15</a>）はLiteモードでも通常モードと同じように動作し、保存内容も共有されます。<kbd>?</kbd>で開く一覧の右上にある「マニュアル」ボタンから、このマニュアルを開けます。</p>
   </section>
 
   <section id="lite-diff">
@@ -658,7 +693,8 @@ https://laws.e-gov.go.jp/law/405AC0000000088#Mp-Ch_1-At_2-Pr_1-It_4</pre>
       <tr><td>括弧内の表示抑制</td><td>○</td><td>○</td></tr>
       <tr><td>上部の状態表示付きボタン</td><td>ワイド／かっこ／逆リンク／定義</td><td>かっこ／逆リンク／定義</td></tr>
       <tr><td>お気に入り</td><td>○（<kbd>f</kbd>／★）</td><td>○（★ボタン）</td></tr>
-      <tr><td>カラーピン</td><td>○</td><td>—</td></tr>
+      <tr><td>ハイライト・メモ</td><td>○（Liteと共有）</td><td>○（通常モードと共有）</td></tr>
+      <tr><td>条文ブックマーク</td><td>○（Liteと共有）</td><td>○（通常モードと共有）</td></tr>
       <tr><td>漢数字⇔アラビア数字／かな変換／サイドバー非表示</td><td>○</td><td>—</td></tr>
       <tr><td>フォントサイズ・本文幅の調整</td><td>—</td><td>○</td></tr>
       <tr><td>改正時点の切り替え</td><td>e-Gov標準機能</td><td>○（ヘッダーから選択）</td></tr>
@@ -672,10 +708,12 @@ https://laws.e-gov.go.jp/law/405AC0000000088#Mp-Ch_1-At_2-Pr_1-It_4</pre>
 <section id="appendix">
   <h2><span class="num">5.</span>付録：知っておくと良いこと</h2>
   <ul>
-    <li><b>利用者データはローカル保存</b> — お気に入り・履歴・設定はブラウザ内（chrome.storage）に保存されます。これらを独自の外部サーバーへ送信することはありません。</li>
+    <li><b>利用者データはローカル保存</b> — お気に入り・条文ブックマーク・履歴・設定・ハイライト・メモはブラウザ内（chrome.storage）に保存されます。これらを独自の外部サーバーへ送信することはありません。</li>
+    <li><b>ハイライトとメモの共有</b> — 同じ法令では通常モードとLiteモードで同じ内容を利用します。ブラウザ内に保存されるため、ページを再読み込みしても復元されます。</li>
+    <li><b>ハイライトとメモのバックアップ</b> — オプション画面の「メモとハイライトの保存と読み込み」から、すべての法令のハイライトとメモを1つのJSONファイルへ保存し、まとめて読み込めます。読み込むと、現在のハイライトとメモはファイルの内容に置き換わります。</li>
     <li><b>Lite法令本文のキャッシュ</b> — e-Gov APIから取得した法令XMLは、次回の表示を速くするためブラウザのCache Storageに最大100件保存されます。保存済みXMLを先に表示しつつ、起動時にはe-Gov APIで現行版を確認します。</li>
     <li><b>表示加工は保存しません</b> — キャッシュされるのは取得した法令XMLです。逆リンク、定義語リンク、括弧内表示抑制などの加工結果はXMLへ書き込まず、表示時に適用します。</li>
-    <li><b>カラーピンはセッション限り</b> — ブラウザを完全終了すると消えます。長期の記録にはお気に入り＋条文リンクコピーの活用がおすすめです。</li>
+    <li><b>条文ブックマークは永続保存</b> — ブラウザを再起動しても残り、Google Drive同期を有効にしていればお気に入りと一緒に同期されます。</li>
     <li><b>お気に入りのバックアップ</b> — オプション画面からJSON形式でエクスポート／インポートできます。</li>
     <li><b>ショートカットが効かないとき</b> — 入力欄にフォーカスが入っていないか、右下の ⌨️ ボタンが灰色（無効）になっていないかを確認してください（<kbd>Alt</kbd>+<kbd>P</kbd> で切替）。</li>
     <li><b>Chrome全体のショートカット変更</b> — ポップアップ起動キー（<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>E</kbd> 等）は <code>chrome://extensions/shortcuts</code> から変更できます。</li>
@@ -684,7 +722,7 @@ https://laws.e-gov.go.jp/law/405AC0000000088#Mp-Ch_1-At_2-Pr_1-It_4</pre>
 </section>
 
 <footer>
-  e-Gov法令検索 Enhancer ユーザーマニュアル（Version 2.4.1 時点） — 2026-08-18 更新
+  e-Gov法令検索 Enhancer ユーザーマニュアル（Version 2.5.0 時点） — 2026-08-20 更新
 </footer>
 
 </div>

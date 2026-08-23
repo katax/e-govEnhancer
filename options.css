@@ -202,41 +202,6 @@ kbd {
   line-height: 1.6;
 }
 
-/* 使い方アイテム */
-.usage-item {
-  display: flex;
-  gap: 14px;
-  align-items: flex-start;
-  padding-bottom: 16px;
-  border-bottom: 1px solid #f0f0f0;
-}
-
-.usage-item:last-child {
-  padding-bottom: 0;
-  border-bottom: none;
-}
-
-.usage-icon-wrap {
-  font-size: 26px;
-  flex-shrink: 0;
-  width: 40px;
-  text-align: center;
-  padding-top: 2px;
-}
-
-.usage-content h3 {
-  font-size: 15px;
-  font-weight: 700;
-  color: #222;
-  margin-bottom: 6px;
-}
-
-.usage-content p {
-  font-size: 14px;
-  color: #555;
-  line-height: 1.7;
-}
-
 .example-box {
   margin-top: 8px;
   background: #f0f7ff;
@@ -435,6 +400,49 @@ a:hover {
   display: flex;
   gap: 12px;
   flex-wrap: wrap;
+}
+
+.drive-sync-details {
+  display: grid;
+  gap: 12px;
+  margin-top: 16px;
+  padding: 14px;
+  border: 1px solid #dbe7f7;
+  border-radius: 10px;
+  background: #fafcff;
+}
+
+.drive-sync-details.is-disabled {
+  display: none;
+}
+
+.drive-sync-details > .setting-row {
+  padding: 8px 0 12px;
+  border-bottom: 1px solid #e2eaf4;
+}
+
+.drive-sync-account {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+  color: #26374a;
+}
+
+.drive-sync-account-label {
+  color: #68778a;
+  font-size: 13px;
+}
+
+.drive-sync-details .backup-status,
+.drive-sync-details .backup-summary {
+  margin-top: 0;
+}
+
+.action-btn:disabled {
+  cursor: default;
+  opacity: 0.55;
+  transform: none;
 }
 
 .action-btn {

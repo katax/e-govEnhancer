@@ -22,6 +22,7 @@
     getJapanDateString,
     getLawReferencesData,
     getLiteLawDataUrl,
+    getNormalizedTextSignature,
     getReferenceDomParts,
     getReferenceTargetKeyFromEgovUrl,
     getReverseReferenceScopeFlags,
@@ -29,6 +30,7 @@
     mergeLawReferences,
     normalizeReverseReferenceScope,
     parseJapaneseReferenceNumber,
+    parseProvisionPathFromEgovUrl,
     rangeFromSearchOffsets,
     readCachedLiteLawXml,
     sortReferenceSources,
@@ -59,6 +61,10 @@
   const LITE_DEF_TOOLTIP_ENABLED_KEY = 'liteDefTooltipEnabled';
   const DEF_TOOLTIP_CLICK_ONLY_KEY = 'defTooltipClickOnly';
   const EXTERNAL_REFERENCES_AUTO_ENABLE_KEY = 'externalReferencesAutoEnable';
+  const TEXT_HIGHLIGHTS_ENABLED_KEY = 'textHighlightsEnabled';
+  const ARTICLE_BOOKMARKS_STORAGE_KEY = 'articleBookmarks';
+  const BOOKMARK_SHORTCUT_KEYS = ['f', 'j', 'd', 'k', 's', 'l', 'a'];
+  const ARTICLE_BOOKMARK_TOGGLE_DEBOUNCE_MS = 500;
   const VALID_FONT_SIZES = new Set(['1', '2', '3', '4', '5']);
   const VALID_CONTENT_WIDTHS = new Set(['full', 'medium', 'narrow']);
   const SKIP_TAGS = new Set(['ImageData', 'Image', 'Fig', 'FigStruct', 'StyleStruct', 'FormatStruct', 'Remarks']);
@@ -83,6 +89,7 @@
   const externalReferencesButton = document.getElementById('external-references-button');
   const definitionLinksButton = document.getElementById('definition-links-button');
   const lawRefModeButton = document.getElementById('law-ref-mode-button');
+  const highlightListButton = document.getElementById('highlight-list-button');
   const normalModeButton = document.getElementById('normal-mode-button');
   const compareModeButton = document.getElementById('compare-mode-button');
   const favoriteButton = document.getElementById('favorite-button');
@@ -122,19 +129,39 @@
   let reverseReferenceScope = 'both';
   let liteDefTooltipEnabled = true;
   let defTooltipClickOnly = true;
-  let externalReferencesAutoEnable = true;
+  let externalReferencesAutoEnable = false;
   let externalReferencesEnabled = false;
   let externalReferencesLoading = false;
   let referenceAnalysisGeneration = 0;
   let activeReferencesPopup = null;
   let activeReferenceViewerPopup = null;
+  const referenceViewerPopups = new Set();
+  let referenceViewerPopupSequence = 0;
+  let referenceViewerLayoutFrame = 0;
+  let renderContextLawId = lawId;
   let liteDefinitionMap = new Map();
   let activeLiteTooltip = null;
   let liteTooltipPinned = false;
   let liteTooltipShowTimer = 0;
   let liteTooltipHideTimer = 0;
   let jumpReturnButtonTimer = 0;
+  let textHighlightController = null;
+  let favoriteScrollSaveTimer = 0;
+  let favoriteScrollRestoreStarted = false;
+  let favoriteScrollPersistenceSetup = false;
+  let articleBookmarksCache = [];
+  let articleBookmarksLoaded = false;
+  let liteProvisionItemsCache = null;
+  let articleBookmarkRenderVersion = 0;
+  let articleBookmarkGutterSignature = '';
+  const articleBookmarkGutterButtons = new Map();
+  const articleBookmarkToggleLocks = new Set();
+  const articleBookmarkLastToggleAt = new Map();
+  let articleBookmarkGuttersDirty = false;
+  let articleBookmarkDialogSessionActive = false;
+  let keyboardBookmarkTargetId = '';
   const externalReferencesByElement = new WeakMap();
+  const referenceArticleLoadCache = new Map();
   titleEl.textContent = fallbackLawName;
   document.body.dataset.fontSize = '2';
   document.body.dataset.contentWidth = 'full';
@@ -202,13 +229,20 @@
     const next = VALID_FONT_SIZES.has(String(value)) ? String(value) : '2';
     document.body.dataset.fontSize = next;
     fontSizeSelect.value = next;
+    textHighlightController?.layoutChanged();
   }
 
   function applyContentWidth(value) {
     const next = VALID_CONTENT_WIDTHS.has(String(value)) ? String(value) : 'full';
+    if (document.body.dataset.contentWidth === next) {
+      if (contentWidthSelect.value !== next) contentWidthSelect.value = next;
+      return false;
+    }
     document.body.dataset.contentWidth = next;
     contentWidthSelect.value = next;
-    syncViewerToggleButtons();
+    textHighlightController?.layoutChanged();
+    refreshReferenceViewerPopupLayout();
+    return true;
   }
 
   function toggleDefinitionLinks() {
@@ -241,6 +275,7 @@
   externalReferencesButton.addEventListener('click', toggleExternalReferenceLinks);
   definitionLinksButton.addEventListener('click', toggleDefinitionLinks);
   lawRefModeButton.addEventListener('click', toggleLawRefPageMode);
+  highlightListButton.addEventListener('click', () => showLiteTextHighlightListDialog());
   compareModeButton.addEventListener('click', () => toggleCompareMode());
   favoriteButton.addEventListener('click', () => toggleFavorite());
   shortcutButton.addEventListener('click', () => showShortcutDialog());
@@ -264,6 +299,7 @@
     LITE_DEF_TOOLTIP_ENABLED_KEY,
     DEF_TOOLTIP_CLICK_ONLY_KEY,
     EXTERNAL_REFERENCES_AUTO_ENABLE_KEY,
+    ARTICLE_BOOKMARKS_STORAGE_KEY,
   ]).then((stored) => {
     applyFontSize(stored[LITE_FONT_SIZE_KEY]);
     applyContentWidth(stored[LITE_CONTENT_WIDTH_KEY]);
@@ -274,7 +310,10 @@
     liteDefTooltipEnabled = stored[LITE_DEF_TOOLTIP_ENABLED_KEY] !== false;
     defTooltipClickOnly = stored[DEF_TOOLTIP_CLICK_ONLY_KEY] !== false;
     if (!liteDefTooltipEnabled) clearLiteDefinitionTooltips();
-    externalReferencesAutoEnable = stored[EXTERNAL_REFERENCES_AUTO_ENABLE_KEY] !== false;
+    externalReferencesAutoEnable = stored[EXTERNAL_REFERENCES_AUTO_ENABLE_KEY] === true;
+    articleBookmarksCache = normalizeArticleBookmarks(stored[ARTICLE_BOOKMARKS_STORAGE_KEY]);
+    articleBookmarksLoaded = true;
+    if (articleElementsCache.length) renderLiteArticleBookmarkGutters();
     syncViewerToggleButtons();
   }).catch(() => {});
   chrome.storage.onChanged.addListener((changes, area) => {
@@ -308,7 +347,21 @@
       hideLiteTooltip(true);
     }
     if (area === 'local' && changes[EXTERNAL_REFERENCES_AUTO_ENABLE_KEY]) {
-      externalReferencesAutoEnable = changes[EXTERNAL_REFERENCES_AUTO_ENABLE_KEY].newValue !== false;
+      externalReferencesAutoEnable = changes[EXTERNAL_REFERENCES_AUTO_ENABLE_KEY].newValue === true;
+    }
+    if (area === 'local' && changes.favorites) {
+      refreshFavoriteButton();
+      setupLiteFavoriteScrollPersistence();
+    }
+    if (area === 'local' && changes[ARTICLE_BOOKMARKS_STORAGE_KEY]) {
+      articleBookmarksCache = normalizeArticleBookmarks(changes[ARTICLE_BOOKMARKS_STORAGE_KEY].newValue);
+      articleBookmarksLoaded = true;
+      const nextSignature = getArticleBookmarkGutterSignature(articleBookmarksCache);
+      if (articleBookmarkDialogSessionActive) {
+        if (nextSignature !== articleBookmarkGutterSignature) articleBookmarkGuttersDirty = true;
+      } else if (nextSignature !== articleBookmarkGutterSignature && articleElementsCache.length) {
+        renderLiteArticleBookmarkGutters();
+      }
     }
   });
 
@@ -522,11 +575,11 @@
 
   function renderInternalArticleReferenceText(text, contextElement = null) {
     const source = String(text || '');
-    if (!lawId || !source.includes('条')) return escapeHtml(source);
+    if (!renderContextLawId || !source.includes('条')) return escapeHtml(source);
     const number = '[0-9０-９〇零一二三四五六七八九十百千万]+';
     const pattern = new RegExp(
       `第(${number})条(?:の(${number}))?` +
-      `(?:(?:第(${number})項)(?:第(${number})号)?|から第?(${number})条(?:の(${number}))?まで)?`,
+      `(?:(?:第(${number})項)(?:第(${number})号)?|第(${number})号|から第?(${number})条(?:の(${number}))?まで)?`,
       'g'
     );
     let html = '';
@@ -536,12 +589,13 @@
       html += escapeHtml(source.slice(lastIndex, match.index));
       const article = parseJapaneseReferenceNumber(match[1]);
       const branch = match[2] ? parseJapaneseReferenceNumber(match[2]) : 0;
-      const paragraph = match[3] ? parseJapaneseReferenceNumber(match[3]) : 0;
-      const item = match[4] ? parseJapaneseReferenceNumber(match[4]) : 0;
+      const paragraph = match[3] ? parseJapaneseReferenceNumber(match[3]) : (match[5] ? 1 : 0);
+      const itemSource = match[4] || match[5];
+      const item = itemSource ? parseJapaneseReferenceNumber(itemSource) : 0;
       const hasInvalidNumber = !Number.isInteger(article) ||
         (match[2] && !Number.isInteger(branch)) ||
         (match[3] && !Number.isInteger(paragraph)) ||
-        (match[4] && !Number.isInteger(item));
+        (itemSource && !Number.isInteger(item));
       if (hasInvalidNumber || isExternalLawArticleReference(source, match.index)) {
         html += escapeHtml(match[0]);
       } else {
@@ -561,12 +615,12 @@
     const articlePath = String(article).replace(/-/g, '_');
     const paragraphPath = paragraph ? `-Pr_${String(paragraph).replace(/-/g, '_')}` : '';
     const itemPath = item ? `-It_${String(item).replace(/-/g, '_')}` : '';
-    const pathPrefix = scope ? `${lawId}-${scope}` : 'Mp';
-    return `https://laws.e-gov.go.jp/law/${encodeURIComponent(lawId)}#${pathPrefix}-At_${articlePath}${paragraphPath}${itemPath}`;
+    const pathPrefix = scope ? `${renderContextLawId}-${scope}` : 'Mp';
+    return `https://laws.e-gov.go.jp/law/${encodeURIComponent(renderContextLawId)}#${pathPrefix}-At_${articlePath}${paragraphPath}${itemPath}`;
   }
 
-  function getLitePriorReferenceHref(node, unit, count, articles) {
-    if (!Number.isInteger(count) || count < 2) return '';
+  function getLiteRelativeReferenceHref(node, unit, offset, articles, paragraph = '', item = '') {
+    if (!Number.isInteger(offset) || offset === 0) return '';
     const sourceElement = node.parentElement;
     const sourceArticle = sourceElement?.closest('.law-article[data-article-num]');
     if (!sourceArticle) return '';
@@ -574,8 +628,8 @@
     if (unit === '条') {
       const scopedArticles = articles.filter((article) => (article.dataset.referenceScope || '') === scope);
       const sourceIndex = scopedArticles.indexOf(sourceArticle);
-      const target = scopedArticles[sourceIndex - count];
-      return buildLiteProvisionHref(target?.dataset?.articleNum || '', '', '', scope);
+      const target = scopedArticles[sourceIndex + offset];
+      return buildLiteProvisionHref(target?.dataset?.articleNum || '', paragraph, item, scope);
     }
 
     const sourceParagraph = sourceElement.closest('.law-paragraph[data-paragraph-num]');
@@ -584,7 +638,7 @@
       .filter((paragraph) => paragraph.closest('.law-article') === sourceArticle);
     if (unit === '項') {
       const sourceIndex = paragraphs.indexOf(sourceParagraph);
-      const target = paragraphs[sourceIndex - count];
+      const target = paragraphs[sourceIndex + offset];
       return buildLiteProvisionHref(
         sourceArticle.dataset.articleNum,
         target?.dataset?.paragraphNum || '',
@@ -598,7 +652,7 @@
     const items = Array.from(sourceParagraph.querySelectorAll('.law-item[data-item-num], .law-subitem[data-item-num]'))
       .filter((item) => item.closest('.law-paragraph') === sourceParagraph);
     const sourceIndex = items.indexOf(sourceItem);
-    const target = items[sourceIndex - count];
+    const target = items[sourceIndex + offset];
     return buildLiteProvisionHref(
       sourceArticle.dataset.articleNum,
       sourceParagraph.dataset.paragraphNum,
@@ -607,14 +661,14 @@
     );
   }
 
-  function linkifyLitePriorReferences() {
+  function linkifyLiteRelativeReferences() {
     if (!lawId || !contentEl.querySelector('.law-article')) return;
     const articles = Array.from(contentEl.querySelectorAll('.law-article[data-article-num]'));
     const textNodes = [];
     const walker = document.createTreeWalker(contentEl, NodeFilter.SHOW_TEXT, {
       acceptNode(node) {
         const parent = node.parentElement;
-        if (!parent || !node.textContent?.includes('前')) return NodeFilter.FILTER_SKIP;
+        if (!parent || !/[前次]/.test(node.textContent || '')) return NodeFilter.FILTER_SKIP;
         if (parent.closest('a, button, script, style, .law-title, .law-heading, .article-title, .article-caption')) {
           return NodeFilter.FILTER_REJECT;
         }
@@ -625,7 +679,10 @@
     while ((node = walker.nextNode())) textNodes.push(node);
 
     const numberPattern = '[0-9０-９〇零一二三四五六七八九十百千万]+';
-    const pattern = new RegExp(`前(${numberPattern})(条|項|号)`, 'g');
+    const pattern = new RegExp(
+      `前(${numberPattern})(条|項|号)|((?:前|次)条)(?:(?:第(${numberPattern})項)(?:第(${numberPattern})号)?|第(${numberPattern})号)?`,
+      'g'
+    );
     textNodes.forEach((textNode) => {
       const text = textNode.textContent || '';
       pattern.lastIndex = 0;
@@ -634,8 +691,20 @@
       let changed = false;
       const fragment = document.createDocumentFragment();
       while ((match = pattern.exec(text))) {
-        const count = parseJapaneseReferenceNumber(match[1]);
-        const href = getLitePriorReferenceHref(textNode, match[2], count, articles);
+        const isAdjacentArticle = Boolean(match[3]);
+        const count = isAdjacentArticle ? 1 : parseJapaneseReferenceNumber(match[1]);
+        if (!isAdjacentArticle && (!Number.isInteger(count) || count < 2)) continue;
+        const unit = isAdjacentArticle ? '条' : match[2];
+        const offset = match[3] === '次条' ? 1 : -count;
+        const paragraphSource = match[4];
+        const itemSource = match[5] || match[6];
+        const paragraph = paragraphSource
+          ? parseJapaneseReferenceNumber(paragraphSource)
+          : (match[6] ? 1 : 0);
+        const item = itemSource ? parseJapaneseReferenceNumber(itemSource) : 0;
+        if ((paragraphSource && !Number.isInteger(paragraph)) ||
+            (itemSource && !Number.isInteger(item))) continue;
+        const href = getLiteRelativeReferenceHref(textNode, unit, offset, articles, paragraph, item);
         if (!href) continue;
         fragment.appendChild(document.createTextNode(text.slice(lastIndex, match.index)));
         const anchor = document.createElement('a');
@@ -699,12 +768,12 @@
     return renderItemLike(subitem, `Subitem${level}Title`, `Subitem${level}Sentence`, 'law-subitem', articleNum, paragraphNum, path, scope);
   }
 
-  function renderArticle(article) {
+  function renderArticle(article, scopeOverride = null) {
     const articleNum = article.getAttribute('Num') || getNodeText(firstChildOfTag(article, 'ArticleTitle')) || '';
     const title = firstChildOfTag(article, 'ArticleTitle');
     const caption = firstChildOfTag(article, 'ArticleCaption');
     const titleText = getNodeText(title) || (articleNum ? `Article ${articleNum}` : 'Article');
-    const scope = getLiteProvisionScope(article);
+    const scope = scopeOverride === null ? getLiteProvisionScope(article) : scopeOverride;
     const id = getArticleId(articleNum || titleText, scope);
     const captionText = getNodeText(caption);
     const paragraphs = childElements(article, 'Paragraph').map((paragraph) => renderParagraph(paragraph, articleNum, scope)).join('');
@@ -1128,6 +1197,8 @@
     document.title = lawTitleText;
     metaEl.textContent = lawNumText;
     contentEl.innerHTML = content || '<p class="viewer-error">表示できる条文が見つかりませんでした。</p>';
+    liteProvisionItemsCache = null;
+    articleBookmarkGutterButtons.clear();
     parenthesesWrapped = false;
     parenSeq = 0;
     activeParenGroup = '';
@@ -1135,8 +1206,11 @@
     document.body.removeAttribute('data-paren-mode');
     syncViewerToggleButtons();
     articleElementsCache = Array.from(contentEl.querySelectorAll('.law-article'));
-    linkifyLitePriorReferences();
+    linkifyLiteRelativeReferences();
     rebuildArticleIndex();
+    renderLiteArticleBookmarkGutters();
+    scheduleLiteFavoriteScrollRestore();
+    textHighlightController?.contentChanged();
     scheduleApplyLiteDefinitionTooltips();
   }
 
@@ -1176,12 +1250,26 @@
     if (currentRevisionId) revisionSelect.value = currentRevisionId;
   }
 
-  function renderLawXml(xmlText) {
+  function parseLawXmlForRender(xmlText) {
     const doc = new DOMParser().parseFromString(xmlText, 'application/xml');
     if (doc.querySelector('parsererror')) throw new Error('XML parse error');
     const law = parseLawFromResponse(doc);
     if (!law) throw new Error('Law XML was not found');
+    const body = law.querySelector('LawBody') || law;
+    return {
+      doc,
+      law,
+      signature: getNormalizedTextSignature(new XMLSerializer().serializeToString(body)),
+    };
+  }
+
+  function renderParsedLawXml({ doc, law, signature }) {
     renderLaw(law, doc);
+    return signature;
+  }
+
+  function renderLawXml(xmlText) {
+    return renderParsedLawXml(parseLawXmlForRender(xmlText));
   }
 
   async function loadLiteLawDirectly() {
@@ -1207,7 +1295,7 @@
       applyExternalReferenceLinksForLaw(includeExternal ? await getLawReferencesData(lawId) : {});
     } else {
       const stored = await chrome.storage.local.get([EXTERNAL_REFERENCES_AUTO_ENABLE_KEY]).catch(() => ({}));
-      if (stored[EXTERNAL_REFERENCES_AUTO_ENABLE_KEY] !== false && externalReferencesAutoEnable) {
+      if (stored[EXTERNAL_REFERENCES_AUTO_ENABLE_KEY] === true && externalReferencesAutoEnable) {
         runWhenIdle(() => enableExternalReferenceLinks(), 600);
       }
     }
@@ -1223,6 +1311,7 @@
     articleElementsCache = [];
     contentEl.innerHTML = '<p class="viewer-status">e-Gov APIから条文XMLを読み込んでいます...</p>';
     let renderedTarget = '';
+    let renderedSignature = '';
     try {
       // 先行取得と同じバックグラウンド処理に合流させ、改正履歴と本文を並列取得する。
       const liveLoadPromise = chrome.runtime.sendMessage({
@@ -1237,7 +1326,7 @@
       const cachedTarget = revisionIdParam || stored[revisionStorageKey] || lawId;
       const cachedXml = await readCachedLiteLawXml(cachedTarget);
       if (cachedXml) {
-        renderLawXml(cachedXml);
+        renderedSignature = renderLawXml(cachedXml);
         renderedTarget = cachedTarget;
         jumpToInitialHash();
       }
@@ -1261,9 +1350,14 @@
         if (!renderedTarget || renderedTarget !== result.cacheTarget) {
           const freshXml = await readCachedLiteLawXml(result.cacheTarget);
           if (!freshXml) throw new Error('Cached law XML could not be read');
-          renderLawXml(freshXml);
+          const freshLaw = parseLawXmlForRender(freshXml);
+          // The cache key can change from the law ID to its revision ID even when LawBody is identical.
+          // Avoid replacing the live DOM in that case so an open selection popup and its Range stay valid.
+          if (!renderedTarget || freshLaw.signature !== renderedSignature) {
+            renderedSignature = renderParsedLawXml(freshLaw);
+            jumpToInitialHash();
+          }
           renderedTarget = result.cacheTarget;
-          jumpToInitialHash();
         }
       }
 
@@ -1283,8 +1377,8 @@
     return tag === 'input' || tag === 'textarea' || tag === 'select' || el.isContentEditable;
   }
 
-  function createDialog(title, { wide = false } = {}) {
-    closeDialog();
+  function createDialog(title, { wide = false, deferBookmarkRender = false } = {}) {
+    closeDialog({ deferBookmarkRender });
     const overlay = document.createElement('div');
     overlay.className = 'lite-overlay';
     overlay.innerHTML = `
@@ -1303,13 +1397,20 @@
     return overlay.querySelector('.lite-dialog');
   }
 
-  function closeDialog() {
+  function closeDialog({ deferBookmarkRender = false } = {}) {
+    const closingBookmarkDialog = activeDialog?.dataset.dialogType === 'bookmarks';
     if (activeDialog) {
       if (activeDialog.dataset.dialogType === 'search') clearSearchMarks();
       activeDialog.remove();
       activeDialog = null;
     }
     setProvisionSelection(null);
+    if (!closingBookmarkDialog || deferBookmarkRender) return;
+    articleBookmarkDialogSessionActive = false;
+    if (!articleBookmarkGuttersDirty) return;
+    articleBookmarkGuttersDirty = false;
+    articleBookmarkGutterSignature = getArticleBookmarkGutterSignature(articleBookmarksCache);
+    renderLiteArticleBookmarkGutters();
   }
 
   function showToast(message) {
@@ -1456,6 +1557,7 @@
       rightPaneEl.innerHTML = '';
       setFocusedPane('left');
     }
+    refreshReferenceViewerPopupLayout();
   }
 
   function pushHistory(history, value) {
@@ -1572,6 +1674,9 @@
     const target = findJumpTarget(key);
     if (!target) return false;
     const returnPosition = record ? getCurrentJumpReturnPosition() : null;
+    // 長い項では画面の25%位置が配下の号に入ることがあるため、
+    // ジャンプ直後のSpaceは表示位置ではなく明示された条・項・号を対象にする。
+    keyboardBookmarkTargetId = target.id || '';
     scrollToElement(target, 'start');
     setTimeout(() => flashJumpTarget(target), scrollBehavior === 'smooth' ? 220 : 0);
     if (record) pushJumpHistory(key);
@@ -1705,15 +1810,131 @@
     activeReferencesPopup = null;
   }
 
-  function hideReferenceViewerPopup() {
+  function usesReferenceViewerSideLayout() {
+    return !compareMode && (document.body.dataset.contentWidth === 'medium' || document.body.dataset.contentWidth === 'narrow');
+  }
+
+  function syncReferenceViewerContentAlignment() {
+    const hasPopup = [...referenceViewerPopups].some((popup) => popup.isConnected);
+    if (hasPopup && usesReferenceViewerSideLayout()) {
+      document.body.dataset.referenceViewerOpen = 'true';
+    } else {
+      delete document.body.dataset.referenceViewerOpen;
+    }
+  }
+
+  function clearReferenceViewerSidePosition(popup) {
+    popup.classList.remove('is-side-positioned', 'is-compact-side');
+    popup.style.width = '';
+    delete popup.dataset.sidePlacementOrder;
+    const rect = popup.getBoundingClientRect();
+    const margin = 10;
+    const left = Math.max(margin, Math.min(rect.left, window.innerWidth - rect.width - margin));
+    const top = Math.max(margin, Math.min(rect.top, window.innerHeight - rect.height - margin));
+    popup.style.left = `${left}px`;
+    popup.style.top = `${top}px`;
+  }
+
+  function positionReferenceViewerPopup(popup, point = null, forcedOrder = null) {
+    syncReferenceViewerContentAlignment();
+    if (!usesReferenceViewerSideLayout()) {
+      clearReferenceViewerSidePosition(popup);
+      positionFixedPopup(popup, point, { offset: 14 });
+      return;
+    }
+
+    const gap = 14;
+    const margin = 10;
+    const contentRect = contentEl.getBoundingClientRect();
+    let left = Math.ceil(contentRect.right + gap);
+    let availableWidth = Math.floor(window.innerWidth - left - margin - 2);
+    if (availableWidth < 160) {
+      availableWidth = Math.min(780, Math.max(160, window.innerWidth - margin * 2 - 2));
+      left = Math.max(margin, window.innerWidth - availableWidth - margin - 2);
+    }
+    const popupWidth = Math.min(780, availableWidth);
+    popup.classList.add('is-side-positioned');
+    popup.classList.toggle('is-compact-side', popupWidth < 560);
+    popup.style.width = `${popupWidth}px`;
+    popup.style.left = `${left}px`;
+
+    const existingOrders = [...referenceViewerPopups]
+      .filter((candidate) => candidate !== popup && candidate.isConnected)
+      .map((candidate) => Number(candidate.dataset.sidePlacementOrder))
+      .filter(Number.isFinite);
+    const order = Number.isFinite(forcedOrder)
+      ? forcedOrder
+      : (existingOrders.length ? Math.max(...existingOrders) + 1 : 0);
+    popup.dataset.sidePlacementOrder = String(order);
+
+    const popupHeight = popup.getBoundingClientRect().height;
+    const header = document.querySelector('.viewer-header');
+    const headerBottom = header && getComputedStyle(header).display !== 'none'
+      ? header.getBoundingClientRect().bottom
+      : 0;
+    const startTop = Math.max(margin, Math.ceil(headerBottom) + 8);
+    const step = Math.max(1, popupHeight * 0.25);
+    const maxTop = Math.max(startTop, window.innerHeight - popupHeight - margin);
+    const slotCount = Math.max(1, Math.floor((maxTop - startTop) / step) + 1);
+    const top = Math.min(maxTop, startTop + (order % slotCount) * step);
+    popup.style.top = `${top}px`;
+  }
+
+  function refreshReferenceViewerPopupLayout() {
+    syncReferenceViewerContentAlignment();
+    const popups = Array.from(document.querySelectorAll('.egov-lite-reference-viewer-popup'))
+      .filter((popup) => referenceViewerPopups.has(popup) && popup.isConnected);
+    if (usesReferenceViewerSideLayout()) {
+      popups.forEach((popup, index) => positionReferenceViewerPopup(popup, null, index));
+    } else {
+      popups.forEach(clearReferenceViewerSidePosition);
+    }
+  }
+
+  function activateReferenceViewerPopup(popup) {
+    if (!popup?.isConnected || !referenceViewerPopups.has(popup)) return;
+    referenceViewerPopups.delete(popup);
+    referenceViewerPopups.add(popup);
+    activeReferenceViewerPopup = popup;
+    for (const candidate of referenceViewerPopups) {
+      candidate.style.zIndex = candidate === popup ? '2147483647' : '2147483646';
+    }
+  }
+
+  function updateActiveReferenceViewerPopup() {
+    activeReferenceViewerPopup = null;
+    for (const popup of [...referenceViewerPopups]) {
+      if (popup.isConnected) {
+        activeReferenceViewerPopup = popup;
+      } else {
+        referenceViewerPopups.delete(popup);
+      }
+    }
+    for (const popup of referenceViewerPopups) {
+      popup.style.zIndex = popup === activeReferenceViewerPopup ? '2147483647' : '2147483646';
+    }
+  }
+
+  function hideReferenceViewerPopup(popup = activeReferenceViewerPopup) {
+    if (!popup) return;
     try {
-      if (typeof activeReferenceViewerPopup?.remove === 'function') {
-        activeReferenceViewerPopup.remove();
-      } else if (activeReferenceViewerPopup && !activeReferenceViewerPopup.closed) {
-        activeReferenceViewerPopup.close();
+      if (typeof popup.remove === 'function') {
+        popup.remove();
+      } else if (!popup.closed) {
+        popup.close();
       }
     } catch (_) {}
-    activeReferenceViewerPopup = null;
+    referenceViewerPopups.delete(popup);
+    updateActiveReferenceViewerPopup();
+    syncReferenceViewerContentAlignment();
+  }
+
+  function hideUnpinnedReferenceViewerPopups(except = null) {
+    for (const popup of [...referenceViewerPopups]) {
+      if (popup !== except && popup.dataset.pinned !== 'true') {
+        hideReferenceViewerPopup(popup);
+      }
+    }
   }
 
   function clearLiteTooltipTimers() {
@@ -1857,32 +2078,360 @@
     return event?.ctrlKey ? !shouldPopup : shouldPopup;
   }
 
-  function showReferenceViewerPopup(source, url, point) {
-    hideReferenceViewerPopup();
-    const width = Math.min(920, Math.max(640, Math.round(window.innerWidth * 0.72)));
-    const height = Math.min(760, Math.max(520, Math.round(window.innerHeight * 0.82)));
-    const left = Math.max(0, Math.round(window.screenX + (point?.x ?? window.innerWidth / 2) + 14));
-    const top = Math.max(0, Math.round(window.screenY + (point?.y ?? window.innerHeight / 2) + 14));
-    const features = [
-      'popup=yes',
-      `width=${width}`,
-      `height=${height}`,
-      `left=${left}`,
-      `top=${top}`,
-      'resizable=yes',
-      'scrollbars=yes',
-    ].join(',');
-    activeReferenceViewerPopup = window.open(url, 'egov-lite-reference-popup', features);
-    if (!activeReferenceViewerPopup) window.open(url, '_blank', 'noopener');
+  function normalizeReferenceAsOf(value) {
+    const raw = String(value || '').trim();
+    if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
+    if (/^\d{8}$/.test(raw)) return `${raw.slice(0, 4)}-${raw.slice(4, 6)}-${raw.slice(6, 8)}`;
+    return '';
   }
 
-  function openLawReferenceUrl(url, event = null, sourceLawId = '') {
+  function getReferenceApiContext(url, resolvedLawId) {
+    let parsed;
+    try {
+      parsed = new URL(url, location.href);
+    } catch (_) {
+      return null;
+    }
+
+    const pathMatch = parsed.pathname.match(/^\/law\/([^/?#]+)(?:\/([^/?#]+))?/);
+    const targetLawId = decodeURIComponent(pathMatch?.[1] || resolvedLawId || '');
+    if (!targetLawId) return null;
+
+    const revisionSegment = decodeURIComponent(pathMatch?.[2] || '');
+    const occasionDate = normalizeReferenceAsOf(parsed.searchParams.get('occasion_date'));
+    let apiTarget = targetLawId;
+    let explicitRevision = false;
+    if (/^[A-Za-z0-9]+_\d{8}_[A-Za-z0-9_]+$/.test(revisionSegment)) {
+      apiTarget = revisionSegment;
+      explicitRevision = true;
+    } else if (/^\d{8}_[A-Za-z0-9_]+$/.test(revisionSegment)) {
+      apiTarget = `${targetLawId}_${revisionSegment}`;
+      explicitRevision = true;
+    } else if (!occasionDate && targetLawId === lawId && currentRevisionId) {
+      apiTarget = currentRevisionId;
+    }
+
+    const asOf = explicitRevision || apiTarget !== targetLawId
+      ? ''
+      : (occasionDate || getJapanDateString());
+    return { parsed, targetLawId, apiTarget, asOf };
+  }
+
+  function buildReferenceArticleElm(parts) {
+    const article = String(parts?.article || '').replace(/-/g, '_');
+    if (!/^\d+(?:_\d+)*$/.test(article)) return '';
+    const scope = String(parts?.scope || '');
+    if (!scope) return `MainProvision-Article_${article}`;
+    const supplement = scope.match(/^Sp(?:_(\d+))?$/);
+    if (!supplement) return '';
+    return `SupplProvision[${supplement[1] || '1'}]-Article_${article}`;
+  }
+
+  function buildReferenceArticleRequest(url, resolvedLawId) {
+    const context = getReferenceApiContext(url, resolvedLawId);
+    const parts = parseProvisionPathFromEgovUrl(url, location.href);
+    const elm = buildReferenceArticleElm(parts);
+    if (!context || !parts?.article || !elm) return { context, parts, elm: '', apiUrl: '' };
+
+    const apiUrl = new URL(`${API_V2_BASE}/law_data/${encodeURIComponent(context.apiTarget)}`);
+    apiUrl.searchParams.set('response_format', 'xml');
+    apiUrl.searchParams.set('law_full_text_format', 'xml');
+    apiUrl.searchParams.set('elm', elm);
+    if (context.asOf) apiUrl.searchParams.set('asof', context.asOf);
+    return { context, parts, elm, apiUrl: apiUrl.href };
+  }
+
+  async function loadReferenceArticle(request) {
+    if (!request?.apiUrl) throw new Error('Reference article target was not found');
+    if (referenceArticleLoadCache.has(request.apiUrl)) {
+      return referenceArticleLoadCache.get(request.apiUrl);
+    }
+
+    const loadPromise = (async () => {
+      const response = await fetchWithTimeout(request.apiUrl, { cache: 'no-store' });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const xmlText = await response.text();
+      const doc = new DOMParser().parseFromString(xmlText, 'application/xml');
+      if (doc.querySelector('parsererror')) throw new Error('Reference article XML parse error');
+      const article = doc.querySelector('law_full_text > Article');
+      if (!article) {
+        const apiMessage = normalizeText(doc.querySelector('error_info > message')?.textContent || '');
+        throw new Error(apiMessage || 'Reference article was not returned');
+      }
+      return {
+        article,
+        lawTitle: normalizeText(doc.querySelector('revision_info > law_title')?.textContent || ''),
+        lawNum: normalizeText(doc.querySelector('law_info > law_num')?.textContent || ''),
+        revisionId: normalizeText(doc.querySelector('revision_info > law_revision_id')?.textContent || ''),
+      };
+    })();
+
+    referenceArticleLoadCache.set(request.apiUrl, loadPromise);
+    while (referenceArticleLoadCache.size > 40) {
+      referenceArticleLoadCache.delete(referenceArticleLoadCache.keys().next().value);
+    }
+    loadPromise.catch(() => {
+      if (referenceArticleLoadCache.get(request.apiUrl) === loadPromise) {
+        referenceArticleLoadCache.delete(request.apiUrl);
+      }
+    });
+    return loadPromise;
+  }
+
+  function renderReferenceArticle(article, targetLawId, scope = '') {
+    const previousAnchorCounts = anchorCounts;
+    const previousRenderContextLawId = renderContextLawId;
+    anchorCounts = new Map();
+    renderContextLawId = targetLawId;
+    try {
+      return renderArticle(article, scope);
+    } finally {
+      anchorCounts = previousAnchorCounts;
+      renderContextLawId = previousRenderContextLawId;
+    }
+  }
+
+  function prefixReferencePopupIds(root, prefix) {
+    root.querySelectorAll('[id]').forEach((element) => {
+      element.id = `${prefix}-${element.id}`;
+    });
+  }
+
+  function findReferencePopupTarget(root, parts) {
+    const normalizePart = (value) => normalizeArticleKey(value || '');
+    const paragraph = normalizePart(parts?.paragraph);
+    const item = normalizePart(parts?.item);
+    if (item) {
+      const itemTarget = Array.from(root.querySelectorAll('.law-item[data-item-num], .law-subitem[data-item-num]'))
+        .find((element) => (
+          normalizePart(element.dataset.paragraphNum) === (paragraph || '1') &&
+          normalizePart(element.dataset.itemNum) === item
+        ));
+      if (itemTarget) return itemTarget;
+    }
+    if (paragraph) {
+      const paragraphTarget = Array.from(root.querySelectorAll('.law-paragraph[data-paragraph-num]'))
+        .find((element) => normalizePart(element.dataset.paragraphNum) === paragraph);
+      if (paragraphTarget) return paragraphTarget;
+    }
+    return null;
+  }
+
+  function openReferenceInNewTab(url) {
+    chrome.runtime.sendMessage({ type: 'egov-open-law-reference-tab', url })
+      .then((result) => {
+        if (!result?.ok) throw new Error('Tab could not be opened');
+      })
+      .catch(() => window.open(url, '_blank', 'noopener'));
+  }
+
+  function buildReferenceJumpKey(parts) {
+    if (!parts?.article) return '';
+    const provision = [parts.article, parts.paragraph, parts.item].filter(Boolean).join('.');
+    return parts.scope ? `${parts.scope}::${provision}` : provision;
+  }
+
+  function buildReferenceScrollViewerUrl(fullLawUrl, request, lawTitle, revisionId = '') {
+    const params = new URLSearchParams();
+    params.set('lawId', request.context.targetLawId);
+    params.set('lawName', lawTitle || request.context.targetLawId);
+    params.set('sourceUrl', fullLawUrl);
+    if (revisionId) params.set('revisionId', revisionId);
+    const viewerUrl = new URL(chrome.runtime.getURL(`viewer.html?${params.toString()}`));
+    viewerUrl.hash = request.context.parsed.hash;
+    return viewerUrl.href;
+  }
+
+  function scrollToReferenceArticle(fullLawUrl, request, data, popup) {
+    const jumpKey = buildReferenceJumpKey(request.parts);
+    const canScrollInPlace = request.context.targetLawId === lawId &&
+      (!data?.revisionId || data.revisionId === currentRevisionId);
+    if (canScrollInPlace) {
+      if (popup?.dataset.pinned !== 'true') hideReferenceViewerPopup(popup);
+      if (!jumpKey || !jumpToKey(jumpKey)) showToast('対象条文の位置を見つけられませんでした');
+      return;
+    }
+    hideReferenceViewerPopup(popup);
+    location.href = buildReferenceScrollViewerUrl(
+      fullLawUrl,
+      request,
+      data?.lawTitle || request.context.targetLawId,
+      data?.revisionId || ''
+    );
+  }
+
+  function setReferenceViewerPinned(popup, pinned) {
+    const button = popup.querySelector('.egov-lite-reference-pin');
+    popup.dataset.pinned = String(!!pinned);
+    button?.classList.toggle('is-active', !!pinned);
+    button?.setAttribute('aria-pressed', String(!!pinned));
+    if (button) {
+      button.title = pinned
+        ? 'ピン止め中（外側をクリックしても閉じない）'
+        : 'ピン止め（外側のクリックで閉じる）';
+      button.setAttribute('aria-label', button.title);
+    }
+    if (!pinned) {
+      hideUnpinnedReferenceViewerPopups(popup);
+      activateReferenceViewerPopup(popup);
+    }
+  }
+
+  function setupReferenceViewerDrag(popup, handle) {
+    handle.addEventListener('pointerdown', (event) => {
+      if (event.button !== 0 || event.target.closest('button, a, input, select, textarea')) return;
+      event.preventDefault();
+      const rect = popup.getBoundingClientRect();
+      const offsetX = event.clientX - rect.left;
+      const offsetY = event.clientY - rect.top;
+      const pointerId = event.pointerId;
+      popup.classList.add('is-dragging');
+      handle.setPointerCapture?.(pointerId);
+
+      const move = (moveEvent) => {
+        if (moveEvent.pointerId !== pointerId) return;
+        const maxLeft = Math.max(10, window.innerWidth - rect.width - 10);
+        const maxTop = Math.max(10, window.innerHeight - rect.height - 10);
+        popup.style.left = `${Math.max(10, Math.min(maxLeft, moveEvent.clientX - offsetX))}px`;
+        popup.style.top = `${Math.max(10, Math.min(maxTop, moveEvent.clientY - offsetY))}px`;
+      };
+      const finish = (finishEvent) => {
+        if (finishEvent.pointerId !== pointerId) return;
+        popup.classList.remove('is-dragging');
+        try { handle.releasePointerCapture?.(pointerId); } catch (_) {}
+        handle.removeEventListener('pointermove', move);
+        handle.removeEventListener('pointerup', finish);
+        handle.removeEventListener('pointercancel', finish);
+      };
+      handle.addEventListener('pointermove', move);
+      handle.addEventListener('pointerup', finish);
+      handle.addEventListener('pointercancel', finish);
+    });
+  }
+
+  async function showReferenceViewerPopup(source, url, point, resolvedLawId = '') {
+    hideUnpinnedReferenceViewerPopups();
+    let fullLawUrl;
+    try {
+      fullLawUrl = new URL(url, location.href).href;
+    } catch (_) {
+      return;
+    }
+
+    const request = buildReferenceArticleRequest(fullLawUrl, resolvedLawId || getLawIdFromUrl(fullLawUrl));
+    const targetKey = parseProvisionKeyFromEgovUrl(fullLawUrl);
+    const provisionLabel = request.parts?.article ? formatProvisionNumber(request.parts) : '';
+    const targetLabel = provisionLabel
+      ? `${request.parts.scope ? '附則' : ''}${provisionLabel}`
+      : (targetKey ? getReferenceTargetLabel(targetKey) : '対象条文');
+    const popupId = `egov-lite-reference-viewer-${++referenceViewerPopupSequence}`;
+    const popup = document.createElement('div');
+    popup.id = popupId;
+    popup.className = 'egov-lite-reference-viewer-popup';
+    popup.setAttribute('role', 'dialog');
+    popup.setAttribute('aria-label', `${targetLabel}の条文ポップアップ`);
+    popup.tabIndex = -1;
+    popup.innerHTML = `
+      <div class="egov-lite-reference-viewer-head">
+        <div class="egov-lite-reference-viewer-heading">
+          <div class="egov-lite-reference-viewer-title">${escapeHtml(source?.sourceLawTitle || request.context?.targetLawId || '参照条文')}</div>
+          <div class="egov-lite-reference-viewer-meta">${escapeHtml(targetLabel)}</div>
+        </div>
+        <div class="egov-lite-reference-viewer-actions">
+          <button type="button" class="egov-lite-reference-scroll" disabled>スクロールする</button>
+          <button type="button" class="egov-lite-reference-open-tab">新しいタブで開く</button>
+          <button type="button" class="egov-lite-reference-pin" aria-pressed="false"><span aria-hidden="true">📌</span></button>
+          <button type="button" class="egov-lite-reference-close" aria-label="閉じる">×</button>
+        </div>
+      </div>
+      <div class="egov-lite-reference-viewer-body">
+        <div class="egov-lite-reference-viewer-status">条文を読み込んでいます...</div>
+      </div>
+    `;
+    document.body.appendChild(popup);
+    referenceViewerPopups.add(popup);
+    activateReferenceViewerPopup(popup);
+    positionReferenceViewerPopup(popup, point);
+    popup.focus({ preventScroll: true });
+
+    const body = popup.querySelector('.egov-lite-reference-viewer-body');
+    const head = popup.querySelector('.egov-lite-reference-viewer-head');
+    const title = popup.querySelector('.egov-lite-reference-viewer-title');
+    const meta = popup.querySelector('.egov-lite-reference-viewer-meta');
+    const scrollButton = popup.querySelector('.egov-lite-reference-scroll');
+    const pinButton = popup.querySelector('.egov-lite-reference-pin');
+    let loadedReferenceData = null;
+    setReferenceViewerPinned(popup, false);
+    setupReferenceViewerDrag(popup, head);
+    popup.addEventListener('pointerdown', () => activateReferenceViewerPopup(popup));
+    popup.querySelector('.egov-lite-reference-close')?.addEventListener('click', () => hideReferenceViewerPopup(popup));
+    scrollButton?.addEventListener('click', () => {
+      if (!loadedReferenceData) return;
+      scrollToReferenceArticle(fullLawUrl, request, loadedReferenceData, popup);
+    });
+    popup.querySelector('.egov-lite-reference-open-tab')?.addEventListener('click', () => {
+      openReferenceInNewTab(fullLawUrl);
+    });
+    pinButton?.addEventListener('click', () => {
+      setReferenceViewerPinned(popup, popup.dataset.pinned !== 'true');
+    });
+    popup.addEventListener('click', (event) => {
+      event.stopPropagation();
+      const anchor = event.target instanceof Element ? event.target.closest('a[href]') : null;
+      if (!anchor || !body.contains(anchor) || !getLawIdFromUrl(anchor.href)) return;
+      event.preventDefault();
+      if (popup.dataset.pinned !== 'true') hideReferenceViewerPopup(popup);
+      openLawReferenceUrl(anchor.href, event);
+    });
+
+    if (!request.apiUrl) {
+      body.innerHTML = '<div class="egov-lite-reference-viewer-status is-error">対象条文を特定できません。「新しいタブで開く」を使用してください。</div>';
+      return;
+    }
+
+    try {
+      const data = await loadReferenceArticle(request);
+      if (!referenceViewerPopups.has(popup) || !popup.isConnected) return;
+      loadedReferenceData = data;
+      scrollButton.disabled = false;
+      title.textContent = data.lawTitle || source?.sourceLawTitle || request.context.targetLawId;
+      meta.textContent = [data.lawNum, targetLabel].filter(Boolean).join('　');
+
+      const articleHost = document.createElement('div');
+      articleHost.className = 'egov-lite-reference-viewer-article';
+      articleHost.innerHTML = renderReferenceArticle(
+        data.article,
+        request.context.targetLawId,
+        request.parts.scope || ''
+      );
+      prefixReferencePopupIds(articleHost, popupId);
+      body.replaceChildren(articleHost);
+
+      const target = findReferencePopupTarget(articleHost, request.parts);
+      if (target) {
+        target.classList.add('egov-lite-reference-viewer-target');
+        requestAnimationFrame(() => {
+          if (!popup.isConnected) return;
+          const bodyRect = body.getBoundingClientRect();
+          const targetRect = target.getBoundingClientRect();
+          const centeredOffset = Math.max(24, (body.clientHeight - Math.min(targetRect.height, body.clientHeight)) / 2);
+          body.scrollTop += targetRect.top - bodyRect.top - centeredOffset;
+        });
+      }
+    } catch (error) {
+      if (!referenceViewerPopups.has(popup) || !popup.isConnected) return;
+      console.warn('[e-Gov Enhancer] 参照条文の読み込みに失敗しました', error);
+      body.innerHTML = '<div class="egov-lite-reference-viewer-status is-error">条文を読み込めませんでした。「新しいタブで開く」を使用してください。</div>';
+    }
+  }
+
+  function openLawReferenceUrl(url, event = null, sourceLawId = '', source = null) {
     const resolvedLawId = sourceLawId || getLawIdFromUrl(url);
     if (!resolvedLawId) return false;
     const provisionKey = parseProvisionKeyFromEgovUrl(url);
     const point = event ? { x: event.clientX, y: event.clientY } : null;
     if (shouldOpenReferenceSourcePopup(event || {}, resolvedLawId)) {
-      showReferenceViewerPopup(null, url, point);
+      showReferenceViewerPopup(source, url, point, resolvedLawId);
       return true;
     }
     if (resolvedLawId === lawId && provisionKey && jumpToKey(provisionKey)) return true;
@@ -1897,7 +2446,7 @@
 
     const url = buildNormalReferenceSourceUrl(source);
     if (!url) return;
-    openLawReferenceUrl(url, event, sourceLawId);
+    openLawReferenceUrl(url, event, sourceLawId, source);
   }
 
   function clearExternalReferenceLinks() {
@@ -2016,6 +2565,20 @@
       hideReferencesPopup();
       openLawReferenceUrl(anchor.href, event);
     });
+    document.addEventListener('pointerdown', (event) => {
+      const target = event.target instanceof Node ? event.target : null;
+      for (const popup of [...referenceViewerPopups]) {
+        if (popup.dataset.pinned === 'true' || (target && popup.contains(target))) continue;
+        hideReferenceViewerPopup(popup);
+      }
+    }, true);
+    window.addEventListener('resize', () => {
+      if (!referenceViewerPopups.size || referenceViewerLayoutFrame) return;
+      referenceViewerLayoutFrame = requestAnimationFrame(() => {
+        referenceViewerLayoutFrame = 0;
+        refreshReferenceViewerPopupLayout();
+      });
+    });
     document.addEventListener('click', (event) => {
       const target = event.target instanceof Element ? event.target : null;
       if (target?.closest('.egov-lite-reference-popup, .egov-lite-reference-viewer-popup, .egov-lite-reference-clickable')) return;
@@ -2107,6 +2670,115 @@
     el.scrollIntoView({ behavior: scrollBehavior, block });
   }
 
+  function getLiteFavoriteScrollTarget() {
+    return compareMode ? leftPaneEl : window;
+  }
+
+  function getCurrentLiteFavoriteLocation() {
+    const articles = articleElementsCache.filter((article) => article.isConnected);
+    if (!articles.length) return null;
+    const viewportTop = compareMode ? leftPaneEl.getBoundingClientRect().top : 0;
+    let current = articles[0];
+    for (const article of articles) {
+      if (article.getBoundingClientRect().top > viewportTop + 1) break;
+      current = article;
+    }
+    const article = current.dataset.articleNum || '';
+    if (!article) return null;
+    const scope = current.dataset.referenceScope || '';
+    const articleKey = scope ? `${scope}::${article}` : article;
+    const rect = current.getBoundingClientRect();
+    const offset = Math.max(0, Math.min(1, (viewportTop - rect.top) / Math.max(1, rect.height)));
+    return { articleKey, offset };
+  }
+
+  function scrollToLiteFavoriteLocation(articleKey, offset = 0) {
+    const target = findJumpTarget(articleKey);
+    if (!(target instanceof Element)) return false;
+    const normalizedOffset = Math.max(0, Math.min(1, Number(offset) || 0));
+    const rect = target.getBoundingClientRect();
+    if (compareMode) {
+      const paneRect = leftPaneEl.getBoundingClientRect();
+      const top = rect.top - paneRect.top + leftPaneEl.scrollTop + rect.height * normalizedOffset;
+      leftPaneEl.scrollTo({ top: Math.max(0, top), behavior: 'instant' });
+    } else {
+      const top = rect.top + window.scrollY + rect.height * normalizedOffset;
+      window.scrollTo({ top: Math.max(0, top), behavior: 'instant' });
+    }
+    return true;
+  }
+
+  async function updateLiteFavoriteLocation() {
+    if (!lawId) return;
+    const locationRecord = getCurrentLiteFavoriteLocation();
+    if (!locationRecord) return;
+    const favorites = await getFavorites();
+    const index = favorites.findIndex((favorite) => favorite.lawId === lawId);
+    if (index < 0) return;
+    const offset = Math.round(locationRecord.offset * 10000) / 10000;
+    if (favorites[index].lastArticleKey === locationRecord.articleKey &&
+        favorites[index].lastArticleOffset === offset) return;
+    favorites[index] = {
+      ...favorites[index],
+      lastArticleKey: locationRecord.articleKey,
+      lastArticleOffset: offset,
+    };
+    await persistLocal({ favorites }, { errorLabel: '閲覧位置の保存' });
+  }
+
+  function scheduleLiteFavoriteScrollSave() {
+    clearTimeout(favoriteScrollSaveTimer);
+    favoriteScrollSaveTimer = setTimeout(() => {
+      favoriteScrollSaveTimer = 0;
+      updateLiteFavoriteLocation();
+    }, 400);
+  }
+
+  async function setupLiteFavoriteScrollPersistence() {
+    if (favoriteScrollPersistenceSetup || !lawId) return;
+    favoriteScrollPersistenceSetup = true;
+    const favorites = await getFavorites();
+    if (!favorites.some((favorite) => favorite.lawId === lawId)) {
+      favoriteScrollPersistenceSetup = false;
+      return;
+    }
+    window.addEventListener('scroll', scheduleLiteFavoriteScrollSave, { passive: true });
+    leftPaneEl.addEventListener('scroll', scheduleLiteFavoriteScrollSave, { passive: true });
+    window.addEventListener('pagehide', () => updateLiteFavoriteLocation(), { once: true });
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'hidden') updateLiteFavoriteLocation();
+    });
+  }
+
+  async function restoreLiteFavoriteScrollOnLoad() {
+    if (!lawId || location.hash) return false;
+    const favorites = await getFavorites();
+    const favorite = favorites.find((item) => item.lawId === lawId);
+    if (!favorite) return false;
+    if (typeof favorite.lastArticleKey === 'string' &&
+        scrollToLiteFavoriteLocation(favorite.lastArticleKey, favorite.lastArticleOffset)) {
+      return true;
+    }
+    if (typeof favorite.lastScrollTop === 'number') {
+      getLiteFavoriteScrollTarget().scrollTo({
+        top: Math.max(0, favorite.lastScrollTop),
+        behavior: 'instant',
+      });
+      return true;
+    }
+    return false;
+  }
+
+  function scheduleLiteFavoriteScrollRestore() {
+    if (favoriteScrollRestoreStarted) return;
+    favoriteScrollRestoreStarted = true;
+    requestAnimationFrame(async () => {
+      await restoreLiteFavoriteScrollOnLoad();
+      setupLiteFavoriteScrollPersistence();
+      favoriteScrollRestoreStarted = false;
+    });
+  }
+
   function flashJumpTarget(el) {
     el.classList.remove('lite-jump-flash');
     void el.offsetWidth;
@@ -2179,19 +2851,27 @@
     const idx = Math.max(0, articles.indexOf(current));
     const next = articles[Math.max(0, Math.min(articles.length - 1, idx + delta))];
     if (next) {
+      keyboardBookmarkTargetId = next.id || '';
       scrollToElement(next, 'start');
       setTimeout(() => flashJumpTarget(next), scrollBehavior === 'smooth' ? 220 : 0);
     }
   }
 
   function navigateJumpHistory(dir) {
-    const next = articleJumpCursor + dir;
-    if (next < 0 || next >= articleJumpHistory.length) {
+    if (!articleJumpHistory.length) {
       showToast('履歴がありません');
       return;
     }
+    const next = Math.max(
+      0,
+      Math.min(articleJumpHistory.length - 1, articleJumpCursor + dir)
+    );
+    const returnPosition = document.getElementById('lite-jump-return')
+      ? null
+      : getCurrentJumpReturnPosition();
     articleJumpCursor = next;
-    jumpToKey(articleJumpHistory[articleJumpCursor], false);
+    const moved = jumpToKey(articleJumpHistory[articleJumpCursor], false);
+    if (moved && returnPosition) showJumpReturnButton(returnPosition);
   }
 
   function showArticleDialog(initial = '') {
@@ -2256,17 +2936,27 @@
 
   function scrollRangeToView(range) {
     const rect = range.getBoundingClientRect();
+    const searchDialog = activeDialog?.dataset.dialogType === 'search'
+      ? activeDialog.querySelector('.lite-dialog')
+      : null;
+    const dialogBottom = searchDialog?.getBoundingClientRect().bottom || 0;
+    const gap = 16;
     if (compareMode) {
       const pane = leftPaneEl.contains(range.commonAncestorContainer) ? leftPaneEl : rightPaneEl;
       const paneRect = pane.getBoundingClientRect();
+      const preferredOffset = pane.clientHeight * 0.35;
+      const unobscuredOffset = Math.max(0, dialogBottom + gap - paneRect.top);
+      const targetOffset = Math.min(pane.clientHeight - gap, Math.max(preferredOffset, unobscuredOffset));
       pane.scrollTo({
-        top: Math.max(0, rect.top - paneRect.top + pane.scrollTop - pane.clientHeight * 0.35),
+        top: Math.max(0, rect.top - paneRect.top + pane.scrollTop - targetOffset),
         behavior: scrollBehavior,
       });
       return;
     }
+    const preferredOffset = window.innerHeight * 0.35;
+    const targetOffset = Math.min(window.innerHeight - gap, Math.max(preferredOffset, dialogBottom + gap));
     window.scrollTo({
-      top: Math.max(0, rect.top + window.scrollY - window.innerHeight * 0.35),
+      top: Math.max(0, rect.top + window.scrollY - targetOffset),
       behavior: scrollBehavior,
     });
   }
@@ -2345,7 +3035,7 @@
     function runSearch() {
       const query = input.value.trim();
       const count = findInPage(query);
-      if (query) {
+      if (query && count > 0) {
         pushHistory(searchHistory, query);
         focusedHistory = 0;
         renderHistory();
@@ -2415,6 +3105,7 @@
   }
 
   function getAllProvisionItems() {
+    if (liteProvisionItemsCache) return liteProvisionItemsCache;
     const items = [];
     const baseUrl = sourceUrl.split('#')[0];
     Array.from(contentEl.querySelectorAll('.law-article')).forEach((article) => {
@@ -2430,6 +3121,7 @@
         el: article,
         id: article.id,
         type: 'article',
+        targetKey: getLiteBookmarkTargetKey(article, 'article'),
         title: articleTitle,
         copyTitle: articleTitle,
         url: `${baseUrl}#${encodeURIComponent(article.id)}`,
@@ -2444,6 +3136,7 @@
           el: paragraph,
           id: paragraph.id,
           type: 'paragraph',
+          targetKey: getLiteBookmarkTargetKey(paragraph, 'paragraph'),
           title: label,
           copyTitle: label,
           url: `${baseUrl}#${encodeURIComponent(paragraph.id)}`,
@@ -2459,6 +3152,7 @@
             el: item,
             id: item.id,
             type: 'item',
+            targetKey: getLiteBookmarkTargetKey(item, 'item'),
             title: itemLabel,
             copyTitle: itemLabel,
             url: `${baseUrl}#${encodeURIComponent(item.id)}`,
@@ -2466,7 +3160,8 @@
         });
       });
     });
-    return items;
+    liteProvisionItemsCache = items;
+    return liteProvisionItemsCache;
   }
 
   function currentArticleIndex(items) {
@@ -2481,6 +3176,704 @@
   function getProvisionCopyText(item) {
     if (item.type === 'item') return buildItemCopyLines(item.el).filter(Boolean).join('\n');
     return item.type === 'paragraph' ? buildParagraphCopyText(item.el) : buildArticleCopyText(item.el);
+  }
+
+  function normalizeBookmarkKeyPart(value) {
+    return normalizeArticleKey(value).replace(/_/g, '-');
+  }
+
+  function getLiteBookmarkTargetKey(el, type = '') {
+    if (!(el instanceof Element)) return '';
+    const article = normalizeBookmarkKeyPart(el.dataset.articleNum || el.closest('.law-article')?.dataset.articleNum || '');
+    if (!article) return '';
+    const paragraph = type === 'article' ? '' : normalizeBookmarkKeyPart(el.dataset.paragraphNum || '');
+    const item = type === 'item' ? normalizeBookmarkKeyPart(el.dataset.itemNum || '') : '';
+    const scope = el.dataset.referenceScope || el.closest('[data-reference-scope]')?.dataset.referenceScope || '';
+    const provision = [article, paragraph, item].filter(Boolean).join('.');
+    return scope ? `${scope}::${provision}` : provision;
+  }
+
+  function getLiteBookmarkProvisionItems() {
+    // 通常表示と同様、第1項は条見出しと同じ対象として扱う。
+    return getAllProvisionItems().filter((item) => {
+      if (!item.targetKey) return false;
+      const parts = splitReferenceTargetKey(item.targetKey);
+      return !(item.type === 'paragraph' && parts.paragraph === '1');
+    });
+  }
+
+  function normalizeArticleBookmark(raw) {
+    if (!raw || typeof raw !== 'object') return null;
+    const bookmarkLawId = String(raw.lawId || '').trim().slice(0, 40);
+    const targetKey = String(raw.targetKey || '').trim().slice(0, 120);
+    const parts = splitReferenceTargetKey(targetKey);
+    if (!bookmarkLawId || !parts.article) return null;
+    return {
+      id: `${bookmarkLawId}::${targetKey}`,
+      lawId: bookmarkLawId,
+      lawName: String(raw.lawName || '').trim().slice(0, 500),
+      targetKey,
+      articleId: String(raw.articleId || '').slice(0, 500),
+      numberLabel: String(raw.numberLabel || getReferenceTargetLabel(targetKey)).slice(0, 200),
+      createdAt: Number.isFinite(Number(raw.createdAt)) ? Math.round(Number(raw.createdAt)) : Date.now(),
+      updatedAt: Number.isFinite(Number(raw.updatedAt)) ? Math.round(Number(raw.updatedAt)) : Date.now(),
+    };
+  }
+
+  function normalizeArticleBookmarks(raw) {
+    const result = [];
+    const seen = new Set();
+    for (const value of Array.isArray(raw) ? raw : []) {
+      const bookmark = normalizeArticleBookmark(value);
+      if (!bookmark || seen.has(bookmark.id)) continue;
+      seen.add(bookmark.id);
+      result.push(bookmark);
+    }
+    return result;
+  }
+
+  async function getArticleBookmarks() {
+    if (articleBookmarksLoaded) return articleBookmarksCache;
+    try {
+      const stored = await chrome.storage.local.get([ARTICLE_BOOKMARKS_STORAGE_KEY]);
+      articleBookmarksCache = normalizeArticleBookmarks(stored[ARTICLE_BOOKMARKS_STORAGE_KEY]);
+    } catch (_) {
+      articleBookmarksCache = [];
+    }
+    articleBookmarksLoaded = true;
+    return articleBookmarksCache;
+  }
+
+  async function saveArticleBookmarks(bookmarks) {
+    const normalized = normalizeArticleBookmarks(bookmarks);
+    const previousCache = articleBookmarksCache;
+    const previousLoaded = articleBookmarksLoaded;
+    articleBookmarksCache = normalized;
+    articleBookmarksLoaded = true;
+    try {
+      await chrome.storage.local.set({ [ARTICLE_BOOKMARKS_STORAGE_KEY]: normalized });
+      return true;
+    } catch (_) {
+      if (articleBookmarksCache === normalized) {
+        articleBookmarksCache = previousCache;
+        articleBookmarksLoaded = previousLoaded;
+      }
+      return false;
+    }
+  }
+
+  function getArticleBookmarkGutterSignature(bookmarks = articleBookmarksCache) {
+    return `${lawId}\n${(Array.isArray(bookmarks) ? bookmarks : [])
+      .filter((bookmark) => bookmark?.lawId === lawId)
+      .map((bookmark) => bookmark.targetKey)
+      .sort((left, right) => left.localeCompare(right, 'ja', { numeric: true }))
+      .join('\n')}`;
+  }
+
+  function applyLiteBookmarkGutterState(button, item, marked) {
+    if (!(button instanceof HTMLButtonElement)) return;
+    button.classList.toggle('is-bookmarked', marked);
+    button.tabIndex = marked ? 0 : -1;
+    const label = `${item.title}のブックマークを${marked ? '削除' : '追加'}`;
+    button.setAttribute('aria-label', label);
+    button.title = label;
+  }
+
+  function createLiteBookmarkGutter(item, marked) {
+    const host = item.type === 'article'
+      ? item.el.querySelector(':scope > .article-title')
+      : item.el.querySelector(':scope > .law-num');
+    if (!(host instanceof Element)) return null;
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'lite-bookmark-gutter';
+    button.dataset.bookmarkTargetKey = item.targetKey;
+    applyLiteBookmarkGutterState(button, item, marked);
+    host.classList.add('lite-bookmark-number-host');
+    host.prepend(button);
+    articleBookmarkGutterButtons.set(item.targetKey, button);
+    return button;
+  }
+
+  function updateLiteBookmarkGutter(item, marked) {
+    let button = articleBookmarkGutterButtons.get(item.targetKey);
+    if (!(button instanceof HTMLButtonElement) || !button.isConnected) {
+      button = Array.from(contentEl.querySelectorAll('.lite-bookmark-gutter'))
+        .find((candidate) => candidate.dataset.bookmarkTargetKey === item.targetKey) || null;
+    }
+    if (!(button instanceof HTMLButtonElement)) button = createLiteBookmarkGutter(item, marked);
+    else {
+      articleBookmarkGutterButtons.set(item.targetKey, button);
+      applyLiteBookmarkGutterState(button, item, marked);
+    }
+    return button;
+  }
+
+  async function renderLiteArticleBookmarkGutters() {
+    const renderVersion = ++articleBookmarkRenderVersion;
+    contentEl.querySelectorAll('.lite-bookmark-gutter').forEach((button) => button.remove());
+    contentEl.querySelectorAll('.lite-bookmark-number-host').forEach((host) => host.classList.remove('lite-bookmark-number-host'));
+    articleBookmarkGutterButtons.clear();
+    if (!lawId || !articleElementsCache.length) return;
+    const bookmarks = await getArticleBookmarks();
+    if (renderVersion !== articleBookmarkRenderVersion) return;
+    articleBookmarkGutterSignature = getArticleBookmarkGutterSignature(bookmarks);
+    const markedKeys = new Set(
+      bookmarks.filter((bookmark) => bookmark.lawId === lawId).map((bookmark) => bookmark.targetKey)
+    );
+    for (const item of getLiteBookmarkProvisionItems()) {
+      if (renderVersion !== articleBookmarkRenderVersion) return;
+      createLiteBookmarkGutter(item, markedKeys.has(item.targetKey));
+    }
+  }
+
+  async function toggleLiteArticleBookmark(item) {
+    if (!item?.targetKey || !item?.id || !lawId) return false;
+    const id = `${lawId}::${item.targetKey}`;
+    const now = performance.now();
+    const lastToggleAt = articleBookmarkLastToggleAt.get(id);
+    if (articleBookmarkToggleLocks.has(id) ||
+        (typeof lastToggleAt === 'number' && now - lastToggleAt < ARTICLE_BOOKMARK_TOGGLE_DEBOUNCE_MS)) return false;
+    articleBookmarkToggleLocks.add(id);
+    try {
+      const bookmarks = [...await getArticleBookmarks()];
+      const index = bookmarks.findIndex((bookmark) => bookmark.id === id);
+      const removing = index >= 0;
+      if (removing) bookmarks.splice(index, 1);
+      else {
+        bookmarks.push({
+          id,
+          lawId,
+          lawName: lawTitleText,
+          targetKey: item.targetKey,
+          articleId: item.id,
+          numberLabel: item.title,
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+        });
+      }
+      const previousSignature = articleBookmarkGutterSignature;
+      articleBookmarkGutterSignature = getArticleBookmarkGutterSignature(bookmarks);
+      updateLiteBookmarkGutter(item, !removing);
+      if (!await saveArticleBookmarks(bookmarks)) {
+        articleBookmarkGutterSignature = previousSignature;
+        updateLiteBookmarkGutter(item, removing);
+        showToast('ブックマークの保存に失敗しました');
+        return false;
+      }
+      const completedAt = performance.now();
+      articleBookmarkLastToggleAt.set(id, completedAt);
+      setTimeout(() => {
+        if (articleBookmarkLastToggleAt.get(id) === completedAt) articleBookmarkLastToggleAt.delete(id);
+      }, ARTICLE_BOOKMARK_TOGGLE_DEBOUNCE_MS);
+      showToast(`${item.title}のブックマークを${removing ? '削除' : '追加'}しました`);
+      return true;
+    } finally {
+      articleBookmarkToggleLocks.delete(id);
+    }
+  }
+
+  async function removeLiteArticleBookmark(bookmark) {
+    const bookmarks = [...await getArticleBookmarks()];
+    const next = bookmarks.filter((item) => item.id !== bookmark?.id);
+    if (next.length === bookmarks.length) return false;
+    if (!await saveArticleBookmarks(next)) {
+      showToast('ブックマークの削除に失敗しました');
+      return false;
+    }
+    articleBookmarkGuttersDirty = true;
+    return true;
+  }
+
+  function buildBookmarkShortcutCodes(count) {
+    if (!count) return [];
+    const strokeCount = count <= 7 ? 1 : count <= 49 ? 2 : count <= 343
+      ? 3 : Math.ceil(Math.log(count) / Math.log(BOOKMARK_SHORTCUT_KEYS.length));
+    return Array.from({ length: count }, (_value, index) => {
+      let value = index;
+      const chars = Array(strokeCount).fill(BOOKMARK_SHORTCUT_KEYS[0]);
+      for (let position = strokeCount - 1; position >= 0; position -= 1) {
+        chars[position] = BOOKMARK_SHORTCUT_KEYS[value % BOOKMARK_SHORTCUT_KEYS.length];
+        value = Math.floor(value / BOOKMARK_SHORTCUT_KEYS.length);
+      }
+      return chars.join('');
+    });
+  }
+
+  function getLiteBookmarkBody(item) {
+    let body = normalizeCopyText(getProvisionCopyText(item));
+    if (!body) return '（本文なし）';
+    const visibleNumber = normalizeCopyText((item.type === 'article'
+      ? item.el.querySelector(':scope > .article-title')
+      : item.el.querySelector(':scope > .law-num'))?.textContent || '');
+    for (const prefix of [item.title, visibleNumber]) {
+      if (prefix && body.startsWith(prefix)) body = body.slice(prefix.length).trim();
+    }
+    return body || '（本文なし）';
+  }
+
+  function getLiteBookmarkAtViewport(items = getLiteBookmarkProvisionItems()) {
+    if (!items.length) return null;
+    const paneRect = compareMode ? leftPaneEl.getBoundingClientRect() : null;
+    const anchorTop = compareMode
+      ? paneRect.top + leftPaneEl.clientHeight * 0.25
+      : window.innerHeight * 0.25;
+    let current = items[0];
+    for (const item of items) {
+      if (item.el.getBoundingClientRect().top <= anchorTop + 1) current = item;
+      else break;
+    }
+    return current;
+  }
+
+  function jumpToLiteArticleBookmark(row) {
+    if (!row?.item) {
+      showToast('ブックマーク先の条文を見つけられませんでした');
+      return false;
+    }
+    keyboardBookmarkTargetId = '';
+    const sourceItem = getLiteBookmarkAtViewport();
+    if (sourceItem?.targetKey) pushJumpHistory(sourceItem.targetKey);
+    closeDialog();
+    if (!jumpToKey(row.bookmark.targetKey, true)) {
+      showToast('ブックマーク先の条文を見つけられませんでした');
+      return false;
+    }
+    history.replaceState(null, '', `#${encodeURIComponent(row.bookmark.targetKey)}`);
+    return true;
+  }
+
+  async function toggleLiteBookmarkAtCurrentPosition() {
+    const items = getLiteBookmarkProvisionItems();
+    const keyboardItem = keyboardBookmarkTargetId
+      ? items.find((item) => item.id === keyboardBookmarkTargetId)
+      : null;
+    keyboardBookmarkTargetId = '';
+    const item = keyboardItem || getLiteBookmarkAtViewport(items);
+    if (!item) {
+      showToast('ブックマークできる条文が見つかりません');
+      return;
+    }
+    await toggleLiteArticleBookmark(item);
+  }
+
+  async function showLiteBookmarkDialog({ refresh = false } = {}) {
+    const items = getLiteBookmarkProvisionItems();
+    const itemByKey = new Map(items.map((item) => [item.targetKey, item]));
+    const rows = (await getArticleBookmarks())
+      .filter((bookmark) => bookmark.lawId === lawId)
+      .map((bookmark) => ({ bookmark, item: itemByKey.get(bookmark.targetKey) || null }))
+      .sort((left, right) => {
+        const leftIndex = left.item ? items.indexOf(left.item) : Number.MAX_SAFE_INTEGER;
+        const rightIndex = right.item ? items.indexOf(right.item) : Number.MAX_SAFE_INTEGER;
+        return leftIndex - rightIndex || left.bookmark.targetKey.localeCompare(right.bookmark.targetKey, 'ja', { numeric: true });
+      });
+    const shortcutCodes = buildBookmarkShortcutCodes(rows.length);
+    const multiStrokeHelp = rows.length >= 8 ? '、<kbd>;</kbd>/<kbd>Backspace</kbd>で最後の入力を取消' : '';
+    const dialog = createDialog('条文ブックマーク', { wide: true, deferBookmarkRender: refresh });
+    activeDialog.dataset.dialogType = 'bookmarks';
+    activeDialog.classList.add('lite-bookmark-overlay');
+    dialog.classList.add('lite-bookmark-dialog');
+    articleBookmarkDialogSessionActive = true;
+    const headerTitle = dialog.querySelector('.lite-dialog-header > div');
+    headerTitle.innerHTML = `条文ブックマーク<div class="lite-bookmark-key-status" aria-live="polite" hidden></div>`;
+    const body = dialog.querySelector('.lite-dialog-body');
+    body.classList.add('lite-bookmark-dialog-body');
+    body.innerHTML = `
+      <div class="lite-bookmark-help"><kbd>ASDFJKL</kbd>で選択・ジャンプ、<kbd>n</kbd>/<kbd>p</kbd>で移動、<kbd>Enter</kbd>でジャンプ、<kbd>Space</kbd>で削除${multiStrokeHelp}、<kbd>b</kbd>/<kbd>Esc</kbd>で閉じる</div>
+      <div class="lite-bookmark-list" role="listbox" tabindex="0">
+        ${rows.length ? rows.map((row, index) => `
+          <div class="lite-bookmark-row" role="option" data-index="${index}">
+            <div class="lite-bookmark-shortcut">${Array.from(shortcutCodes[index]).map((key) => `<kbd>${key.toUpperCase()}</kbd>`).join('')}</div>
+            <div class="lite-bookmark-content">
+              <span class="lite-bookmark-number">${escapeHtml(row.bookmark.numberLabel || getReferenceTargetLabel(row.bookmark.targetKey))}</span>
+              <span class="lite-bookmark-text">${escapeHtml(row.item ? getLiteBookmarkBody(row.item) : '現在の法令本文からこの条文を見つけられませんでした。')}</span>
+            </div>
+            <button type="button" class="lite-bookmark-delete" data-index="${index}" aria-label="ブックマークを削除" title="ブックマークを削除">×</button>
+          </div>
+        `).join('') : '<div class="lite-bookmark-empty">この法令にはブックマークがありません。</div>'}
+      </div>`;
+    const list = body.querySelector('.lite-bookmark-list');
+    const status = dialog.querySelector('.lite-bookmark-key-status');
+    const rowElements = Array.from(dialog.querySelectorAll('.lite-bookmark-row'));
+    let prefix = '';
+    let selectedVisibleIndex = -1;
+    let selectionMode = 'none';
+    let visibleIndexes = rows.map((_row, index) => index);
+
+    function updateRows({ scroll = false } = {}) {
+      visibleIndexes = [];
+      rowElements.forEach((rowEl, index) => {
+        const visible = !prefix || shortcutCodes[index].startsWith(prefix);
+        rowEl.hidden = !visible;
+        if (visible) visibleIndexes.push(index);
+      });
+      if (selectedVisibleIndex >= visibleIndexes.length) {
+        selectedVisibleIndex = -1;
+        selectionMode = 'none';
+      }
+      rowElements.forEach((rowEl) => rowEl.classList.remove('is-selected', 'is-pointer-selected'));
+      const selectedIndex = visibleIndexes[selectedVisibleIndex];
+      const selected = Number.isInteger(selectedIndex) ? rowElements[selectedIndex] : null;
+      if (selectionMode === 'keyboard') selected?.classList.add('is-selected');
+      if (selectionMode === 'pointer') selected?.classList.add('is-pointer-selected');
+      if (selectionMode === 'keyboard') selected?.setAttribute('aria-selected', 'true');
+      rowElements.filter((rowEl) => rowEl !== selected).forEach((rowEl) => rowEl.removeAttribute('aria-selected'));
+      if (selectionMode !== 'keyboard') selected?.removeAttribute('aria-selected');
+      status.hidden = !prefix;
+      status.textContent = prefix ? `入力: ${prefix.toUpperCase()}（${visibleIndexes.length}件）` : '';
+      if (scroll) (selected || rowElements[visibleIndexes[0]])?.scrollIntoView({ block: 'nearest' });
+    }
+
+    function moveSelection(delta) {
+      if (!visibleIndexes.length) return;
+      selectedVisibleIndex = selectedVisibleIndex < 0
+        ? (delta > 0 ? 0 : visibleIndexes.length - 1)
+        : (selectedVisibleIndex + delta + visibleIndexes.length) % visibleIndexes.length;
+      selectionMode = 'keyboard';
+      updateRows({ scroll: true });
+    }
+
+    async function removeSelected(confirmRemoval) {
+      const rowIndex = visibleIndexes[selectedVisibleIndex];
+      const row = Number.isInteger(rowIndex) ? rows[rowIndex] : null;
+      if (!row) return;
+      const label = row.bookmark.numberLabel || getReferenceTargetLabel(row.bookmark.targetKey);
+      if (confirmRemoval && !window.confirm(`「${label}」のブックマークを削除しますか？`)) return;
+      if (await removeLiteArticleBookmark(row.bookmark)) {
+        showToast(`${label}のブックマークを削除しました`);
+        await showLiteBookmarkDialog({ refresh: true });
+      }
+    }
+
+    list.addEventListener('click', (event) => {
+      const deleteButton = event.target.closest('.lite-bookmark-delete');
+      if (deleteButton) {
+        event.preventDefault();
+        event.stopPropagation();
+        const row = rows[Number(deleteButton.dataset.index)];
+        if (row) removeLiteArticleBookmark(row.bookmark).then((removed) => {
+          if (!removed) return;
+          showToast(`${row.bookmark.numberLabel}のブックマークを削除しました`);
+          showLiteBookmarkDialog({ refresh: true });
+        });
+        return;
+      }
+      const rowEl = event.target.closest('.lite-bookmark-row');
+      const row = rowEl ? rows[Number(rowEl.dataset.index)] : null;
+      if (row) jumpToLiteArticleBookmark(row);
+    });
+    list.addEventListener('pointermove', (event) => {
+      const rowEl = event.target.closest('.lite-bookmark-row');
+      const rowIndex = rowEl ? Number(rowEl.dataset.index) : -1;
+      const visibleIndex = visibleIndexes.indexOf(rowIndex);
+      if (visibleIndex < 0) {
+        if (selectionMode === 'pointer') {
+          selectedVisibleIndex = -1;
+          selectionMode = 'none';
+          updateRows();
+        }
+        return;
+      }
+      if (selectionMode === 'pointer' && selectedVisibleIndex === visibleIndex) return;
+      selectedVisibleIndex = visibleIndex;
+      selectionMode = 'pointer';
+      updateRows();
+    });
+    list.addEventListener('pointerleave', () => {
+      if (selectionMode !== 'pointer') return;
+      selectedVisibleIndex = -1;
+      selectionMode = 'none';
+      updateRows();
+    });
+    dialog.addEventListener('keydown', (event) => {
+      if (event.ctrlKey || event.altKey || event.metaKey) return;
+      const lower = event.key.toLowerCase();
+      if (event.key === 'Escape' || lower === 'b') {
+        event.preventDefault();
+        event.stopPropagation();
+        closeDialog();
+        return;
+      }
+      if (lower === 'n' || event.key === 'ArrowDown') { event.preventDefault(); moveSelection(1); return; }
+      if (lower === 'p' || event.key === 'ArrowUp') { event.preventDefault(); moveSelection(-1); return; }
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        const rowIndex = visibleIndexes[selectedVisibleIndex];
+        if (Number.isInteger(rowIndex)) jumpToLiteArticleBookmark(rows[rowIndex]);
+        return;
+      }
+      if (event.key === ' ' || event.code === 'Space') {
+        event.preventDefault();
+        if (!event.repeat) removeSelected(true);
+        return;
+      }
+      if (event.key === 'Backspace' || event.key === ';' || event.key === '；' || event.code === 'Semicolon') {
+        event.preventDefault();
+        if (!prefix) return;
+        prefix = prefix.slice(0, -1);
+        selectedVisibleIndex = -1;
+        selectionMode = 'none';
+        updateRows();
+        return;
+      }
+      if (!BOOKMARK_SHORTCUT_KEYS.includes(lower) || !shortcutCodes.length) return;
+      event.preventDefault();
+      if (event.repeat) return;
+      const nextPrefix = `${prefix}${lower}`;
+      if (!shortcutCodes.some((code) => code.startsWith(nextPrefix))) return;
+      prefix = nextPrefix;
+      selectedVisibleIndex = -1;
+      selectionMode = 'none';
+      updateRows({ scroll: true });
+      if (visibleIndexes.length === 1) {
+        jumpToLiteArticleBookmark(rows[visibleIndexes[0]]);
+      }
+    });
+    updateRows();
+    list.focus();
+  }
+
+  function getLiteTextHighlightLabel(entry) {
+    const formatKey = (key) => {
+      const portableKey = String(key || '');
+      return portableKey ? getReferenceTargetLabel(portableKey) : '';
+    };
+    const start = formatKey(entry?.startKey);
+    const end = formatKey(entry?.endKey || entry?.startKey);
+    if (start && end && start !== end) return `${start}～${end}`;
+    return start || end || '位置不明';
+  }
+
+  function jumpToLiteTextHighlight(entry) {
+    if (!entry?.range?.startContainer?.isConnected) {
+      showToast('ハイライト位置を本文から見つけられませんでした');
+      return false;
+    }
+    const range = entry.range;
+    closeDialog();
+    scrollRangeToView(range);
+    return true;
+  }
+
+  async function showLiteTextHighlightListDialog({ refresh = false } = {}) {
+    if (textHighlightController?.closeUi?.() === false) return;
+    const rows = await textHighlightController?.getEntries?.() || [];
+    const shortcutCodes = buildBookmarkShortcutCodes(rows.length);
+    const multiStrokeHelp = rows.length >= 8 ? '、<kbd>;</kbd>/<kbd>Backspace</kbd>で最後の入力を取消' : '';
+    const dialog = createDialog('ハイライト・メモ', { wide: true, deferBookmarkRender: refresh });
+    activeDialog.dataset.dialogType = 'highlights';
+    activeDialog.classList.add('lite-bookmark-overlay');
+    dialog.classList.add('lite-bookmark-dialog');
+    const headerTitle = dialog.querySelector('.lite-dialog-header > div');
+    const displayLimit = Number(textHighlightController?.displayLimit) || 1000;
+    headerTitle.innerHTML = `ハイライト・メモ（${rows.length}/${displayLimit}）<div class="lite-bookmark-key-status" aria-live="polite" hidden></div>`;
+    const body = dialog.querySelector('.lite-dialog-body');
+    body.classList.add('lite-bookmark-dialog-body');
+    body.innerHTML = `
+      <div class="lite-bookmark-help"><kbd>ASDFJKL</kbd>で選択・ジャンプ、<kbd>n</kbd>/<kbd>p</kbd>で移動、<kbd>Enter</kbd>でジャンプ、<kbd>Space</kbd>で削除${multiStrokeHelp}、<kbd>m</kbd>/<kbd>Esc</kbd>で閉じる</div>
+      <div class="lite-bookmark-list" role="listbox" tabindex="0">
+        ${rows.length ? rows.map((row, index) => `
+          <div class="lite-bookmark-row" role="option" data-index="${index}">
+            <div class="lite-bookmark-shortcut">${Array.from(shortcutCodes[index]).map((key) => `<kbd>${key.toUpperCase()}</kbd>`).join('')}</div>
+            <div class="lite-bookmark-content lite-highlight-list-content">
+              <div class="lite-highlight-list-main">
+                <span class="lite-highlight-list-color is-${escapeHtml(row.colorKey)}" aria-hidden="true"></span>
+                <span class="lite-bookmark-number">${escapeHtml(getLiteTextHighlightLabel(row))}</span>
+                <span class="lite-bookmark-text">${escapeHtml(normalizeCopyText(row.text) || '（本文なし）')}</span>
+              </div>
+              ${row.memo ? `<div class="lite-highlight-list-memo">${escapeHtml(String(row.memo).replace(/\s+/g, ' ').trim())}</div>` : ''}
+            </div>
+            <button type="button" class="lite-bookmark-delete" data-index="${index}" aria-label="ハイライトを削除" title="ハイライトを削除">×</button>
+          </div>
+        `).join('') : '<div class="lite-bookmark-empty">この法令にはハイライト・メモがありません。</div>'}
+      </div>
+      <div class="lite-highlight-list-tooltip" role="tooltip" hidden></div>`;
+    const list = body.querySelector('.lite-bookmark-list');
+    const status = dialog.querySelector('.lite-bookmark-key-status');
+    const memoTooltip = body.querySelector('.lite-highlight-list-tooltip');
+    const rowElements = Array.from(dialog.querySelectorAll('.lite-bookmark-row'));
+    let prefix = '';
+    let selectedVisibleIndex = -1;
+    let selectionMode = 'none';
+    let visibleIndexes = rows.map((_row, index) => index);
+    let memoTooltipVersion = 0;
+
+    function hideMemoTooltip() {
+      memoTooltipVersion += 1;
+      memoTooltip.hidden = true;
+      memoTooltip.textContent = '';
+    }
+
+    function showMemoTooltip(rowIndex, rowEl) {
+      memoTooltipVersion += 1;
+      const memo = String(rows[rowIndex]?.memo || '');
+      if (!memo.trim() || !(rowEl instanceof Element) || rowEl.hidden) {
+        hideMemoTooltip();
+        return;
+      }
+      memoTooltip.textContent = memo;
+      memoTooltip.hidden = false;
+      const rowRect = rowEl.getBoundingClientRect();
+      const tooltipRect = memoTooltip.getBoundingClientRect();
+      const margin = 10;
+      const left = Math.max(margin, Math.min(rowRect.left + 72, window.innerWidth - tooltipRect.width - margin));
+      const below = rowRect.bottom + 6;
+      const top = below + tooltipRect.height <= window.innerHeight - margin
+        ? below
+        : Math.max(margin, rowRect.top - tooltipRect.height - 6);
+      memoTooltip.style.left = `${Math.round(left)}px`;
+      memoTooltip.style.top = `${Math.round(top)}px`;
+    }
+
+    function scheduleMemoTooltip(rowIndex, rowEl) {
+      const version = ++memoTooltipVersion;
+      requestAnimationFrame(() => {
+        if (version === memoTooltipVersion) showMemoTooltip(rowIndex, rowEl);
+      });
+    }
+
+    function updateRows({ scroll = false } = {}) {
+      visibleIndexes = [];
+      rowElements.forEach((rowEl, index) => {
+        const visible = !prefix || shortcutCodes[index].startsWith(prefix);
+        rowEl.hidden = !visible;
+        if (visible) visibleIndexes.push(index);
+      });
+      if (selectedVisibleIndex >= visibleIndexes.length) {
+        selectedVisibleIndex = -1;
+        selectionMode = 'none';
+      }
+      rowElements.forEach((rowEl) => rowEl.classList.remove('is-selected', 'is-pointer-selected'));
+      const selectedIndex = visibleIndexes[selectedVisibleIndex];
+      const selected = Number.isInteger(selectedIndex) ? rowElements[selectedIndex] : null;
+      if (selectionMode === 'keyboard') selected?.classList.add('is-selected');
+      if (selectionMode === 'pointer') selected?.classList.add('is-pointer-selected');
+      if (selectionMode === 'keyboard') selected?.setAttribute('aria-selected', 'true');
+      rowElements.filter((rowEl) => rowEl !== selected).forEach((rowEl) => rowEl.removeAttribute('aria-selected'));
+      if (selectionMode !== 'keyboard') selected?.removeAttribute('aria-selected');
+      status.hidden = !prefix;
+      status.textContent = prefix ? `入力: ${prefix.toUpperCase()}（${visibleIndexes.length}件）` : '';
+      if (scroll) (selected || rowElements[visibleIndexes[0]])?.scrollIntoView({ block: 'nearest' });
+      if (selected) {
+        const selectedRowIndex = visibleIndexes[selectedVisibleIndex];
+        scheduleMemoTooltip(selectedRowIndex, selected);
+      } else {
+        hideMemoTooltip();
+      }
+    }
+
+    function moveSelection(delta) {
+      if (!visibleIndexes.length) return;
+      selectedVisibleIndex = selectedVisibleIndex < 0
+        ? (delta > 0 ? 0 : visibleIndexes.length - 1)
+        : (selectedVisibleIndex + delta + visibleIndexes.length) % visibleIndexes.length;
+      selectionMode = 'keyboard';
+      updateRows({ scroll: true });
+    }
+
+    async function removeRow(row, confirmRemoval) {
+      if (!row) return;
+      const label = getLiteTextHighlightLabel(row);
+      if (row.memo) {
+        if (!window.confirm('ハイライトとともにメモも削除されますが良いですか？')) return;
+      } else if (confirmRemoval && !window.confirm(`「${label}」のハイライトを削除しますか？`)) {
+        return;
+      }
+      if (!textHighlightController?.removeById?.(row.id)) return;
+      showToast(`${label}のハイライトを削除しました`);
+      await showLiteTextHighlightListDialog({ refresh: true });
+    }
+
+    list.addEventListener('click', (event) => {
+      const deleteButton = event.target.closest('.lite-bookmark-delete');
+      if (deleteButton) {
+        event.preventDefault();
+        event.stopPropagation();
+        removeRow(rows[Number(deleteButton.dataset.index)], false);
+        return;
+      }
+      const rowEl = event.target.closest('.lite-bookmark-row');
+      const row = rowEl ? rows[Number(rowEl.dataset.index)] : null;
+      if (row) jumpToLiteTextHighlight(row);
+    });
+    list.addEventListener('pointermove', (event) => {
+      const rowEl = event.target.closest('.lite-bookmark-row');
+      const rowIndex = rowEl ? Number(rowEl.dataset.index) : -1;
+      const visibleIndex = visibleIndexes.indexOf(rowIndex);
+      if (visibleIndex < 0) {
+        if (selectionMode === 'pointer') {
+          selectedVisibleIndex = -1;
+          selectionMode = 'none';
+          updateRows();
+        }
+        return;
+      }
+      if (selectionMode === 'pointer' && selectedVisibleIndex === visibleIndex) {
+        showMemoTooltip(rowIndex, rowEl);
+        return;
+      }
+      selectedVisibleIndex = visibleIndex;
+      selectionMode = 'pointer';
+      updateRows();
+    });
+    list.addEventListener('pointerleave', () => {
+      if (selectionMode !== 'pointer') return;
+      selectedVisibleIndex = -1;
+      selectionMode = 'none';
+      updateRows();
+    });
+    list.addEventListener('scroll', () => {
+      const rowIndex = visibleIndexes[selectedVisibleIndex];
+      const rowEl = Number.isInteger(rowIndex) ? rowElements[rowIndex] : null;
+      if (rowEl) showMemoTooltip(rowIndex, rowEl);
+      else hideMemoTooltip();
+    }, { passive: true });
+    dialog.addEventListener('keydown', (event) => {
+      if (event.ctrlKey || event.altKey || event.metaKey) return;
+      const lower = event.key.toLowerCase();
+      if (event.key === 'Escape' || lower === 'm' || lower === 'b') {
+        event.preventDefault();
+        event.stopPropagation();
+        closeDialog();
+        return;
+      }
+      if (lower === 'n' || event.key === 'ArrowDown') { event.preventDefault(); moveSelection(1); return; }
+      if (lower === 'p' || event.key === 'ArrowUp') { event.preventDefault(); moveSelection(-1); return; }
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        const rowIndex = visibleIndexes[selectedVisibleIndex];
+        if (Number.isInteger(rowIndex)) jumpToLiteTextHighlight(rows[rowIndex]);
+        return;
+      }
+      if (event.key === ' ' || event.code === 'Space') {
+        event.preventDefault();
+        const rowIndex = visibleIndexes[selectedVisibleIndex];
+        if (!event.repeat && Number.isInteger(rowIndex)) removeRow(rows[rowIndex], true);
+        return;
+      }
+      if (event.key === 'Backspace' || event.key === ';' || event.key === '；' || event.code === 'Semicolon') {
+        event.preventDefault();
+        if (!prefix) return;
+        prefix = prefix.slice(0, -1);
+        selectedVisibleIndex = -1;
+        selectionMode = 'none';
+        updateRows();
+        return;
+      }
+      if (!BOOKMARK_SHORTCUT_KEYS.includes(lower) || !shortcutCodes.length) return;
+      event.preventDefault();
+      if (event.repeat) return;
+      const nextPrefix = `${prefix}${lower}`;
+      if (!shortcutCodes.some((code) => code.startsWith(nextPrefix))) return;
+      prefix = nextPrefix;
+      selectedVisibleIndex = -1;
+      selectionMode = 'none';
+      updateRows({ scroll: true });
+      if (visibleIndexes.length === 1) jumpToLiteTextHighlight(rows[visibleIndexes[0]]);
+    });
+    updateRows();
+    list.focus();
   }
 
   function buildProvisionCopyPayload(item, mode) {
@@ -2585,6 +3978,9 @@
         <div><kbd>0-9</kbd><span>条文ジャンプダイアログ</span></div>
         <div><kbd>h / l</kbd><span>条文ジャンプ履歴を前後移動</span></div>
         <div><kbd>r</kbd><span>ジャンプ前の位置に戻る</span></div>
+        <div><kbd>b</kbd><span>条文ブックマーク一覧を開く / 閉じる</span></div>
+        <div><kbd>m</kbd><span>ハイライト・メモ一覧を開く / 閉じる</span></div>
+        <div><kbd>Space</kbd><span>現在位置の条文ブックマークを追加 / 削除</span></div>
         <div><kbd>n / p</kbd><span>次/前の条へ移動</span></div>
         <div><kbd>d / u</kbd><span>下/上へ80%スクロール</span></div>
         <div><kbd>g / Shift+g</kbd><span>括弧内の表示切替</span></div>
@@ -2734,6 +4130,15 @@
     hideLiteTooltip();
   });
   contentEl.addEventListener('click', (event) => {
+    const bookmarkButton = event.target.closest?.('.lite-bookmark-gutter');
+    if (bookmarkButton && contentEl.contains(bookmarkButton)) {
+      event.preventDefault();
+      event.stopPropagation();
+      const item = getLiteBookmarkProvisionItems()
+        .find((candidate) => candidate.targetKey === bookmarkButton.dataset.bookmarkTargetKey);
+      if (item) toggleLiteArticleBookmark(item);
+      return;
+    }
     const term = event.target.closest?.('.lite-defined-term[data-term]');
     if (!term || !contentEl.contains(term)) return;
     event.preventDefault();
@@ -2793,6 +4198,10 @@
     });
     showToast(result.isFavorite ? 'お気に入りに追加しました' : 'お気に入りから削除しました');
     await persistLocal({ favorites }, { errorLabel: 'お気に入りの保存' });
+    if (result.isFavorite) {
+      setupLiteFavoriteScrollPersistence();
+      updateLiteFavoriteLocation();
+    }
     refreshFavoriteButton();
   }
 
@@ -2841,10 +4250,18 @@
     const isGuideShortcut = event.key === '?' || (event.shiftKey && (event.key === '/' || event.code === 'Slash'));
     if (isGuideShortcut) { event.preventDefault(); showShortcutDialog(); return; }
     if (event.ctrlKey || event.altKey || event.metaKey) return;
+    if (event.key !== ' ' && lower !== 'n' && lower !== 'p') keyboardBookmarkTargetId = '';
     if (/^[0-9]$/.test(event.key)) { event.preventDefault(); showArticleDialog(event.key); return; }
     if (lower === 's') { event.preventDefault(); showSearchDialog(); return; }
     if (lower === 'h') { event.preventDefault(); navigateJumpHistory(-1); return; }
     if (lower === 'l') { event.preventDefault(); navigateJumpHistory(1); return; }
+    if (lower === 'b' && !activeDialog) { event.preventDefault(); showLiteBookmarkDialog(); return; }
+    if (lower === 'm' && !activeDialog) { event.preventDefault(); showLiteTextHighlightListDialog(); return; }
+    if (!activeDialog && (event.key === ' ' || event.code === 'Space')) {
+      event.preventDefault();
+      if (!event.repeat) toggleLiteBookmarkAtCurrentPosition();
+      return;
+    }
     if (lower === 'n') { event.preventDefault(); navigateArticle(1); return; }
     if (lower === 'p') { event.preventDefault(); navigateArticle(-1); return; }
     if (lower === 'd') { event.preventDefault(); scrollPage(0.8); return; }
@@ -2864,6 +4281,21 @@
     if (lower === 't') { event.preventDefault(); showTocDialog(); }
   });
 
+  document.addEventListener('wheel', () => { keyboardBookmarkTargetId = ''; }, { passive: true });
+  document.addEventListener('pointerdown', () => { keyboardBookmarkTargetId = ''; });
+
+  chrome.storage.local.get([TEXT_HIGHLIGHTS_ENABLED_KEY]).then((stored) => {
+    if (stored[TEXT_HIGHLIGHTS_ENABLED_KEY] === false) return;
+    textHighlightController = globalThis.EgovTextHighlights?.create({
+      root: contentEl,
+      lawId,
+      onBeforeOpen() {
+        hideLiteTooltip(true);
+        hideReferencesPopup();
+        hideUnpinnedReferenceViewerPopups();
+      },
+    }) || null;
+  }).catch(() => {});
   setupExternalReferenceInteractions();
   loadLaw();
 })();
