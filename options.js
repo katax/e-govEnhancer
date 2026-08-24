@@ -1,8 +1,8 @@
 document.addEventListener('DOMContentLoaded', async () => {
   const googleDriveSyncCard = document.getElementById('googleDriveSyncCard');
-  // 一般公開時は、各端末の定期同期が Google Drive API のプロジェクト共通クォータを消費し、
-  // 利用者の増加によって無料枠超過やレート制限を招くおそれがあるため、同期設定を一時的に非表示にする。
-  // 同期頻度や利用量の制御を見直して再公開する際は、この値を true に変更する。
+  // 一般公開版ではGoogle Drive同期を停止し、manifestからidentity / alarms / OAuth関連設定も外している。
+  // APIクォータ、プライバシー説明、認証運用を整えて再公開する場合は、background.jsの機能フラグと
+  // manifestの権限・OAuth設定・Google APIホスト権限も併せて戻すこと。
   const GOOGLE_DRIVE_SYNC_OPTIONS_VISIBLE = false;
   googleDriveSyncCard.hidden = !GOOGLE_DRIVE_SYNC_OPTIONS_VISIBLE;
 

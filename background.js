@@ -40,6 +40,10 @@ let bundledReferencesParsePromise = null;
 let bundledReferencesReaderCount = 0;
 const EGOV_API_V2_BASE = 'https://laws.e-gov.go.jp/api/2';
 const liteLawLoadPromises = new Map();
+// Chromeウェブストア一般公開版では、Google Drive同期に必要な identity / alarms 権限の
+// 利用目的説明と外部API運用が必要になるため、同期機能を停止して権限も要求しない。
+// 将来再公開する場合は、manifestの権限・OAuth設定・Google APIホスト権限も併せて戻すこと。
+const GOOGLE_DRIVE_SYNC_AVAILABLE = false;
 const GOOGLE_DRIVE_FAVORITES_FILE_NAME = 'egov-enhancer-favorites.json';
 const GOOGLE_DRIVE_FAVORITES_TYPE = 'egov-extension-google-drive-favorites';
 const GOOGLE_DRIVE_FAVORITES_VERSION = 4;
@@ -60,6 +64,15 @@ const GOOGLE_DRIVE_SYNC_KEYS = Object.freeze({
   syncHighlights: 'googleDriveSyncHighlightsEnabled',
   highlightRecords: 'googleDriveHighlightRecordState',
 });
+if (!GOOGLE_DRIVE_SYNC_AVAILABLE) {
+  // 以前のテスト版で同期をONにしていた端末でも、更新後に同期済み状態を表示しない。
+  // お気に入り・条文ブックマーク・ハイライト・メモ本体のローカルデータは保持する。
+  chrome.storage.local.set({
+    [GOOGLE_DRIVE_SYNC_KEYS.enabled]: false,
+    [GOOGLE_DRIVE_SYNC_KEYS.accountEmail]: '',
+    [GOOGLE_DRIVE_SYNC_KEYS.lastError]: '',
+  }).catch(() => {});
+}
 const GOOGLE_DRIVE_FAVORITE_STORAGE_KEYS = ['favorites', 'favFolders', 'folderCollapsed', 'articleBookmarks'];
 let applyingGoogleDriveFavorites = false;
 let applyingGoogleDriveHighlights = false;
@@ -944,7 +957,7 @@ async function openActionPopup(mode = '') {
   }
 }
 
-chrome.storage.onChanged.addListener((changes, area) => {
+if (GOOGLE_DRIVE_SYNC_AVAILABLE) chrome.storage.onChanged.addListener((changes, area) => {
   if (area !== 'local') return;
   const favoritesChanged = !applyingGoogleDriveFavorites &&
     GOOGLE_DRIVE_FAVORITE_STORAGE_KEYS.some((key) => changes[key]);
@@ -977,7 +990,7 @@ chrome.storage.onChanged.addListener((changes, area) => {
   }).catch(() => {});
 });
 
-chrome.alarms.onAlarm.addListener((alarm) => {
+if (GOOGLE_DRIVE_SYNC_AVAILABLE) chrome.alarms.onAlarm.addListener((alarm) => {
   if (alarm.name !== GOOGLE_DRIVE_SYNC_ALARM && alarm.name !== GOOGLE_DRIVE_PERIODIC_ALARM) return;
   syncGoogleDriveFavorites().catch(() => {});
 });
@@ -989,17 +1002,25 @@ async function restoreGoogleDriveSyncSchedule() {
   return enabled;
 }
 
-chrome.runtime.onStartup?.addListener(() => {
+if (GOOGLE_DRIVE_SYNC_AVAILABLE) chrome.runtime.onStartup?.addListener(() => {
   restoreGoogleDriveSyncSchedule().then((enabled) => {
     if (enabled) scheduleGoogleDriveFavoritesSync(3000);
   }).catch(() => {});
 });
 
-chrome.runtime.onInstalled?.addListener(() => {
+if (GOOGLE_DRIVE_SYNC_AVAILABLE) chrome.runtime.onInstalled?.addListener(() => {
   restoreGoogleDriveSyncSchedule().catch(() => {});
 });
 
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+  if (!GOOGLE_DRIVE_SYNC_AVAILABLE && [
+    'egov-google-drive-favorites-enable',
+    'egov-google-drive-favorites-disable',
+    'egov-google-drive-favorites-sync-now',
+  ].includes(message?.type)) {
+    sendResponse({ ok: false, error: 'Google Drive同期は現在利用できません。' });
+    return undefined;
+  }
   if (message?.type === 'egov-google-drive-favorites-enable') {
     enableGoogleDriveFavoritesSync()
       .then((result) => sendResponse({ ok: true, ...result }))

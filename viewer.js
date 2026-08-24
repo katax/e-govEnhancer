@@ -140,6 +140,13 @@
   let referenceViewerLayoutFrame = 0;
   let renderContextLawId = lawId;
   let liteDefinitionMap = new Map();
+  let liteDefinitionMatcher = null;
+  let liteDefinitionObserver = null;
+  let liteDefinitionMarkedArticles = new WeakSet();
+  let liteDefinitionMarkQueue = new Set();
+  let liteDefinitionMarkWorkScheduled = false;
+  let liteDefinitionGeneration = 0;
+  let liteDefinitionApplyGeneration = 0;
   let activeLiteTooltip = null;
   let liteTooltipPinned = false;
   let liteTooltipShowTimer = 0;
@@ -247,7 +254,7 @@
 
   function toggleDefinitionLinks() {
     liteDefTooltipEnabled = !liteDefTooltipEnabled;
-    if (liteDefTooltipEnabled) applyLiteDefinitionTooltips();
+    if (liteDefTooltipEnabled) scheduleApplyLiteDefinitionTooltips();
     else clearLiteDefinitionTooltips();
     syncViewerToggleButtons();
     persistLocal({ [LITE_DEF_TOOLTIP_ENABLED_KEY]: liteDefTooltipEnabled });
@@ -1105,12 +1112,19 @@
     return isSharedTermBoundarySafe(text, start, end);
   }
 
-  function markDefinedTerms(definitions) {
+  function createLiteDefinitionMatcher(definitions) {
     const defs = Array.from(definitions.values()).sort((a, b) => b.term.length - a.term.length);
-    if (!defs.length) return;
-    const byTerm = new Map(defs.map((def) => [def.term, def]));
-    const pattern = new RegExp(defs.map((def) => escapeRegExp(def.term)).join('|'), 'g');
-    const walker = document.createTreeWalker(contentEl, NodeFilter.SHOW_TEXT, {
+    if (!defs.length) return null;
+    return {
+      byTerm: new Map(defs.map((def) => [def.term, def])),
+      pattern: new RegExp(defs.map((def) => escapeRegExp(def.term)).join('|'), 'g'),
+    };
+  }
+
+  function markDefinedTermsInArticle(article, matcher) {
+    if (!(article instanceof Element) || !matcher) return 0;
+    const { byTerm, pattern } = matcher;
+    const walker = document.createTreeWalker(article, NodeFilter.SHOW_TEXT, {
       acceptNode(node) {
         if (!node.nodeValue || !pattern.test(node.nodeValue)) {
           pattern.lastIndex = 0;
@@ -1123,6 +1137,7 @@
     const nodes = [];
     let node;
     while ((node = walker.nextNode())) nodes.push(node);
+    let markedCount = 0;
 
     for (const textNode of nodes) {
       const text = textNode.nodeValue || '';
@@ -1146,11 +1161,55 @@
         fragment.appendChild(span);
         lastIndex = end;
         changed = true;
+        markedCount += 1;
       }
       if (!changed) continue;
       if (lastIndex < text.length) fragment.appendChild(document.createTextNode(text.slice(lastIndex)));
       textNode.parentNode.replaceChild(fragment, textNode);
     }
+    return markedCount;
+  }
+
+  function scheduleNextLiteDefinitionArticle(generation = liteDefinitionGeneration) {
+    if (liteDefinitionMarkWorkScheduled || !liteDefinitionMarkQueue.size) return;
+    liteDefinitionMarkWorkScheduled = true;
+    runWhenIdle(() => {
+      if (generation !== liteDefinitionGeneration) return;
+      liteDefinitionMarkWorkScheduled = false;
+      if (!liteDefTooltipEnabled || !liteDefinitionMatcher) return;
+      const article = liteDefinitionMarkQueue.values().next().value;
+      if (article) liteDefinitionMarkQueue.delete(article);
+      if (article?.isConnected && !liteDefinitionMarkedArticles.has(article)) {
+        liteDefinitionMarkedArticles.add(article);
+        markDefinedTermsInArticle(article, liteDefinitionMatcher);
+      }
+      scheduleNextLiteDefinitionArticle(generation);
+    }, 180);
+  }
+
+  function queueLiteDefinitionArticle(article) {
+    if (!(article instanceof Element) || liteDefinitionMarkedArticles.has(article)) return;
+    liteDefinitionMarkQueue.add(article);
+    scheduleNextLiteDefinitionArticle();
+  }
+
+  function observeLiteDefinitionArticles() {
+    const articles = Array.from(contentEl.querySelectorAll('.law-article'));
+    if (!articles.length) return;
+    if (typeof IntersectionObserver !== 'function') {
+      articles.forEach(queueLiteDefinitionArticle);
+      return;
+    }
+    const generation = liteDefinitionGeneration;
+    liteDefinitionObserver = new IntersectionObserver((entries, observer) => {
+      if (generation !== liteDefinitionGeneration || !liteDefTooltipEnabled) return;
+      entries.forEach((entry) => {
+        if (!entry.isIntersecting) return;
+        observer.unobserve(entry.target);
+        queueLiteDefinitionArticle(entry.target);
+      });
+    }, { root: null, rootMargin: '1200px 0px', threshold: 0 });
+    articles.forEach((article) => liteDefinitionObserver.observe(article));
   }
 
   function unwrapElements(selector) {
@@ -1164,6 +1223,14 @@
   }
 
   function clearLiteDefinitionTooltips() {
+    liteDefinitionApplyGeneration += 1;
+    liteDefinitionGeneration += 1;
+    liteDefinitionObserver?.disconnect();
+    liteDefinitionObserver = null;
+    liteDefinitionMatcher = null;
+    liteDefinitionMarkQueue.clear();
+    liteDefinitionMarkWorkScheduled = false;
+    liteDefinitionMarkedArticles = new WeakSet();
     hideLiteTooltip(true);
     liteDefinitionMap = new Map();
     unwrapElements('.lite-defined-term');
@@ -1174,13 +1241,17 @@
     if (!liteDefTooltipEnabled || !contentEl.querySelector('.law-article')) return;
     const startedAt = performance.now();
     liteDefinitionMap = extractDefinitions();
-    markDefinedTerms(liteDefinitionMap);
-    const markedCount = contentEl.querySelectorAll('.lite-defined-term').length;
-    console.debug(`[e-Gov Enhancer] Lite 定義用語ガイド: extract+mark ${(performance.now() - startedAt).toFixed(1)}ms (${liteDefinitionMap.size} terms / ${markedCount} marks)`);
+    liteDefinitionMatcher = createLiteDefinitionMatcher(liteDefinitionMap);
+    observeLiteDefinitionArticles();
+    console.debug(`[e-Gov Enhancer] Lite 定義用語ガイド: extract ${(performance.now() - startedAt).toFixed(1)}ms (${liteDefinitionMap.size} terms / lazy marking)`);
   }
 
   function scheduleApplyLiteDefinitionTooltips() {
-    runWhenIdle(applyLiteDefinitionTooltips, 900);
+    const generation = ++liteDefinitionApplyGeneration;
+    runWhenIdle(() => {
+      if (generation !== liteDefinitionApplyGeneration || !liteDefTooltipEnabled) return;
+      applyLiteDefinitionTooltips();
+    }, 900);
   }
 
   function renderLaw(law, doc) {
