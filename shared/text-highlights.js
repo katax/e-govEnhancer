@@ -1112,6 +1112,10 @@
       memoInput.addEventListener('input', updateDirtyState);
       memoInput.addEventListener('focusout', () => {
         setTimeout(() => {
+          // Losing focus because the browser window/tab itself became inactive
+          // must not close the memo editor. Only an in-page focus move may close
+          // an unchanged editor.
+          if (!document.hasFocus()) return;
           if (!isMemoEditing() || isMemoDirty()) return;
           cancelMemoEdit({ focusButton: false });
         }, 0);
@@ -1354,7 +1358,13 @@
         clearHover({ immediate: true });
       }, true);
       global.addEventListener('blur', () => {
-        if (isMemoEditing() && !isMemoDirty()) cancelMemoEdit({ focusButton: false });
+        // Keep the highlight/memo popup open while the memo editor is visible,
+        // even when no text has been changed yet. The user may temporarily move
+        // to another window to check or copy information for the memo.
+        if (isMemoEditing()) {
+          clearHover({ immediate: true });
+          return;
+        }
         hidePopup();
         clearHover({ immediate: true });
       });

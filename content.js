@@ -1535,6 +1535,10 @@
     memoInput?.addEventListener('input', updateTextHighlightMemoDirtyState);
     memoInput?.addEventListener('focusout', () => {
       setTimeout(() => {
+        // Losing focus because the browser window/tab itself became inactive
+        // must not close the memo editor. Only an in-page focus move may close
+        // an unchanged editor.
+        if (!document.hasFocus()) return;
         if (!isTextHighlightMemoEditing() || isTextHighlightMemoDirty()) return;
         cancelTextHighlightMemoEdit({ focusButton: false });
       }, 0);
@@ -1776,8 +1780,12 @@
       clearTextHighlightMemoHover({ immediate: true });
     }, true);
     window.addEventListener('blur', () => {
-      if (isTextHighlightMemoEditing() && !isTextHighlightMemoDirty()) {
-        cancelTextHighlightMemoEdit({ focusButton: false });
+      // Keep the highlight/memo popup open while the memo editor is visible,
+      // even when no text has been changed yet. The user may temporarily move
+      // to another window to check or copy information for the memo.
+      if (isTextHighlightMemoEditing()) {
+        clearTextHighlightMemoHover({ immediate: true });
+        return;
       }
       hideTextHighlightPopup();
       clearTextHighlightMemoHover({ immediate: true });
