@@ -1,0 +1,2784 @@
+{
+  "rules": [
+    {
+      "id": "COURTRULE090D9C90525",
+      "slug": "court-rule-090d9c905251",
+      "title": "下級裁判所事務処理規則",
+      "lawNum": "昭和23年8月18日最高裁判所規則第１６号",
+      "lawType": "Rule",
+      "aliases": [
+        "下級裁判所事務処理規則",
+        "下級裁判所事務処理"
+      ],
+      "baseLawId": "",
+      "baseLawTitle": "",
+      "sourceLabel": "裁判所公式PDF・2026年9月3日取得",
+      "dataPath": "data/court-rules/court-rule-090d9c905251.xml",
+      "officialUrl": "https://www.courts.go.jp/toukei_siryou/kisokusyu/sonota_kisoku/index.html",
+      "pdfUrl": "https://www.courts.go.jp/vc-files/courts/file5/kakyuuki-H240401.pdf",
+      "categories": [
+        "その他"
+      ]
+    },
+    {
+      "id": "COURTRULEE2CD9C5794F",
+      "slug": "court-rule-e2cd9c5794f6",
+      "title": "下級裁判所裁判官指名諮問委員会規則",
+      "lawNum": "平成15年2月26日最高裁判所規則第６号",
+      "lawType": "Rule",
+      "aliases": [
+        "下級裁判所裁判官指名諮問委員会規則",
+        "下級裁判所裁判官指名諮問委員会"
+      ],
+      "baseLawId": "",
+      "baseLawTitle": "",
+      "sourceLabel": "裁判所公式PDF・2026年9月3日取得",
+      "dataPath": "data/court-rules/court-rule-e2cd9c5794f6.xml",
+      "officialUrl": "https://www.courts.go.jp/toukei_siryou/kisokusyu/sonota_kisoku/index.html",
+      "pdfUrl": "https://www.courts.go.jp/assets/kakyuusaibansyosaibankansimeisimoniinkai.pdf",
+      "categories": [
+        "その他"
+      ]
+    },
+    {
+      "id": "COURTRULE196F35A0960",
+      "slug": "court-rule-196f35a0960d",
+      "title": "事件記録等の特別保存に関する規則",
+      "lawNum": "令和５年最高裁判所規則第９号",
+      "lawType": "Rule",
+      "aliases": [
+        "事件記録等の特別保存に関する規則",
+        "事件記録等の特別保存"
+      ],
+      "baseLawId": "",
+      "baseLawTitle": "",
+      "sourceLabel": "裁判所公式PDF・2026年9月3日取得",
+      "dataPath": "data/court-rules/court-rule-196f35a0960d.xml",
+      "officialUrl": "https://www.courts.go.jp/toukei_siryou/kisokusyu/sonota_kisoku/index.html",
+      "pdfUrl": "https://www.courts.go.jp/assets/R8_5tokubetuhozonkisoku.pdf",
+      "categories": [
+        "その他"
+      ]
+    },
+    {
+      "id": "COURTRULE42685BA8562",
+      "slug": "court-rule-42685ba8562b",
+      "title": "司法修習委員会規則",
+      "lawNum": "平成15年4月9日最高裁判所規則第１１号",
+      "lawType": "Rule",
+      "aliases": [
+        "司法修習委員会規則",
+        "司法修習委員会"
+      ],
+      "baseLawId": "",
+      "baseLawTitle": "",
+      "sourceLabel": "裁判所公式PDF・2026年9月3日取得",
+      "dataPath": "data/court-rules/court-rule-42685ba8562b.xml",
+      "officialUrl": "https://www.courts.go.jp/toukei_siryou/kisokusyu/sonota_kisoku/index.html",
+      "pdfUrl": "https://www.courts.go.jp/assets/shihousyusyuuiinnkai.pdf",
+      "categories": [
+        "その他"
+      ]
+    },
+    {
+      "id": "COURTRULEE9978243E9E",
+      "slug": "court-rule-e9978243e9e5",
+      "title": "司法修習生の修習専念資金の貸与等に関する規則",
+      "lawNum": "平成21年10月30日最高裁判所規則第１０号",
+      "lawType": "Rule",
+      "aliases": [
+        "司法修習生の修習専念資金の貸与等に関する規則",
+        "司法修習生の修習専念資金の貸与等"
+      ],
+      "baseLawId": "322AC0000000059",
+      "baseLawTitle": "裁判所法",
+      "sourceLabel": "裁判所公式PDF・2026年9月3日取得",
+      "dataPath": "data/court-rules/court-rule-e9978243e9e5.xml",
+      "officialUrl": "https://www.courts.go.jp/toukei_siryou/kisokusyu/sonota_kisoku/index.html",
+      "pdfUrl": "https://www.courts.go.jp/vc-files/courts/tsuutatsu/01kitei/051101_kisoku.pdf",
+      "categories": [
+        "その他"
+      ]
+    },
+    {
+      "id": "COURTRULE810653033C6",
+      "slug": "court-rule-810653033c6b",
+      "title": "地方裁判所における審理に判事補の参与を認める規則",
+      "lawNum": "昭和47年9月18日最高裁判所規則第8号",
+      "lawType": "Rule",
+      "aliases": [
+        "地方裁判所における審理に判事補の参与を認める規則",
+        "地方裁判所における審理に判事補の参与を認める"
+      ],
+      "baseLawId": "",
+      "baseLawTitle": "",
+      "sourceLabel": "裁判所公式PDF・2026年9月3日取得",
+      "dataPath": "data/court-rules/court-rule-810653033c6b.xml",
+      "officialUrl": "https://www.courts.go.jp/toukei_siryou/kisokusyu/sonota_kisoku/index.html",
+      "pdfUrl": "https://www.courts.go.jp/assets/R6.9.17tihousaibansyoniokerusinnrinihannjihonosannyowomitomerukisoku.pdf",
+      "categories": [
+        "その他"
+      ]
+    },
+    {
+      "id": "COURTRULE6CCA9DB25D1",
+      "slug": "court-rule-6cca9db25d11",
+      "title": "地方裁判所委員会規則",
+      "lawNum": "平成15年4月2日最高裁判所規則第９号",
+      "lawType": "Rule",
+      "aliases": [
+        "地方裁判所委員会規則",
+        "地方裁判所委員会"
+      ],
+      "baseLawId": "",
+      "baseLawTitle": "",
+      "sourceLabel": "裁判所公式PDF・2026年9月3日取得",
+      "dataPath": "data/court-rules/court-rule-6cca9db25d11.xml",
+      "officialUrl": "https://www.courts.go.jp/toukei_siryou/kisokusyu/sonota_kisoku/index.html",
+      "pdfUrl": "https://www.courts.go.jp/assets/chihousaibannshoiinnkaikisoku.pdf",
+      "categories": [
+        "その他"
+      ]
+    },
+    {
+      "id": "COURTRULE01814B10163",
+      "slug": "court-rule-01814b101635",
+      "title": "大法廷首席書記官等に関する規則",
+      "lawNum": "昭和29年6月1日最高裁判所規則第９号",
+      "lawType": "Rule",
+      "aliases": [
+        "大法廷首席書記官等に関する規則",
+        "大法廷首席書記官等"
+      ],
+      "baseLawId": "",
+      "baseLawTitle": "",
+      "sourceLabel": "裁判所公式PDF・2026年9月3日取得",
+      "dataPath": "data/court-rules/court-rule-01814b101635.xml",
+      "officialUrl": "https://www.courts.go.jp/toukei_siryou/kisokusyu/sonota_kisoku/index.html",
+      "pdfUrl": "https://www.courts.go.jp/vc-files/courts/file5/daihouteisyusekisyokikantounikansurukisoku.pdf",
+      "categories": [
+        "その他"
+      ]
+    },
+    {
+      "id": "COURTRULEDB5F9D434A6",
+      "slug": "court-rule-db5f9d434a6c",
+      "title": "家庭裁判所委員会規則",
+      "lawNum": "平成15年4月2日最高裁判所規則第１０号",
+      "lawType": "Rule",
+      "aliases": [
+        "家庭裁判所委員会規則",
+        "家庭裁判所委員会"
+      ],
+      "baseLawId": "",
+      "baseLawTitle": "",
+      "sourceLabel": "裁判所公式PDF・2026年9月3日取得",
+      "dataPath": "data/court-rules/court-rule-db5f9d434a6c.xml",
+      "officialUrl": "https://www.courts.go.jp/toukei_siryou/kisokusyu/sonota_kisoku/index.html",
+      "pdfUrl": "https://www.courts.go.jp/assets/kateisaibannshoiinnkaikisoku.pdf",
+      "categories": [
+        "その他"
+      ]
+    },
+    {
+      "id": "COURTRULEDCC1CAA4557",
+      "slug": "court-rule-dcc1caa4557f",
+      "title": "最高裁判所事務総局規則",
+      "lawNum": "昭和２２年１２月１日最高裁判所規則第１０号",
+      "lawType": "Rule",
+      "aliases": [
+        "最高裁判所事務総局規則",
+        "最高裁判所事務総局"
+      ],
+      "baseLawId": "",
+      "baseLawTitle": "",
+      "sourceLabel": "裁判所公式PDF・2026年9月3日取得",
+      "dataPath": "data/court-rules/court-rule-dcc1caa4557f.xml",
+      "officialUrl": "https://www.courts.go.jp/toukei_siryou/kisokusyu/sonota_kisoku/index.html",
+      "pdfUrl": "https://www.courts.go.jp/vc-files/courts/file5/saikousaibansyojimusoukyokukisoku.pdf",
+      "categories": [
+        "その他"
+      ]
+    },
+    {
+      "id": "COURTRULE79DEA981533",
+      "slug": "court-rule-79dea9815338",
+      "title": "最高裁判所行政不服審査委員会規則",
+      "lawNum": "平成２８年３月２４日最高裁判所規則第二号",
+      "lawType": "Rule",
+      "aliases": [
+        "最高裁判所行政不服審査委員会規則",
+        "最高裁判所行政不服審査委員会"
+      ],
+      "baseLawId": "",
+      "baseLawTitle": "",
+      "sourceLabel": "裁判所公式PDF・2026年9月3日取得",
+      "dataPath": "data/court-rules/court-rule-79dea9815338.xml",
+      "officialUrl": "https://www.courts.go.jp/toukei_siryou/kisokusyu/sonota_kisoku/index.html",
+      "pdfUrl": "https://www.courts.go.jp/vc-files/courts/file4/gyouhukuiinnkai_kisoku_kisokusyuuyou.pdf",
+      "categories": [
+        "その他"
+      ]
+    },
+    {
+      "id": "COURTRULEDB1AF01328B",
+      "slug": "court-rule-db1af01328b7",
+      "title": "最高裁判所裁判事務処理規則",
+      "lawNum": "昭和22年11月1日最高裁判所規則第6号",
+      "lawType": "Rule",
+      "aliases": [
+        "最高裁判所裁判事務処理規則",
+        "最高裁判所裁判事務処理"
+      ],
+      "baseLawId": "",
+      "baseLawTitle": "",
+      "sourceLabel": "裁判所公式PDF・2026年9月3日取得",
+      "dataPath": "data/court-rules/court-rule-db1af01328b7.xml",
+      "officialUrl": "https://www.courts.go.jp/toukei_siryou/kisokusyu/sonota_kisoku/index.html",
+      "pdfUrl": "https://www.courts.go.jp/assets/R6.9.17saikousaibansyosaibanjimusyorikisoku.pdf",
+      "categories": [
+        "その他"
+      ]
+    },
+    {
+      "id": "COURTRULE1A4E404FE22",
+      "slug": "court-rule-1a4e404fe22d",
+      "title": "沖縄の復帰に伴う特別措置に関する規則",
+      "lawNum": "昭和47年5月2日最高裁判所規則第１号",
+      "lawType": "Rule",
+      "aliases": [
+        "沖縄の復帰に伴う特別措置に関する規則",
+        "沖縄の復帰に伴う特別措置"
+      ],
+      "baseLawId": "",
+      "baseLawTitle": "",
+      "sourceLabel": "裁判所公式PDF・2026年9月3日取得",
+      "dataPath": "data/court-rules/court-rule-1a4e404fe22d.xml",
+      "officialUrl": "https://www.courts.go.jp/toukei_siryou/kisokusyu/sonota_kisoku/index.html",
+      "pdfUrl": "https://www.courts.go.jp/assets/okinawanohukkinitomonautokubetusotinikansurukisoku.pdf",
+      "categories": [
+        "その他"
+      ]
+    },
+    {
+      "id": "COURTRULEFE96FE0D0FD",
+      "slug": "court-rule-fe96fe0d0fd2",
+      "title": "法廷の秩序維持等にあたる裁判所職員に関する規則",
+      "lawNum": "昭和27年9月16日最高裁判所規則第２３号",
+      "lawType": "Rule",
+      "aliases": [
+        "法廷の秩序維持等にあたる裁判所職員に関する規則",
+        "法廷の秩序維持等にあたる裁判所職員"
+      ],
+      "baseLawId": "",
+      "baseLawTitle": "",
+      "sourceLabel": "裁判所公式PDF・2026年9月3日取得",
+      "dataPath": "data/court-rules/court-rule-fe96fe0d0fd2.xml",
+      "officialUrl": "https://www.courts.go.jp/toukei_siryou/kisokusyu/sonota_kisoku/index.html",
+      "pdfUrl": "https://www.courts.go.jp/assets/houteinotitujoijitouniatarusaibansyosyokuinnikansurukisoku.pdf",
+      "categories": [
+        "その他"
+      ]
+    },
+    {
+      "id": "COURTRULE3EE78B9A672",
+      "slug": "court-rule-3ee78b9a672a",
+      "title": "法廷等の秩序維持に関する規則",
+      "lawNum": "昭和27年9月1日最高裁判所規則第２０号",
+      "lawType": "Rule",
+      "aliases": [
+        "法廷等の秩序維持に関する規則",
+        "法廷等の秩序維持"
+      ],
+      "baseLawId": "",
+      "baseLawTitle": "",
+      "sourceLabel": "裁判所公式PDF・2026年9月3日取得",
+      "dataPath": "data/court-rules/court-rule-3ee78b9a672a.xml",
+      "officialUrl": "https://www.courts.go.jp/toukei_siryou/kisokusyu/sonota_kisoku/index.html",
+      "pdfUrl": "https://www.courts.go.jp/assets/R6.9.17houteitounotitujoijinikannsurukisoku.pdf",
+      "categories": [
+        "その他"
+      ]
+    },
+    {
+      "id": "COURTRULE93E277D5A07",
+      "slug": "court-rule-93e277d5a077",
+      "title": "簡易裁判所判事選考規則",
+      "lawNum": "昭和22年9月19日最高裁判所規則第２号",
+      "lawType": "Rule",
+      "aliases": [
+        "簡易裁判所判事選考規則",
+        "簡易裁判所判事選考"
+      ],
+      "baseLawId": "",
+      "baseLawTitle": "",
+      "sourceLabel": "裁判所公式PDF・2026年9月3日取得",
+      "dataPath": "data/court-rules/court-rule-93e277d5a077.xml",
+      "officialUrl": "https://www.courts.go.jp/toukei_siryou/kisokusyu/sonota_kisoku/index.html",
+      "pdfUrl": "https://www.courts.go.jp/assets/kansaihanjisenkou.pdf",
+      "categories": [
+        "その他"
+      ]
+    },
+    {
+      "id": "COURTRULE71FF23F9C2F",
+      "slug": "court-rule-71ff23f9c2f1",
+      "title": "裁判の迅速化に係る検証に関する規則",
+      "lawNum": "平成15年11月13日最高裁判所規則第26号",
+      "lawType": "Rule",
+      "aliases": [
+        "裁判の迅速化に係る検証に関する規則",
+        "裁判の迅速化に係る検証"
+      ],
+      "baseLawId": "",
+      "baseLawTitle": "",
+      "sourceLabel": "裁判所公式PDF・2026年9月3日取得",
+      "dataPath": "data/court-rules/court-rule-71ff23f9c2f1.xml",
+      "officialUrl": "https://www.courts.go.jp/toukei_siryou/kisokusyu/sonota_kisoku/index.html",
+      "pdfUrl": "https://www.courts.go.jp/vc-files/courts/2022/r4kisokukaisei.pdf",
+      "categories": [
+        "その他"
+      ]
+    },
+    {
+      "id": "COURTRULE56D6A6728CE",
+      "slug": "court-rule-56d6a6728ce3",
+      "title": "裁判官の人事評価に関する規則",
+      "lawNum": "平成16年1月7日最高裁判所規則第１号",
+      "lawType": "Rule",
+      "aliases": [
+        "裁判官の人事評価に関する規則",
+        "裁判官の人事評価"
+      ],
+      "baseLawId": "",
+      "baseLawTitle": "",
+      "sourceLabel": "裁判所公式PDF・2026年9月3日取得",
+      "dataPath": "data/court-rules/court-rule-56d6a6728ce3.xml",
+      "officialUrl": "https://www.courts.go.jp/toukei_siryou/kisokusyu/sonota_kisoku/index.html",
+      "pdfUrl": "https://www.courts.go.jp/assets/saibankanjinjihyouka.pdf",
+      "categories": [
+        "その他"
+      ]
+    },
+    {
+      "id": "COURTRULEEE61EEA2ED7",
+      "slug": "court-rule-ee61eea2ed7a",
+      "title": "裁判官の分限事件手続規則",
+      "lawNum": "昭和23年6月7日最高裁判所規則第６号",
+      "lawType": "Rule",
+      "aliases": [
+        "裁判官の分限事件手続規則",
+        "裁判官の分限事件"
+      ],
+      "baseLawId": "",
+      "baseLawTitle": "",
+      "sourceLabel": "裁判所公式PDF・2026年9月3日取得",
+      "dataPath": "data/court-rules/court-rule-ee61eea2ed7a.xml",
+      "officialUrl": "https://www.courts.go.jp/toukei_siryou/kisokusyu/sonota_kisoku/index.html",
+      "pdfUrl": "https://www.courts.go.jp/vc-files/courts/file5/saibankannobungenjikentetudukikisoku.pdf",
+      "categories": [
+        "その他"
+      ]
+    },
+    {
+      "id": "COURTRULE5295C750B64",
+      "slug": "court-rule-5295c750b64c",
+      "title": "裁判所傍聴規則",
+      "lawNum": "昭和27年9月1日最高裁判所規則第２１号",
+      "lawType": "Rule",
+      "aliases": [
+        "裁判所傍聴規則",
+        "裁判所傍聴"
+      ],
+      "baseLawId": "",
+      "baseLawTitle": "",
+      "sourceLabel": "裁判所公式PDF・2026年9月3日取得",
+      "dataPath": "data/court-rules/court-rule-5295c750b64c.xml",
+      "officialUrl": "https://www.courts.go.jp/toukei_siryou/kisokusyu/sonota_kisoku/index.html",
+      "pdfUrl": "https://www.courts.go.jp/assets/saibansyoboutyoukisoku.pdf",
+      "categories": [
+        "その他"
+      ]
+    },
+    {
+      "id": "COURTRULE78727D09F45",
+      "slug": "court-rule-78727d09f450",
+      "title": "不正競争防止法による保全手続等に関する規則",
+      "lawNum": "平成二十七年十月二十八日最高裁判所規則第十号",
+      "lawType": "Rule",
+      "aliases": [
+        "不正競争防止法による保全手続等に関する規則",
+        "不正競争防止法による保全手続等"
+      ],
+      "baseLawId": "",
+      "baseLawTitle": "",
+      "sourceLabel": "裁判所公式PDF・2026年9月3日取得",
+      "dataPath": "data/court-rules/court-rule-78727d09f450.xml",
+      "officialUrl": "https://www.courts.go.jp/toukei_siryou/kisokusyu/keizi_kisoku/index.html",
+      "pdfUrl": "https://www.courts.go.jp/vc-files/courts/file4/huseikyousouboushikisoku-20160101.pdf",
+      "categories": [
+        "刑事"
+      ]
+    },
+    {
+      "id": "COURTRULE7C999EB48F2",
+      "slug": "court-rule-7c999eb48f22",
+      "title": "不正競争防止法第二十三条第一項に規定する事件に係る刑事訴訟手続の特例に関する規則",
+      "lawNum": "平成二十三年十月十一日最高裁判所規則第四号",
+      "lawType": "Rule",
+      "aliases": [
+        "不正競争防止法第二十三条第一項に規定する事件に係る刑事訴訟手続の特例に関する規則",
+        "不正競争防止法第二十三条第一項に規定する事件に係る刑事訴訟手続の特例"
+      ],
+      "baseLawId": "405AC0000000047",
+      "baseLawTitle": "不正競争防止法",
+      "sourceLabel": "裁判所公式PDF・2026年9月3日取得",
+      "dataPath": "data/court-rules/court-rule-7c999eb48f22.xml",
+      "officialUrl": "https://www.courts.go.jp/toukei_siryou/kisokusyu/keizi_kisoku/index.html",
+      "pdfUrl": "https://www.courts.go.jp/vc-files/courts/2023/huseikyousouboushitokureikisoku.20240215.pdf",
+      "categories": [
+        "刑事"
+      ]
+    },
+    {
+      "id": "COURTRULE2F07EF9D620",
+      "slug": "court-rule-2f07ef9d6202",
+      "title": "交通事件即決裁判手続規則",
+      "lawNum": "昭和29年9月15日最高裁判所規則第１４号",
+      "lawType": "Rule",
+      "aliases": [
+        "交通事件即決裁判手続規則",
+        "交通事件即決裁判"
+      ],
+      "baseLawId": "329AC0000000113",
+      "baseLawTitle": "第一条交通事件即決裁判手続法",
+      "sourceLabel": "裁判所公式PDF・2026年9月3日取得",
+      "dataPath": "data/court-rules/court-rule-2f07ef9d6202.xml",
+      "officialUrl": "https://www.courts.go.jp/toukei_siryou/kisokusyu/keizi_kisoku/index.html",
+      "pdfUrl": "https://www.courts.go.jp/assets/koutsusokketsukisoku.pdf",
+      "categories": [
+        "刑事"
+      ]
+    },
+    {
+      "id": "COURTRULEA609A66D9A7",
+      "slug": "court-rule-a609a66d9a70",
+      "title": "刑事の手続における証人等に対する給付に関する規則",
+      "lawNum": "昭和四六年六月一四日最高裁判所規則第八号",
+      "lawType": "Rule",
+      "aliases": [
+        "刑事の手続における証人等に対する給付に関する規則",
+        "刑事の手続における証人等に対する給付"
+      ],
+      "baseLawId": "",
+      "baseLawTitle": "",
+      "sourceLabel": "裁判所公式PDF・2026年9月3日取得",
+      "dataPath": "data/court-rules/court-rule-a609a66d9a70.xml",
+      "officialUrl": "https://www.courts.go.jp/toukei_siryou/kisokusyu/keizi_kisoku/index.html",
+      "pdfUrl": "https://www.courts.go.jp/assets/shounintoukisoku20260701.pdf",
+      "categories": [
+        "刑事"
+      ]
+    },
+    {
+      "id": "COURTRULE11213007519",
+      "slug": "court-rule-11213007519d",
+      "title": "刑事事件における第三者所有物の没収手続に関する規則",
+      "lawNum": "昭和38年7月23日最高裁判所規則第８号",
+      "lawType": "Rule",
+      "aliases": [
+        "刑事事件における第三者所有物の没収手続に関する規則",
+        "刑事事件における第三者所有物の没収手続"
+      ],
+      "baseLawId": "",
+      "baseLawTitle": "",
+      "sourceLabel": "裁判所公式PDF・2026年9月3日取得",
+      "dataPath": "data/court-rules/court-rule-11213007519d.xml",
+      "officialUrl": "https://www.courts.go.jp/toukei_siryou/kisokusyu/keizi_kisoku/index.html",
+      "pdfUrl": "https://www.courts.go.jp/assets/daisanshabosyukisoku.pdf",
+      "categories": [
+        "刑事"
+      ]
+    },
+    {
+      "id": "COURTRULE41465B882CA",
+      "slug": "court-rule-41465b882cae",
+      "title": "刑事補償規則",
+      "lawNum": "昭和25年1月1日最高裁判所規則第１号",
+      "lawType": "Rule",
+      "aliases": [
+        "刑事補償規則",
+        "刑事補償"
+      ],
+      "baseLawId": "",
+      "baseLawTitle": "",
+      "sourceLabel": "裁判所公式PDF・2026年9月3日取得",
+      "dataPath": "data/court-rules/court-rule-41465b882cae.xml",
+      "officialUrl": "https://www.courts.go.jp/toukei_siryou/kisokusyu/keizi_kisoku/index.html",
+      "pdfUrl": "https://www.courts.go.jp/assets/keijihoshoukisoku.pdf",
+      "categories": [
+        "刑事"
+      ]
+    },
+    {
+      "id": "COURTRULECRIMPROC001",
+      "slug": "criminal-procedure",
+      "title": "刑事訴訟規則",
+      "lawNum": "昭和二十三年十二月一日最高裁判所規則第三十二号",
+      "lawType": "Rule",
+      "aliases": [
+        "刑事訴訟規則",
+        "刑訴規則",
+        "刑訴"
+      ],
+      "baseLawId": "323AC0000000131",
+      "baseLawTitle": "刑事訴訟法",
+      "sourceLabel": "添付PDF・令和8年5月21日反映版",
+      "dataPath": "data/court-rules/criminal-procedure.xml",
+      "officialUrl": "https://www.courts.go.jp/toukei_siryou/kisokusyu/keizi_kisoku/index.html",
+      "pdfUrl": "https://www.courts.go.jp/assets/keijisosyoukisoku_20260521.pdf",
+      "categories": [
+        "刑事"
+      ]
+    },
+    {
+      "id": "COURTRULE6B3A3895410",
+      "slug": "court-rule-6b3a38954104",
+      "title": "刑事訴訟規則施行規則",
+      "lawNum": "昭和二三年一二月二三日最高裁判所規則第三四号",
+      "lawType": "Rule",
+      "aliases": [
+        "刑事訴訟規則施行規則",
+        "刑事訴訟規則施行"
+      ],
+      "baseLawId": "",
+      "baseLawTitle": "",
+      "sourceLabel": "裁判所公式PDF・2026年9月3日取得",
+      "dataPath": "data/court-rules/court-rule-6b3a38954104.xml",
+      "officialUrl": "https://www.courts.go.jp/toukei_siryou/kisokusyu/keizi_kisoku/index.html",
+      "pdfUrl": "https://www.courts.go.jp/vc-files/courts/2023/keijisosyoukisokusekoukisoku.20240215.pdf",
+      "categories": [
+        "刑事"
+      ]
+    },
+    {
+      "id": "COURTRULE2B769B25179",
+      "slug": "court-rule-2b769b25179f",
+      "title": "国税庁監察官の行う捜査に関する刑事訴訟規則の適用に関する規則",
+      "lawNum": "昭和二五年六月八日最高裁判所規則第一九号",
+      "lawType": "Rule",
+      "aliases": [
+        "国税庁監察官の行う捜査に関する刑事訴訟規則の適用に関する規則",
+        "国税庁監察官の行う捜査に関する刑事訴訟規則の適用"
+      ],
+      "baseLawId": "",
+      "baseLawTitle": "",
+      "sourceLabel": "裁判所公式PDF・2026年9月3日取得",
+      "dataPath": "data/court-rules/court-rule-2b769b25179f.xml",
+      "officialUrl": "https://www.courts.go.jp/toukei_siryou/kisokusyu/keizi_kisoku/index.html",
+      "pdfUrl": "https://www.courts.go.jp/vc-files/courts/2023/kokuzeichokansatukansousakisoku.20240215.pdf",
+      "categories": [
+        "刑事"
+      ]
+    },
+    {
+      "id": "COURTRULE00E0AD698B8",
+      "slug": "court-rule-00e0ad698b8c",
+      "title": "国際刑事裁判所に対する協力の手続に関する規則",
+      "lawNum": "平成19年7月19日最高裁判所規則第８号",
+      "lawType": "Rule",
+      "aliases": [
+        "国際刑事裁判所に対する協力の手続に関する規則",
+        "国際刑事裁判所に対する協力の手続"
+      ],
+      "baseLawId": "",
+      "baseLawTitle": "",
+      "sourceLabel": "裁判所公式PDF・2026年9月3日取得",
+      "dataPath": "data/court-rules/court-rule-00e0ad698b8c.xml",
+      "officialUrl": "https://www.courts.go.jp/toukei_siryou/kisokusyu/keizi_kisoku/index.html",
+      "pdfUrl": "https://www.courts.go.jp/vc-files/courts/2022/kokusaikeijisaibansyokisoku20220221.pdf",
+      "categories": [
+        "刑事"
+      ]
+    },
+    {
+      "id": "COURTRULEC33106D3BDA",
+      "slug": "court-rule-c33106d3bda7",
+      "title": "国際受刑者移送法による東京地方裁判所の審査の手続に関する規則",
+      "lawNum": "平成15年1月29日最高裁判所規則第１号",
+      "lawType": "Rule",
+      "aliases": [
+        "国際受刑者移送法による東京地方裁判所の審査の手続に関する規則",
+        "国際受刑者移送法による東京地方裁判所の審査の手続"
+      ],
+      "baseLawId": "414AC0000000066",
+      "baseLawTitle": "第一条国際受刑者移送法",
+      "sourceLabel": "裁判所公式PDF・2026年9月3日取得",
+      "dataPath": "data/court-rules/court-rule-c33106d3bda7.xml",
+      "officialUrl": "https://www.courts.go.jp/toukei_siryou/kisokusyu/keizi_kisoku/index.html",
+      "pdfUrl": "https://www.courts.go.jp/assets/jyukeisyaisoushinnsa.pdf",
+      "categories": [
+        "刑事"
+      ]
+    },
+    {
+      "id": "COURTRULE9F03F845B5D",
+      "slug": "court-rule-9f03f845b5d7",
+      "title": "国際捜査共助規則",
+      "lawNum": "昭和55年9月18日最高裁判所規則第７号",
+      "lawType": "Rule",
+      "aliases": [
+        "国際捜査共助規則",
+        "国際捜査共助"
+      ],
+      "baseLawId": "",
+      "baseLawTitle": "",
+      "sourceLabel": "裁判所公式PDF・2026年9月3日取得",
+      "dataPath": "data/court-rules/court-rule-9f03f845b5d7.xml",
+      "officialUrl": "https://www.courts.go.jp/toukei_siryou/kisokusyu/keizi_kisoku/index.html",
+      "pdfUrl": "https://www.courts.go.jp/assets/kokusaisousakyoujyo.pdf",
+      "categories": [
+        "刑事"
+      ]
+    },
+    {
+      "id": "COURTRULE7B031E316D9",
+      "slug": "court-rule-7b031e316d99",
+      "title": "平和条約の実施に伴う刑事判決の再審査の手続に関する規則",
+      "lawNum": "昭和27年4月28日最高裁判所規則第１１号",
+      "lawType": "Rule",
+      "aliases": [
+        "平和条約の実施に伴う刑事判決の再審査の手続に関する規則",
+        "平和条約の実施に伴う刑事判決の再審査の手続"
+      ],
+      "baseLawId": "",
+      "baseLawTitle": "",
+      "sourceLabel": "裁判所公式PDF・2026年9月3日取得",
+      "dataPath": "data/court-rules/court-rule-7b031e316d99.xml",
+      "officialUrl": "https://www.courts.go.jp/toukei_siryou/kisokusyu/keizi_kisoku/index.html",
+      "pdfUrl": "https://www.courts.go.jp/assets/heiwajyouyakusaishinsa.pdf",
+      "categories": [
+        "刑事"
+      ]
+    },
+    {
+      "id": "COURTRULE1F62AF10D41",
+      "slug": "court-rule-1f62af10d41e",
+      "title": "心神喪失等の状態で重大な他害行為を行った者の医療及び観察等に関する法律による審判の手続等に関する規則",
+      "lawNum": "平成16年8月9日最高裁判所規則第１３号",
+      "lawType": "Rule",
+      "aliases": [
+        "心神喪失等の状態で重大な他害行為を行った者の医療及び観察等に関する法律による審判の手続等に関する規則",
+        "心神喪失等の状態で重大な他害行為を行った者の医療及び観察等に関する法律による審判の手続等"
+      ],
+      "baseLawId": "",
+      "baseLawTitle": "",
+      "sourceLabel": "裁判所公式PDF・2026年9月3日取得",
+      "dataPath": "data/court-rules/court-rule-1f62af10d41e.xml",
+      "officialUrl": "https://www.courts.go.jp/toukei_siryou/kisokusyu/keizi_kisoku/index.html",
+      "pdfUrl": "https://www.courts.go.jp/assets/iryoukansatsukisoku-20260521.pdf",
+      "categories": [
+        "刑事"
+      ]
+    },
+    {
+      "id": "COURTRULE7F48688B89C",
+      "slug": "court-rule-7f48688b89c6",
+      "title": "性的な姿態を撮影する行為等の処罰及び押収物に記録された性的な姿態の影像に係る電磁的記録の消去等に関する法律による消去等の手続等に関する規則",
+      "lawNum": "令和６年４月17日最高裁判所規則第10号",
+      "lawType": "Rule",
+      "aliases": [
+        "性的な姿態を撮影する行為等の処罰及び押収物に記録された性的な姿態の影像に係る電磁的記録の消去等に関する法律による消去等の手続等に関する規則",
+        "性的な姿態を撮影する行為等の処罰及び押収物に記録された性的な姿態の影像に係る電磁的記録の消去等に関する法律による消去等の手続等"
+      ],
+      "baseLawId": "",
+      "baseLawTitle": "",
+      "sourceLabel": "裁判所公式PDF・2026年9月3日取得",
+      "dataPath": "data/court-rules/court-rule-7f48688b89c6.xml",
+      "officialUrl": "https://www.courts.go.jp/toukei_siryou/kisokusyu/keizi_kisoku/index.html",
+      "pdfUrl": "https://www.courts.go.jp/assets/seitekishitaisatueikisoku20260521.pdf",
+      "categories": [
+        "刑事"
+      ]
+    },
+    {
+      "id": "COURTRULE7C9703A0079",
+      "slug": "court-rule-7c9703a0079e",
+      "title": "旧刑事訴訟法事件の控訴審及び上告審における審判の特例に関する規則",
+      "lawNum": "昭和25年12月20日最高裁判所規則第３０号",
+      "lawType": "Rule",
+      "aliases": [
+        "旧刑事訴訟法事件の控訴審及び上告審における審判の特例に関する規則",
+        "旧刑事訴訟法事件の控訴審及び上告審における審判の特例"
+      ],
+      "baseLawId": "323AC0000000131",
+      "baseLawTitle": "刑事訴訟法",
+      "sourceLabel": "裁判所公式PDF・2026年9月3日取得",
+      "dataPath": "data/court-rules/court-rule-7c9703a0079e.xml",
+      "officialUrl": "https://www.courts.go.jp/toukei_siryou/kisokusyu/keizi_kisoku/index.html",
+      "pdfUrl": "https://www.courts.go.jp/assets/jyousoshinpantokurei.pdf",
+      "categories": [
+        "刑事"
+      ]
+    },
+    {
+      "id": "COURTRULEBF8E8C0C832",
+      "slug": "court-rule-bf8e8c0c832c",
+      "title": "犯罪収益に係る保全手続等に関する規則",
+      "lawNum": "平成11年12月1日号外最高裁判所規則第１０号",
+      "lawType": "Rule",
+      "aliases": [
+        "犯罪収益に係る保全手続等に関する規則",
+        "犯罪収益に係る保全手続等"
+      ],
+      "baseLawId": "",
+      "baseLawTitle": "",
+      "sourceLabel": "裁判所公式PDF・2026年9月3日取得",
+      "dataPath": "data/court-rules/court-rule-bf8e8c0c832c.xml",
+      "officialUrl": "https://www.courts.go.jp/toukei_siryou/kisokusyu/keizi_kisoku/index.html",
+      "pdfUrl": "https://www.courts.go.jp/vc-files/courts/2023/hanzaisyuuekihozennkisoku20230220.pdf",
+      "categories": [
+        "刑事"
+      ]
+    },
+    {
+      "id": "COURTRULE87987ED1742",
+      "slug": "court-rule-87987ed17421",
+      "title": "犯罪捜査のための通信傍受に関する規則",
+      "lawNum": "平成十二年三月十五日最高裁判所規則第六号",
+      "lawType": "Rule",
+      "aliases": [
+        "犯罪捜査のための通信傍受に関する規則",
+        "犯罪捜査のための通信傍受"
+      ],
+      "baseLawId": "",
+      "baseLawTitle": "",
+      "sourceLabel": "裁判所公式PDF・2026年9月3日取得",
+      "dataPath": "data/court-rules/court-rule-87987ed17421.xml",
+      "officialUrl": "https://www.courts.go.jp/toukei_siryou/kisokusyu/keizi_kisoku/index.html",
+      "pdfUrl": "https://www.courts.go.jp/vc-files/courts/file5/tuusinboujukisoku010601.pdf",
+      "categories": [
+        "刑事"
+      ]
+    },
+    {
+      "id": "COURTRULE774C74D9D42",
+      "slug": "court-rule-774c74d9d42d",
+      "title": "犯罪被害者等の権利利益の保護を図るための刑事手続に付随する措置に関する規則",
+      "lawNum": "平成12年９月27日最高裁判所規則第１３号",
+      "lawType": "Rule",
+      "aliases": [
+        "犯罪被害者等の権利利益の保護を図るための刑事手続に付随する措置に関する規則",
+        "犯罪被害者等の権利利益の保護を図るための刑事手続に付随する措置"
+      ],
+      "baseLawId": "",
+      "baseLawTitle": "",
+      "sourceLabel": "裁判所公式PDF・2026年9月3日取得",
+      "dataPath": "data/court-rules/court-rule-774c74d9d42d.xml",
+      "officialUrl": "https://www.courts.go.jp/toukei_siryou/kisokusyu/keizi_kisoku/index.html",
+      "pdfUrl": "https://www.courts.go.jp/assets/hanzaihigaisyakisoku.20260521.pdf",
+      "categories": [
+        "刑事"
+      ]
+    },
+    {
+      "id": "COURTRULEA1CC3FF99E8",
+      "slug": "court-rule-a1cc3ff99e8b",
+      "title": "総合法律支援法による国選弁護人等契約弁護士に係る費用の額の算定等に関する規則",
+      "lawNum": "平成18年7月28日最高裁判所規則第１２号",
+      "lawType": "Rule",
+      "aliases": [
+        "総合法律支援法による国選弁護人等契約弁護士に係る費用の額の算定等に関する規則",
+        "総合法律支援法による国選弁護人等契約弁護士に係る費用の額の算定等"
+      ],
+      "baseLawId": "416AC0000000074",
+      "baseLawTitle": "総合法律支援法",
+      "sourceLabel": "裁判所公式PDF・2026年9月3日取得",
+      "dataPath": "data/court-rules/court-rule-a1cc3ff99e8b.xml",
+      "officialUrl": "https://www.courts.go.jp/toukei_siryou/kisokusyu/keizi_kisoku/index.html",
+      "pdfUrl": "https://www.courts.go.jp/assets/kokusennbengohiyousanteikisoku.pdf",
+      "categories": [
+        "刑事"
+      ]
+    },
+    {
+      "id": "COURTRULE5759E69F166",
+      "slug": "court-rule-5759e69f1669",
+      "title": "薬物犯罪等に係る保全手続等に関する規則",
+      "lawNum": "平成4年3月31日最高裁判所規則第５号",
+      "lawType": "Rule",
+      "aliases": [
+        "薬物犯罪等に係る保全手続等に関する規則",
+        "薬物犯罪等に係る保全手続等"
+      ],
+      "baseLawId": "",
+      "baseLawTitle": "",
+      "sourceLabel": "裁判所公式PDF・2026年9月3日取得",
+      "dataPath": "data/court-rules/court-rule-5759e69f1669.xml",
+      "officialUrl": "https://www.courts.go.jp/toukei_siryou/kisokusyu/keizi_kisoku/index.html",
+      "pdfUrl": "https://www.courts.go.jp/assets/yakubutsuhanhozenkisoku.pdf",
+      "categories": [
+        "刑事"
+      ]
+    },
+    {
+      "id": "COURTRULE2A79307712D",
+      "slug": "court-rule-2a79307712d4",
+      "title": "裁判員の参加する刑事裁判に関する規則",
+      "lawNum": "平成一九年七月五日最高裁判所規則第七号",
+      "lawType": "Rule",
+      "aliases": [
+        "裁判員の参加する刑事裁判に関する規則",
+        "裁判員の参加する刑事裁判"
+      ],
+      "baseLawId": "",
+      "baseLawTitle": "",
+      "sourceLabel": "裁判所公式PDF・2026年9月3日取得",
+      "dataPath": "data/court-rules/court-rule-2a79307712d4.xml",
+      "officialUrl": "https://www.courts.go.jp/toukei_siryou/kisokusyu/keizi_kisoku/index.html",
+      "pdfUrl": "https://www.courts.go.jp/assets/saibaninkisoku20260701.pdf",
+      "categories": [
+        "刑事"
+      ]
+    },
+    {
+      "id": "COURTRULE13217E75CF2",
+      "slug": "court-rule-13217e75cf27",
+      "title": "逃亡犯罪人引渡法による審査等の手続に関する規則",
+      "lawNum": "昭和28年7月22日最高裁判所規則第１１号",
+      "lawType": "Rule",
+      "aliases": [
+        "逃亡犯罪人引渡法による審査等の手続に関する規則",
+        "逃亡犯罪人引渡法による審査等の手続"
+      ],
+      "baseLawId": "328AC0000000068",
+      "baseLawTitle": "第一条逃亡犯罪人引渡法",
+      "sourceLabel": "裁判所公式PDF・2026年9月3日取得",
+      "dataPath": "data/court-rules/court-rule-13217e75cf27.xml",
+      "officialUrl": "https://www.courts.go.jp/toukei_siryou/kisokusyu/keizi_kisoku/index.html",
+      "pdfUrl": "https://www.courts.go.jp/vc-files/courts/2022/toubouhanzaininhikiwatashikisoku20220221.pdf",
+      "categories": [
+        "刑事"
+      ]
+    },
+    {
+      "id": "COURTRULEC9659331892",
+      "slug": "court-rule-c96593318924",
+      "title": "道路交通法の施行に伴う交通事件の即決裁判に関する手続の経過措置に関する規則",
+      "lawNum": "昭和35年11月21日最高裁判所規則第１５号",
+      "lawType": "Rule",
+      "aliases": [
+        "道路交通法の施行に伴う交通事件の即決裁判に関する手続の経過措置に関する規則",
+        "道路交通法の施行に伴う交通事件の即決裁判に関する手続の経過措置"
+      ],
+      "baseLawId": "",
+      "baseLawTitle": "",
+      "sourceLabel": "裁判所公式PDF・2026年9月3日取得",
+      "dataPath": "data/court-rules/court-rule-c96593318924.xml",
+      "officialUrl": "https://www.courts.go.jp/toukei_siryou/kisokusyu/keizi_kisoku/index.html",
+      "pdfUrl": "https://www.courts.go.jp/assets/koutsusokketsukeikasochikisoku.pdf",
+      "categories": [
+        "刑事"
+      ]
+    },
+    {
+      "id": "COURTRULE8722DBBAD85",
+      "slug": "court-rule-8722dbbad858",
+      "title": "金融商品取引法等による第三者の財産等の没収手続に関する規則",
+      "lawNum": "平成26年9月24日最高裁判所規則第６号",
+      "lawType": "Rule",
+      "aliases": [
+        "金融商品取引法等による第三者の財産等の没収手続に関する規則",
+        "金融商品取引法等による第三者の財産等の没収手続"
+      ],
+      "baseLawId": "",
+      "baseLawTitle": "",
+      "sourceLabel": "裁判所公式PDF・2026年9月3日取得",
+      "dataPath": "data/court-rules/court-rule-8722dbbad858.xml",
+      "officialUrl": "https://www.courts.go.jp/toukei_siryou/kisokusyu/keizi_kisoku/index.html",
+      "pdfUrl": "https://www.courts.go.jp/vc-files/courts/2024/20240701kinshouhoukisoku.pdf",
+      "categories": [
+        "刑事"
+      ]
+    },
+    {
+      "id": "COURTRULEA148AEBE73F",
+      "slug": "court-rule-a148aebe73f1",
+      "title": "高等裁判所刑事上告事件移送規則",
+      "lawNum": "昭和22年10月9日最高裁判所規則第５号",
+      "lawType": "Rule",
+      "aliases": [
+        "高等裁判所刑事上告事件移送規則",
+        "高等裁判所刑事上告事件移送"
+      ],
+      "baseLawId": "",
+      "baseLawTitle": "",
+      "sourceLabel": "裁判所公式PDF・2026年9月3日取得",
+      "dataPath": "data/court-rules/court-rule-a148aebe73f1.xml",
+      "officialUrl": "https://www.courts.go.jp/toukei_siryou/kisokusyu/keizi_kisoku/index.html",
+      "pdfUrl": "https://www.courts.go.jp/assets/kousaijikenisoukisoku.pdf",
+      "categories": [
+        "刑事"
+      ]
+    },
+    {
+      "id": "COURTRULEAE9978305E0",
+      "slug": "court-rule-ae9978305e06",
+      "title": "人事訴訟規則",
+      "lawNum": "平成15年11月12日最高裁判所規則第２４号",
+      "lawType": "Rule",
+      "aliases": [
+        "人事訴訟規則",
+        "人事訴訟"
+      ],
+      "baseLawId": "415AC0000000109",
+      "baseLawTitle": "人事訴訟法",
+      "sourceLabel": "裁判所公式PDF・2026年9月3日取得",
+      "dataPath": "data/court-rules/court-rule-ae9978305e06.xml",
+      "officialUrl": "https://www.courts.go.jp/toukei_siryou/kisokusyu/kazi_syonen_kisoku/index.html",
+      "pdfUrl": "https://www.courts.go.jp/assets/20260521jinsokisoku.pdf",
+      "categories": [
+        "家事・少年"
+      ]
+    },
+    {
+      "id": "COURTRULEB278617B980",
+      "slug": "court-rule-b278617b980c",
+      "title": "参与員規則",
+      "lawNum": "昭和22年12月20日最高裁判所規則第１３号",
+      "lawType": "Rule",
+      "aliases": [
+        "参与員規則",
+        "参与員"
+      ],
+      "baseLawId": "",
+      "baseLawTitle": "",
+      "sourceLabel": "裁判所公式PDF・2026年9月3日取得",
+      "dataPath": "data/court-rules/court-rule-b278617b980c.xml",
+      "officialUrl": "https://www.courts.go.jp/toukei_siryou/kisokusyu/kazi_syonen_kisoku/index.html",
+      "pdfUrl": "https://www.courts.go.jp/assets/20260701sanyoinkisoku.pdf",
+      "categories": [
+        "家事・少年"
+      ]
+    },
+    {
+      "id": "COURTRULED6D16E3A432",
+      "slug": "court-rule-d6d16e3a4325",
+      "title": "国際的な子の奪取の民事上の側面に関する条約の実施に関する法律による子の返還に関する事件の手続等に関する規則",
+      "lawNum": "平成25年11月13日最高裁判所規則第5号",
+      "lawType": "Rule",
+      "aliases": [
+        "国際的な子の奪取の民事上の側面に関する条約の実施に関する法律による子の返還に関する事件の手続等に関する規則",
+        "国際的な子の奪取の民事上の側面に関する条約の実施に関する法律による子の返還に関する事件の手続等"
+      ],
+      "baseLawId": "",
+      "baseLawTitle": "",
+      "sourceLabel": "裁判所公式PDF・2026年9月3日取得",
+      "dataPath": "data/court-rules/court-rule-d6d16e3a4325.xml",
+      "officialUrl": "https://www.courts.go.jp/toukei_siryou/kisokusyu/kazi_syonen_kisoku/index.html",
+      "pdfUrl": "https://www.courts.go.jp/assets/20260521haguenokisoku.pdf",
+      "categories": [
+        "家事・少年"
+      ]
+    },
+    {
+      "id": "COURTRULE33635405ADC",
+      "slug": "court-rule-33635405adc3",
+      "title": "家事事件手続規則",
+      "lawNum": "平成24年7月17日最高裁判所規則第８号",
+      "lawType": "Rule",
+      "aliases": [
+        "家事事件手続規則",
+        "家事事件"
+      ],
+      "baseLawId": "423AC0000000052",
+      "baseLawTitle": "家事事件手続法",
+      "sourceLabel": "裁判所公式PDF・2026年9月3日取得",
+      "dataPath": "data/court-rules/court-rule-33635405adc3.xml",
+      "officialUrl": "https://www.courts.go.jp/toukei_siryou/kisokusyu/kazi_syonen_kisoku/index.html",
+      "pdfUrl": "https://www.courts.go.jp/assets/20260521kajikisoku.pdf",
+      "categories": [
+        "家事・少年"
+      ]
+    },
+    {
+      "id": "COURTRULE1661ABE1C0E",
+      "slug": "court-rule-1661abe1c0e3",
+      "title": "少年の保護事件に係る補償に関する規則",
+      "lawNum": "平成4年7月20日最高裁判所規則第８号",
+      "lawType": "Rule",
+      "aliases": [
+        "少年の保護事件に係る補償に関する規則",
+        "少年の保護事件に係る補償"
+      ],
+      "baseLawId": "",
+      "baseLawTitle": "",
+      "sourceLabel": "裁判所公式PDF・2026年9月3日取得",
+      "dataPath": "data/court-rules/court-rule-1661abe1c0e3.xml",
+      "officialUrl": "https://www.courts.go.jp/toukei_siryou/kisokusyu/kazi_syonen_kisoku/index.html",
+      "pdfUrl": "https://www.courts.go.jp/assets/20260521shounenhoshoukisoku.pdf",
+      "categories": [
+        "家事・少年"
+      ]
+    },
+    {
+      "id": "COURTRULE4B37E094B69",
+      "slug": "court-rule-4b37e094b69b",
+      "title": "少年審判規則",
+      "lawNum": "昭和23年12月21日最高裁判所規則第３３号",
+      "lawType": "Rule",
+      "aliases": [
+        "少年審判規則",
+        "少年審判"
+      ],
+      "baseLawId": "",
+      "baseLawTitle": "",
+      "sourceLabel": "裁判所公式PDF・2026年9月3日取得",
+      "dataPath": "data/court-rules/court-rule-4b37e094b69b.xml",
+      "officialUrl": "https://www.courts.go.jp/toukei_siryou/kisokusyu/kazi_syonen_kisoku/index.html",
+      "pdfUrl": "https://www.courts.go.jp/assets/20260521shounenshinpankisoku.pdf",
+      "categories": [
+        "家事・少年"
+      ]
+    },
+    {
+      "id": "COURTRULEFBC28EA0F14",
+      "slug": "court-rule-fbc28ea0f14b",
+      "title": "少年法による調査及び観察のための援助費用に関する規則",
+      "lawNum": "昭和25年12月28日最高裁判所規則第３６号",
+      "lawType": "Rule",
+      "aliases": [
+        "少年法による調査及び観察のための援助費用に関する規則",
+        "少年法による調査及び観察のための援助費用"
+      ],
+      "baseLawId": "",
+      "baseLawTitle": "",
+      "sourceLabel": "裁判所公式PDF・2026年9月3日取得",
+      "dataPath": "data/court-rules/court-rule-fbc28ea0f14b.xml",
+      "officialUrl": "https://www.courts.go.jp/toukei_siryou/kisokusyu/kazi_syonen_kisoku/index.html",
+      "pdfUrl": "https://www.courts.go.jp/vc-files/courts/2025/20250401syounenenzyohiyoukisoku.pdf",
+      "categories": [
+        "家事・少年"
+      ]
+    },
+    {
+      "id": "COURTRULE52B350BC497",
+      "slug": "court-rule-52b350bc4971",
+      "title": "マンションの再生等の円滑化に関する法律による権利の変換等と強制執行等との調整に関する規則",
+      "lawNum": "平成一四年一二月一一日最高裁判所規則第一三号",
+      "lawType": "Rule",
+      "aliases": [
+        "マンションの再生等の円滑化に関する法律による権利の変換等と強制執行等との調整に関する規則",
+        "マンションの再生等の円滑化に関する法律による権利の変換等と強制執行等との調整"
+      ],
+      "baseLawId": "",
+      "baseLawTitle": "",
+      "sourceLabel": "裁判所公式PDF・2026年9月3日取得",
+      "dataPath": "data/court-rules/court-rule-52b350bc4971.xml",
+      "officialUrl": "https://www.courts.go.jp/toukei_siryou/kisokusyu/minzi_kisoku/index.html",
+      "pdfUrl": "https://www.courts.go.jp/assets/20260401mansionsaisei.pdf",
+      "categories": [
+        "民事"
+      ]
+    },
+    {
+      "id": "COURTRULEGENASSOC001",
+      "slug": "general-incorporated-association-noncontentious",
+      "title": "一般社団法人等非訟事件手続規則",
+      "lawNum": "平成二十年十月一日最高裁判所規則第九号",
+      "lawType": "Rule",
+      "aliases": [
+        "一般社団法人等非訟事件手続規則",
+        "一般社団法人等非訟事件手続",
+        "一般社団法人等非訟"
+      ],
+      "baseLawId": "418AC0000000048",
+      "baseLawTitle": "一般社団法人及び一般財団法人に関する法律",
+      "sourceLabel": "裁判所PDF・令和8年5月21日版",
+      "dataPath": "data/court-rules/general-incorporated-association-noncontentious.xml",
+      "officialUrl": "https://www.courts.go.jp/toukei_siryou/kisokusyu/minzi_kisoku/index.html",
+      "pdfUrl": "https://www.courts.go.jp/assets/080521ippannsyadannhoujinnkisoku.pdf",
+      "categories": [
+        "民事"
+      ]
+    },
+    {
+      "id": "COURTRULEBE8B604551E",
+      "slug": "court-rule-be8b604551e1",
+      "title": "人事官弾劾裁判手続規則",
+      "lawNum": "昭和二十五年一月二十八日最高裁判所規則第五号",
+      "lawType": "Rule",
+      "aliases": [
+        "人事官弾劾裁判手続規則",
+        "人事官弾劾裁判"
+      ],
+      "baseLawId": "",
+      "baseLawTitle": "",
+      "sourceLabel": "裁判所公式PDF・2026年9月3日取得",
+      "dataPath": "data/court-rules/court-rule-be8b604551e1.xml",
+      "officialUrl": "https://www.courts.go.jp/toukei_siryou/kisokusyu/minzi_kisoku/index.html",
+      "pdfUrl": "https://www.courts.go.jp/assets/080521jinnjikanndanngaikisoku.pdf",
+      "categories": [
+        "民事"
+      ]
+    },
+    {
+      "id": "COURTRULE4894C8D0795",
+      "slug": "court-rule-4894c8d0795e",
+      "title": "人身保護法による国選代理人の旅費等に関する規則",
+      "lawNum": "昭和二三年九月二一日最高裁判所規則第二三号",
+      "lawType": "Rule",
+      "aliases": [
+        "人身保護法による国選代理人の旅費等に関する規則",
+        "人身保護法による国選代理人の旅費等"
+      ],
+      "baseLawId": "",
+      "baseLawTitle": "",
+      "sourceLabel": "裁判所公式PDF・2026年9月3日取得",
+      "dataPath": "data/court-rules/court-rule-4894c8d0795e.xml",
+      "officialUrl": "https://www.courts.go.jp/toukei_siryou/kisokusyu/minzi_kisoku/index.html",
+      "pdfUrl": "https://www.courts.go.jp/assets/20260701jinsinhogoryohikisoku.pdf",
+      "categories": [
+        "民事"
+      ]
+    },
+    {
+      "id": "COURTRULEC7AF582B123",
+      "slug": "court-rule-c7af582b1233",
+      "title": "人身保護規則",
+      "lawNum": "昭和二十三年九月二十一日最高裁判所規則第二十二号",
+      "lawType": "Rule",
+      "aliases": [
+        "人身保護規則",
+        "人身保護"
+      ],
+      "baseLawId": "",
+      "baseLawTitle": "",
+      "sourceLabel": "裁判所公式PDF・2026年9月3日取得",
+      "dataPath": "data/court-rules/court-rule-c7af582b1233.xml",
+      "officialUrl": "https://www.courts.go.jp/toukei_siryou/kisokusyu/minzi_kisoku/index.html",
+      "pdfUrl": "https://www.courts.go.jp/assets/080521jinnshinnhogokisoku.pdf",
+      "categories": [
+        "民事"
+      ]
+    },
+    {
+      "id": "COURTRULE5DC41190303",
+      "slug": "court-rule-5dc41190303a",
+      "title": "仲裁関係事件手続規則",
+      "lawNum": "平成一五年一一月二六日最高裁判所規則第二七号",
+      "lawType": "Rule",
+      "aliases": [
+        "仲裁関係事件手続規則",
+        "仲裁関係事件"
+      ],
+      "baseLawId": "",
+      "baseLawTitle": "",
+      "sourceLabel": "裁判所公式PDF・2026年9月3日取得",
+      "dataPath": "data/court-rules/court-rule-5dc41190303a.xml",
+      "officialUrl": "https://www.courts.go.jp/toukei_siryou/kisokusyu/minzi_kisoku/index.html",
+      "pdfUrl": "https://www.courts.go.jp/assets/20260521chusaikisoku.pdf",
+      "categories": [
+        "民事"
+      ]
+    },
+    {
+      "id": "COURTRULEF56FEE0A2E3",
+      "slug": "court-rule-f56fee0a2e3f",
+      "title": "企業価値担保権実行手続規則",
+      "lawNum": "令和八年四月二二日最高裁判所規則第七号",
+      "lawType": "Rule",
+      "aliases": [
+        "企業価値担保権実行手続規則",
+        "企業価値担保権実行"
+      ],
+      "baseLawId": "",
+      "baseLawTitle": "",
+      "sourceLabel": "裁判所公式PDF・2026年9月3日取得",
+      "dataPath": "data/court-rules/court-rule-f56fee0a2e3f.xml",
+      "officialUrl": "https://www.courts.go.jp/toukei_siryou/kisokusyu/minzi_kisoku/index.html",
+      "pdfUrl": "https://www.courts.go.jp/assets/20260525kigyoukatitanpokenkikisoku.pdf",
+      "categories": [
+        "民事"
+      ]
+    },
+    {
+      "id": "COURTRULEAD857E46AFD",
+      "slug": "court-rule-ad857e46afd8",
+      "title": "企業担保権実行手続規則",
+      "lawNum": "昭和三十三年六月二十七日最高裁判所規則第五号",
+      "lawType": "Rule",
+      "aliases": [
+        "企業担保権実行手続規則",
+        "企業担保権実行"
+      ],
+      "baseLawId": "333AC0000000106",
+      "baseLawTitle": "第一条企業担保法",
+      "sourceLabel": "裁判所公式PDF・2026年9月3日取得",
+      "dataPath": "data/court-rules/court-rule-ad857e46afd8.xml",
+      "officialUrl": "https://www.courts.go.jp/toukei_siryou/kisokusyu/minzi_kisoku/index.html",
+      "pdfUrl": "https://www.courts.go.jp/assets/080521kigyoutannpokennjikkou.pdf",
+      "categories": [
+        "民事"
+      ]
+    },
+    {
+      "id": "COURTRULE350F60937D3",
+      "slug": "court-rule-350f60937d3d",
+      "title": "会社更生規則",
+      "lawNum": "平成十五年二月十九日最高裁判所規則第二号",
+      "lawType": "Rule",
+      "aliases": [
+        "会社更生規則",
+        "会社更生"
+      ],
+      "baseLawId": "414AC0000000154",
+      "baseLawTitle": "会社更生法",
+      "sourceLabel": "裁判所公式PDF・2026年9月3日取得",
+      "dataPath": "data/court-rules/court-rule-350f60937d3d.xml",
+      "officialUrl": "https://www.courts.go.jp/toukei_siryou/kisokusyu/minzi_kisoku/index.html",
+      "pdfUrl": "https://www.courts.go.jp/assets/080521kaisyakouseikisoku.pdf",
+      "categories": [
+        "民事"
+      ]
+    },
+    {
+      "id": "COURTRULE8D92EFFF4A4",
+      "slug": "court-rule-8d92efff4a42",
+      "title": "会社非訟事件等手続規則",
+      "lawNum": "平成一八年二月八日最高裁判所規則第一号",
+      "lawType": "Rule",
+      "aliases": [
+        "会社非訟事件等手続規則",
+        "会社非訟事件等"
+      ],
+      "baseLawId": "417AC0000000086",
+      "baseLawTitle": "会社法",
+      "sourceLabel": "裁判所公式PDF・2026年9月3日取得",
+      "dataPath": "data/court-rules/court-rule-8d92efff4a42.xml",
+      "officialUrl": "https://www.courts.go.jp/toukei_siryou/kisokusyu/minzi_kisoku/index.html",
+      "pdfUrl": "https://www.courts.go.jp/assets/080521kaisyahisyou.pdf",
+      "categories": [
+        "民事"
+      ]
+    },
+    {
+      "id": "COURTRULECAB78AB29D4",
+      "slug": "court-rule-cab78ab29d4b",
+      "title": "借地非訟事件手続規則",
+      "lawNum": "昭和四二年一月二六日最高裁判所規則第一号",
+      "lawType": "Rule",
+      "aliases": [
+        "借地非訟事件手続規則",
+        "借地非訟事件"
+      ],
+      "baseLawId": "403AC0000000090",
+      "baseLawTitle": "借地借家法",
+      "sourceLabel": "裁判所公式PDF・2026年9月3日取得",
+      "dataPath": "data/court-rules/court-rule-cab78ab29d4b.xml",
+      "officialUrl": "https://www.courts.go.jp/toukei_siryou/kisokusyu/minzi_kisoku/index.html",
+      "pdfUrl": "https://www.courts.go.jp/assets/20260521shakuchihishoukisoku.pdf",
+      "categories": [
+        "民事"
+      ]
+    },
+    {
+      "id": "COURTRULED2EA753FE41",
+      "slug": "court-rule-d2ea753fe41d",
+      "title": "共有、管理等に関する非訟事件に関する手続規則",
+      "lawNum": "令和四年五月十三日最高裁判所規則第一三号",
+      "lawType": "Rule",
+      "aliases": [
+        "共有、管理等に関する非訟事件に関する手続規則",
+        "共有、管理等に関する非訟事件に関する"
+      ],
+      "baseLawId": "",
+      "baseLawTitle": "",
+      "sourceLabel": "裁判所公式PDF・2026年9月3日取得",
+      "dataPath": "data/court-rules/court-rule-d2ea753fe41d.xml",
+      "officialUrl": "https://www.courts.go.jp/toukei_siryou/kisokusyu/minzi_kisoku/index.html",
+      "pdfUrl": "https://www.courts.go.jp/assets/080521kyouyuukannrikisoku.pdf",
+      "categories": [
+        "民事"
+      ]
+    },
+    {
+      "id": "COURTRULE20EF82FEF9B",
+      "slug": "court-rule-20ef82fef9b6",
+      "title": "労働審判員規則",
+      "lawNum": "平成十七年一月十一日最高裁判所規則第三号",
+      "lawType": "Rule",
+      "aliases": [
+        "労働審判員規則",
+        "労働審判員"
+      ],
+      "baseLawId": "416AC0000000045",
+      "baseLawTitle": "労働審判法",
+      "sourceLabel": "裁判所公式PDF・2026年9月3日取得",
+      "dataPath": "data/court-rules/court-rule-20ef82fef9b6.xml",
+      "officialUrl": "https://www.courts.go.jp/toukei_siryou/kisokusyu/minzi_kisoku/index.html",
+      "pdfUrl": "https://www.courts.go.jp/vc-files/courts/roudou_kisokutou/20250212roudoushinpaninkisoku.pdf",
+      "categories": [
+        "民事"
+      ]
+    },
+    {
+      "id": "COURTRULEF85CAF3DD3C",
+      "slug": "court-rule-f85caf3dd3c7",
+      "title": "労働審判規則",
+      "lawNum": "平成１７年１月１１日最高裁判所規則第２号",
+      "lawType": "Rule",
+      "aliases": [
+        "労働審判規則",
+        "労働審判"
+      ],
+      "baseLawId": "416AC0000000045",
+      "baseLawTitle": "第一条労働審判法",
+      "sourceLabel": "裁判所公式PDF・2026年9月3日取得",
+      "dataPath": "data/court-rules/court-rule-f85caf3dd3c7.xml",
+      "officialUrl": "https://www.courts.go.jp/toukei_siryou/kisokusyu/minzi_kisoku/index.html",
+      "pdfUrl": "https://www.courts.go.jp/assets/080521roudoushinnpannkisoku.pdf",
+      "categories": [
+        "民事"
+      ]
+    },
+    {
+      "id": "COURTRULE9E718799C4A",
+      "slug": "court-rule-9e718799c4a0",
+      "title": "司法委員規則",
+      "lawNum": "昭和23年11月1日最高裁判所規則第２９号",
+      "lawType": "Rule",
+      "aliases": [
+        "司法委員規則",
+        "司法委員"
+      ],
+      "baseLawId": "",
+      "baseLawTitle": "",
+      "sourceLabel": "裁判所公式PDF・2026年9月3日取得",
+      "dataPath": "data/court-rules/court-rule-9e718799c4a0.xml",
+      "officialUrl": "https://www.courts.go.jp/toukei_siryou/kisokusyu/minzi_kisoku/index.html",
+      "pdfUrl": "https://www.courts.go.jp/assets/20260701sihouiinkisoku.pdf",
+      "categories": [
+        "民事"
+      ]
+    },
+    {
+      "id": "COURTRULE3928DC1A948",
+      "slug": "court-rule-3928dc1a9483",
+      "title": "国際和解合意関係事件手続規則",
+      "lawNum": "令和六年二月一日最高裁判所規則第三号",
+      "lawType": "Rule",
+      "aliases": [
+        "国際和解合意関係事件手続規則",
+        "国際和解合意関係事件"
+      ],
+      "baseLawId": "",
+      "baseLawTitle": "",
+      "sourceLabel": "裁判所公式PDF・2026年9月3日取得",
+      "dataPath": "data/court-rules/court-rule-3928dc1a9483.xml",
+      "officialUrl": "https://www.courts.go.jp/toukei_siryou/kisokusyu/minzi_kisoku/index.html",
+      "pdfUrl": "https://www.courts.go.jp/assets/20260521kokusaiwakaigouikisoku.pdf",
+      "categories": [
+        "民事"
+      ]
+    },
+    {
+      "id": "COURTRULEF07936C1F4B",
+      "slug": "court-rule-f07936c1f4b4",
+      "title": "土地の収用等と強制執行等との調整に関する規則",
+      "lawNum": "昭和四十二年十二月十一日最高裁判所規則第十四号",
+      "lawType": "Rule",
+      "aliases": [
+        "土地の収用等と強制執行等との調整に関する規則",
+        "土地の収用等と強制執行等との調整"
+      ],
+      "baseLawId": "",
+      "baseLawTitle": "",
+      "sourceLabel": "裁判所公式PDF・2026年9月3日取得",
+      "dataPath": "data/court-rules/court-rule-f07936c1f4b4.xml",
+      "officialUrl": "https://www.courts.go.jp/toukei_siryou/kisokusyu/minzi_kisoku/index.html",
+      "pdfUrl": "https://www.courts.go.jp/vc-files/courts/2022/tochisyuuyoutyouseikisokuR4.2.pdf",
+      "categories": [
+        "民事"
+      ]
+    },
+    {
+      "id": "COURTRULE7F52AC23758",
+      "slug": "court-rule-7f52ac237584",
+      "title": "執行官の手数料及び費用に関する規則",
+      "lawNum": "昭和四一年一二月二八日最高裁判所規則第十五号",
+      "lawType": "Rule",
+      "aliases": [
+        "執行官の手数料及び費用に関する規則",
+        "執行官の手数料及び費用"
+      ],
+      "baseLawId": "341AC0000000111",
+      "baseLawTitle": "執行官法",
+      "sourceLabel": "裁判所公式PDF・2026年9月3日取得",
+      "dataPath": "data/court-rules/court-rule-7f52ac237584.xml",
+      "officialUrl": "https://www.courts.go.jp/toukei_siryou/kisokusyu/minzi_kisoku/index.html",
+      "pdfUrl": "https://www.courts.go.jp/assets/20260701sikkoukantesuuryoukisoku.pdf",
+      "categories": [
+        "民事"
+      ]
+    },
+    {
+      "id": "COURTRULE89E2475A802",
+      "slug": "court-rule-89e2475a802c",
+      "title": "執行官規則",
+      "lawNum": "昭和41年11月8日最高裁判所規則第１０号",
+      "lawType": "Rule",
+      "aliases": [
+        "執行官規則",
+        "執行官"
+      ],
+      "baseLawId": "",
+      "baseLawTitle": "",
+      "sourceLabel": "裁判所公式PDF・2026年9月3日取得",
+      "dataPath": "data/court-rules/court-rule-89e2475a802c.xml",
+      "officialUrl": "https://www.courts.go.jp/toukei_siryou/kisokusyu/minzi_kisoku/index.html",
+      "pdfUrl": "https://www.courts.go.jp/vc-files/courts/2022/sikkoukankisoku.pdf",
+      "categories": [
+        "民事"
+      ]
+    },
+    {
+      "id": "COURTRULE38B52CC02E5",
+      "slug": "court-rule-38b52cc02e53",
+      "title": "外国倒産処理手続の承認援助に関する規則",
+      "lawNum": "平成十二年十二月二十七日最高裁判所規則第十七号",
+      "lawType": "Rule",
+      "aliases": [
+        "外国倒産処理手続の承認援助に関する規則",
+        "外国倒産処理手続の承認援助"
+      ],
+      "baseLawId": "",
+      "baseLawTitle": "",
+      "sourceLabel": "裁判所公式PDF・2026年9月3日取得",
+      "dataPath": "data/court-rules/court-rule-38b52cc02e53.xml",
+      "officialUrl": "https://www.courts.go.jp/toukei_siryou/kisokusyu/minzi_kisoku/index.html",
+      "pdfUrl": "https://www.courts.go.jp/assets/080521gaikoukutousannsyori.pdf",
+      "categories": [
+        "民事"
+      ]
+    },
+    {
+      "id": "COURTRULED462B3F4FE0",
+      "slug": "court-rule-d462b3f4fe04",
+      "title": "奄美群島の復帰に伴う民事に関する事件の手続の経過措置に関する規則",
+      "lawNum": "昭和28年12月24日最高裁判所規則第２８号",
+      "lawType": "Rule",
+      "aliases": [
+        "奄美群島の復帰に伴う民事に関する事件の手続の経過措置に関する規則",
+        "奄美群島の復帰に伴う民事に関する事件の手続の経過措置"
+      ],
+      "baseLawId": "",
+      "baseLawTitle": "",
+      "sourceLabel": "裁判所公式PDF・2026年9月3日取得",
+      "dataPath": "data/court-rules/court-rule-d462b3f4fe04.xml",
+      "officialUrl": "https://www.courts.go.jp/toukei_siryou/kisokusyu/minzi_kisoku/index.html",
+      "pdfUrl": "https://www.courts.go.jp/assets/amamiguntounohukkinitomonauminjinikansurujikennotetudukinokeikasotinikansurukisoku.pdf",
+      "categories": [
+        "民事"
+      ]
+    },
+    {
+      "id": "COURTRULE9CB87AAABB5",
+      "slug": "court-rule-9cb87aaabb54",
+      "title": "密集市街地における防災街区の整備の促進に関する法律による権利の変換と強制執行等との調整に関する規則",
+      "lawNum": "平成十五年十一月二十六日最高裁判所規則第二十八号",
+      "lawType": "Rule",
+      "aliases": [
+        "密集市街地における防災街区の整備の促進に関する法律による権利の変換と強制執行等との調整に関する規則",
+        "密集市街地における防災街区の整備の促進に関する法律による権利の変換と強制執行等との調整"
+      ],
+      "baseLawId": "",
+      "baseLawTitle": "",
+      "sourceLabel": "裁判所公式PDF・2026年9月3日取得",
+      "dataPath": "data/court-rules/court-rule-9cb87aaabb54.xml",
+      "officialUrl": "https://www.courts.go.jp/toukei_siryou/kisokusyu/minzi_kisoku/index.html",
+      "pdfUrl": "https://www.courts.go.jp/assets/20031219missyuushigaichicyouseikisoku.pdf",
+      "categories": [
+        "民事"
+      ]
+    },
+    {
+      "id": "COURTRULE2CFC2F1C049",
+      "slug": "court-rule-2cfc2f1c049f",
+      "title": "専門委員規則",
+      "lawNum": "平成一五年一一月一二日最高裁判所規則第二○号",
+      "lawType": "Rule",
+      "aliases": [
+        "専門委員規則",
+        "専門委員"
+      ],
+      "baseLawId": "",
+      "baseLawTitle": "",
+      "sourceLabel": "裁判所公式PDF・2026年9月3日取得",
+      "dataPath": "data/court-rules/court-rule-2cfc2f1c049f.xml",
+      "officialUrl": "https://www.courts.go.jp/toukei_siryou/kisokusyu/minzi_kisoku/index.html",
+      "pdfUrl": "https://www.courts.go.jp/vc-files/courts/2025/20250601senmoniinkisoku.pdf",
+      "categories": [
+        "民事"
+      ]
+    },
+    {
+      "id": "COURTRULE6031D47D1E5",
+      "slug": "court-rule-6031d47d1e55",
+      "title": "民事事件等に関する手続において用いる識別符号の付与における本人確認方法に関する要綱",
+      "lawNum": "（令和8年3月31日最高裁判所告示第5号）",
+      "lawType": "Rule",
+      "aliases": [
+        "民事事件等に関する手続において用いる識別符号の付与における本人確認方法に関する要綱"
+      ],
+      "baseLawId": "",
+      "baseLawTitle": "",
+      "sourceLabel": "裁判所公式PDF・2026年9月3日取得",
+      "dataPath": "data/court-rules/court-rule-6031d47d1e55.xml",
+      "officialUrl": "https://www.courts.go.jp/toukei_siryou/kisokusyu/minzi_kisoku/index.html",
+      "pdfUrl": "https://www.courts.go.jp/assets/080521honnninnkakuninnyoukou.pdf",
+      "categories": [
+        "民事"
+      ]
+    },
+    {
+      "id": "COURTRULEA879DDF72C6",
+      "slug": "court-rule-a879ddf72c63",
+      "title": "民事事件等に関する手続において用いる識別符号の付与等に関する規則",
+      "lawNum": "令和6年9月17日最高裁判所規則第15号",
+      "lawType": "Rule",
+      "aliases": [
+        "民事事件等に関する手続において用いる識別符号の付与等に関する規則",
+        "民事事件等に関する手続において用いる識別符号の付与等"
+      ],
+      "baseLawId": "",
+      "baseLawTitle": "",
+      "sourceLabel": "裁判所公式PDF・2026年9月3日取得",
+      "dataPath": "data/court-rules/court-rule-a879ddf72c63.xml",
+      "officialUrl": "https://www.courts.go.jp/toukei_siryou/kisokusyu/minzi_kisoku/index.html",
+      "pdfUrl": "https://www.courts.go.jp/assets/080521shikibetufugoukisoku.pdf",
+      "categories": [
+        "民事"
+      ]
+    },
+    {
+      "id": "COURTRULE20AD63E811D",
+      "slug": "court-rule-20ad63e811da",
+      "title": "民事事件等に関する手続において用いる識別符号の付与等に関する規則に規定する最高裁判所が定める事項等（令和8年最高裁判所告示第1号)",
+      "lawNum": "める方法及び同規則第二条第一項に規定する最高裁判所が定める者を次のとおり定めたので、告示する。",
+      "lawType": "Rule",
+      "aliases": [
+        "民事事件等に関する手続において用いる識別符号の付与等に関する規則に規定する最高裁判所が定める事項等（令和8年最高裁判所告示第1号)"
+      ],
+      "baseLawId": "",
+      "baseLawTitle": "",
+      "sourceLabel": "裁判所公式PDF・2026年9月3日取得",
+      "dataPath": "data/court-rules/court-rule-20ad63e811da.xml",
+      "officialUrl": "https://www.courts.go.jp/toukei_siryou/kisokusyu/minzi_kisoku/index.html",
+      "pdfUrl": "https://www.courts.go.jp/assets/080521shikibetufugoukokuji1.pdf",
+      "categories": [
+        "民事"
+      ]
+    },
+    {
+      "id": "COURTRULE4AD5B96D564",
+      "slug": "court-rule-4ad5b96d5643",
+      "title": "民事事件等に関する手続における電子情報処理組織の使用に関する細則",
+      "lawNum": "（令和7年11月28日最高裁判所告示第4号）",
+      "lawType": "Rule",
+      "aliases": [
+        "民事事件等に関する手続における電子情報処理組織の使用に関する細則"
+      ],
+      "baseLawId": "",
+      "baseLawTitle": "",
+      "sourceLabel": "裁判所公式PDF・2026年9月3日取得",
+      "dataPath": "data/court-rules/court-rule-4ad5b96d5643.xml",
+      "officialUrl": "https://www.courts.go.jp/toukei_siryou/kisokusyu/minzi_kisoku/index.html",
+      "pdfUrl": "https://www.courts.go.jp/assets/080521saisoku.pdf",
+      "categories": [
+        "民事"
+      ]
+    },
+    {
+      "id": "COURTRULED8CF52585A5",
+      "slug": "court-rule-d8cf52585a5a",
+      "title": "民事保全規則",
+      "lawNum": "平成二年五月十六日最高裁判所規則第三号",
+      "lawType": "Rule",
+      "aliases": [
+        "民事保全規則",
+        "民事保全"
+      ],
+      "baseLawId": "",
+      "baseLawTitle": "",
+      "sourceLabel": "裁判所公式PDF・2026年9月3日取得",
+      "dataPath": "data/court-rules/court-rule-d8cf52585a5a.xml",
+      "officialUrl": "https://www.courts.go.jp/toukei_siryou/kisokusyu/minzi_kisoku/index.html",
+      "pdfUrl": "https://www.courts.go.jp/assets/080521minjihozenkisoku.pdf",
+      "categories": [
+        "民事"
+      ]
+    },
+    {
+      "id": "COURTRULE00FEE3EDBC2",
+      "slug": "court-rule-00fee3edbc28",
+      "title": "民事再生規則",
+      "lawNum": "平成十二年一月三十一日最高裁判所規則第三号",
+      "lawType": "Rule",
+      "aliases": [
+        "民事再生規則",
+        "民事再生"
+      ],
+      "baseLawId": "",
+      "baseLawTitle": "",
+      "sourceLabel": "裁判所公式PDF・2026年9月3日取得",
+      "dataPath": "data/court-rules/court-rule-00fee3edbc28.xml",
+      "officialUrl": "https://www.courts.go.jp/toukei_siryou/kisokusyu/minzi_kisoku/index.html",
+      "pdfUrl": "https://www.courts.go.jp/assets/080521minnjisaiseikisoku.pdf",
+      "categories": [
+        "民事"
+      ]
+    },
+    {
+      "id": "COURTRULE40AF73BC880",
+      "slug": "court-rule-40af73bc8802",
+      "title": "民事執行規則",
+      "lawNum": "昭和五十四年十一月八日最高裁判所規則第五号",
+      "lawType": "Rule",
+      "aliases": [
+        "民事執行規則",
+        "民事執行"
+      ],
+      "baseLawId": "354AC0000000004",
+      "baseLawTitle": "民事執行法",
+      "sourceLabel": "裁判所公式PDF・2026年9月3日取得",
+      "dataPath": "data/court-rules/court-rule-40af73bc8802.xml",
+      "officialUrl": "https://www.courts.go.jp/toukei_siryou/kisokusyu/minzi_kisoku/index.html",
+      "pdfUrl": "https://www.courts.go.jp/assets/20260527minjisikkoukisoku.pdf",
+      "categories": [
+        "民事"
+      ]
+    },
+    {
+      "id": "COURTRULE2722049C61F",
+      "slug": "court-rule-2722049c61f7",
+      "title": "民事訴訟手続に関する条約等の実施に伴う民事訴訟手続の特例等に関する規則",
+      "lawNum": "昭和四五年七月七日最高裁判所規則第六号",
+      "lawType": "Rule",
+      "aliases": [
+        "民事訴訟手続に関する条約等の実施に伴う民事訴訟手続の特例等に関する規則",
+        "民事訴訟手続に関する条約等の実施に伴う民事訴訟手続の特例等"
+      ],
+      "baseLawId": "",
+      "baseLawTitle": "",
+      "sourceLabel": "裁判所公式PDF・2026年9月3日取得",
+      "dataPath": "data/court-rules/court-rule-2722049c61f7.xml",
+      "officialUrl": "https://www.courts.go.jp/toukei_siryou/kisokusyu/minzi_kisoku/index.html",
+      "pdfUrl": "https://www.courts.go.jp/assets/tokureikisoku2.pdf",
+      "categories": [
+        "民事"
+      ]
+    },
+    {
+      "id": "COURTRULEB9F272E28A3",
+      "slug": "court-rule-b9f272e28a3b",
+      "title": "民事訴訟法第八編第二章の規定による督促手続に関する規則",
+      "lawNum": "平成十八年七月二十六日最高裁判所規則第十号",
+      "lawType": "Rule",
+      "aliases": [
+        "民事訴訟法第八編第二章の規定による督促手続に関する規則",
+        "民事訴訟法第八編第二章の規定による督促手続"
+      ],
+      "baseLawId": "408AC0000000109",
+      "baseLawTitle": "民事訴訟法",
+      "sourceLabel": "裁判所公式PDF・2026年9月3日取得",
+      "dataPath": "data/court-rules/court-rule-b9f272e28a3b.xml",
+      "officialUrl": "https://www.courts.go.jp/toukei_siryou/kisokusyu/minzi_kisoku/index.html",
+      "pdfUrl": "https://www.courts.go.jp/assets/08521minnsohoudaihachihenntokusokutetudukinikannsurukisoku.pdf",
+      "categories": [
+        "民事"
+      ]
+    },
+    {
+      "id": "COURTRULECIVILPROC01",
+      "slug": "civil-procedure",
+      "title": "民事訴訟規則",
+      "lawNum": "平成八年十二月十七日最高裁判所規則第五号",
+      "lawType": "Rule",
+      "aliases": [
+        "民事訴訟規則",
+        "民訴規則",
+        "民訴"
+      ],
+      "baseLawId": "408AC0000000109",
+      "baseLawTitle": "民事訴訟法",
+      "sourceLabel": "添付PDF・令和8年5月21日反映版",
+      "dataPath": "data/court-rules/civil-procedure.xml",
+      "officialUrl": "https://www.courts.go.jp/toukei_siryou/kisokusyu/minzi_kisoku/index.html",
+      "pdfUrl": "https://www.courts.go.jp/assets/080521minnsokisoku.pdf",
+      "categories": [
+        "民事"
+      ]
+    },
+    {
+      "id": "COURTRULE23D16B86CE3",
+      "slug": "court-rule-23d16b86ce39",
+      "title": "民事訴訟費用等に関する規則",
+      "lawNum": "昭和四六年六月一四日最高裁判所規則第五号",
+      "lawType": "Rule",
+      "aliases": [
+        "民事訴訟費用等に関する規則",
+        "民事訴訟費用等"
+      ],
+      "baseLawId": "",
+      "baseLawTitle": "",
+      "sourceLabel": "裁判所公式PDF・2026年9月3日取得",
+      "dataPath": "data/court-rules/court-rule-23d16b86ce39.xml",
+      "officialUrl": "https://www.courts.go.jp/toukei_siryou/kisokusyu/minzi_kisoku/index.html",
+      "pdfUrl": "https://www.courts.go.jp/assets/20260701minsohiyoukisoku.pdf",
+      "categories": [
+        "民事"
+      ]
+    },
+    {
+      "id": "COURTRULE47B549805F5",
+      "slug": "court-rule-47b549805f50",
+      "title": "民事調停委員及び家事調停委員規則",
+      "lawNum": "昭和四九年七月一三日最高裁判所規則第五号",
+      "lawType": "Rule",
+      "aliases": [
+        "民事調停委員及び家事調停委員規則",
+        "民事調停委員及び家事調停委員"
+      ],
+      "baseLawId": "",
+      "baseLawTitle": "",
+      "sourceLabel": "裁判所公式PDF・2026年9月3日取得",
+      "dataPath": "data/court-rules/court-rule-47b549805f50.xml",
+      "officialUrl": "https://www.courts.go.jp/toukei_siryou/kisokusyu/minzi_kisoku/index.html",
+      "pdfUrl": "https://www.courts.go.jp/vc-files/courts/2025/20250601minjicyouteiiinoyobikajicyouteiiinkisoku.pdf",
+      "categories": [
+        "民事",
+        "家事・少年"
+      ]
+    },
+    {
+      "id": "COURTRULE428F072673F",
+      "slug": "court-rule-428f072673f4",
+      "title": "民事調停官及び家事調停官規則",
+      "lawNum": "平成一五年一〇月一日最高裁判所規則第一五号",
+      "lawType": "Rule",
+      "aliases": [
+        "民事調停官及び家事調停官規則",
+        "民事調停官及び家事調停官"
+      ],
+      "baseLawId": "",
+      "baseLawTitle": "",
+      "sourceLabel": "裁判所公式PDF・2026年9月3日取得",
+      "dataPath": "data/court-rules/court-rule-428f072673f4.xml",
+      "officialUrl": "https://www.courts.go.jp/toukei_siryou/kisokusyu/minzi_kisoku/index.html",
+      "pdfUrl": "https://www.courts.go.jp/vc-files/courts/file4/chouteikankisoku.pdf",
+      "categories": [
+        "民事",
+        "家事・少年"
+      ]
+    },
+    {
+      "id": "COURTRULE78213BF2B31",
+      "slug": "court-rule-78213bf2b31d",
+      "title": "民事調停規則",
+      "lawNum": "昭和二六年九月一五日最高裁判所規則第八号",
+      "lawType": "Rule",
+      "aliases": [
+        "民事調停規則",
+        "民事調停"
+      ],
+      "baseLawId": "326AC1000000222",
+      "baseLawTitle": "民事調停法",
+      "sourceLabel": "裁判所公式PDF・2026年9月3日取得",
+      "dataPath": "data/court-rules/court-rule-78213bf2b31d.xml",
+      "officialUrl": "https://www.courts.go.jp/toukei_siryou/kisokusyu/minzi_kisoku/index.html",
+      "pdfUrl": "https://www.courts.go.jp/assets/20260521minjityouteikisoku.pdf",
+      "categories": [
+        "民事"
+      ]
+    },
+    {
+      "id": "COURTRULE2491EEDB931",
+      "slug": "court-rule-2491eedb9311",
+      "title": "消費者の財産的被害等の集団的な回復のための民事の裁判手続の特例に関する規則",
+      "lawNum": "平成二十七年六月二九日最高裁判所規則第五号",
+      "lawType": "Rule",
+      "aliases": [
+        "消費者の財産的被害等の集団的な回復のための民事の裁判手続の特例に関する規則",
+        "消費者の財産的被害等の集団的な回復のための民事の裁判手続の特例"
+      ],
+      "baseLawId": "",
+      "baseLawTitle": "",
+      "sourceLabel": "裁判所公式PDF・2026年9月3日取得",
+      "dataPath": "data/court-rules/court-rule-2491eedb9311.xml",
+      "officialUrl": "https://www.courts.go.jp/toukei_siryou/kisokusyu/minzi_kisoku/index.html",
+      "pdfUrl": "https://www.courts.go.jp/assets/080521syouhisyatokureikisoku.pdf",
+      "categories": [
+        "民事"
+      ]
+    },
+    {
+      "id": "COURTRULE900F1119FA0",
+      "slug": "court-rule-900f1119fa02",
+      "title": "滞納処分と強制執行等との手続の調整に関する規則",
+      "lawNum": "昭和三十二年八月一日最高裁判所規則第十二号",
+      "lawType": "Rule",
+      "aliases": [
+        "滞納処分と強制執行等との手続の調整に関する規則",
+        "滞納処分と強制執行等との手続の調整"
+      ],
+      "baseLawId": "",
+      "baseLawTitle": "",
+      "sourceLabel": "裁判所公式PDF・2026年9月3日取得",
+      "dataPath": "data/court-rules/court-rule-900f1119fa02.xml",
+      "officialUrl": "https://www.courts.go.jp/toukei_siryou/kisokusyu/minzi_kisoku/index.html",
+      "pdfUrl": "https://www.courts.go.jp/vc-files/courts/file2/20130701taichoukisoku.pdf",
+      "categories": [
+        "民事"
+      ]
+    },
+    {
+      "id": "COURTRULEE01E435E44F",
+      "slug": "court-rule-e01e435e44f4",
+      "title": "特定和解関係事件手続規則",
+      "lawNum": "令和六年二月一日最高裁判所規則第四号",
+      "lawType": "Rule",
+      "aliases": [
+        "特定和解関係事件手続規則",
+        "特定和解関係事件"
+      ],
+      "baseLawId": "",
+      "baseLawTitle": "",
+      "sourceLabel": "裁判所公式PDF・2026年9月3日取得",
+      "dataPath": "data/court-rules/court-rule-e01e435e44f4.xml",
+      "officialUrl": "https://www.courts.go.jp/toukei_siryou/kisokusyu/minzi_kisoku/index.html",
+      "pdfUrl": "https://www.courts.go.jp/assets/20260521tokuteiwakaikisoku.pdf",
+      "categories": [
+        "民事"
+      ]
+    },
+    {
+      "id": "COURTRULE2CBD9830D46",
+      "slug": "court-rule-2cbd9830d461",
+      "title": "特定調停手続規則",
+      "lawNum": "平成一二年一月二○日最高裁判所規則第二号",
+      "lawType": "Rule",
+      "aliases": [
+        "特定調停手続規則",
+        "特定調停"
+      ],
+      "baseLawId": "",
+      "baseLawTitle": "",
+      "sourceLabel": "裁判所公式PDF・2026年9月3日取得",
+      "dataPath": "data/court-rules/court-rule-2cbd9830d461.xml",
+      "officialUrl": "https://www.courts.go.jp/toukei_siryou/kisokusyu/minzi_kisoku/index.html",
+      "pdfUrl": "https://www.courts.go.jp/assets/r080521tokuteityoutei.pdf",
+      "categories": [
+        "民事"
+      ]
+    },
+    {
+      "id": "COURTRULEF4AA08E5A80",
+      "slug": "court-rule-f4aa08e5a805",
+      "title": "特許法による査証の手続等に関する規則",
+      "lawNum": "令和二年四月二二日最高裁判所規則第七号",
+      "lawType": "Rule",
+      "aliases": [
+        "特許法による査証の手続等に関する規則",
+        "特許法による査証の手続等"
+      ],
+      "baseLawId": "334AC0000000121",
+      "baseLawTitle": "特許法",
+      "sourceLabel": "裁判所公式PDF・2026年9月3日取得",
+      "dataPath": "data/court-rules/court-rule-f4aa08e5a805.xml",
+      "officialUrl": "https://www.courts.go.jp/toukei_siryou/kisokusyu/minzi_kisoku/index.html",
+      "pdfUrl": "https://www.courts.go.jp/vc-files/courts/2020/20200422sasyoukisoku.pdf",
+      "categories": [
+        "民事"
+      ]
+    },
+    {
+      "id": "COURTRULEBF100C306CE",
+      "slug": "court-rule-bf100c306ce0",
+      "title": "発信者情報開示命令事件手続規則",
+      "lawNum": "令和4年3月15日最高裁判所規則第１１号",
+      "lawType": "Rule",
+      "aliases": [
+        "発信者情報開示命令事件手続規則",
+        "発信者情報開示命令事件"
+      ],
+      "baseLawId": "",
+      "baseLawTitle": "",
+      "sourceLabel": "裁判所公式PDF・2026年9月3日取得",
+      "dataPath": "data/court-rules/court-rule-bf100c306ce0.xml",
+      "officialUrl": "https://www.courts.go.jp/toukei_siryou/kisokusyu/minzi_kisoku/index.html",
+      "pdfUrl": "https://www.courts.go.jp/assets/080521hasshinnsyajyouhoukaijimeireikisoku.pdf",
+      "categories": [
+        "民事"
+      ]
+    },
+    {
+      "id": "COURTRULE17067CC6055",
+      "slug": "court-rule-17067cc60557",
+      "title": "破産規則",
+      "lawNum": "平成十六年十月六日最高裁判所規則第十四号",
+      "lawType": "Rule",
+      "aliases": [
+        "破産規則",
+        "破産"
+      ],
+      "baseLawId": "416AC0000000075",
+      "baseLawTitle": "破産法",
+      "sourceLabel": "裁判所公式PDF・2026年9月3日取得",
+      "dataPath": "data/court-rules/court-rule-17067cc60557.xml",
+      "officialUrl": "https://www.courts.go.jp/toukei_siryou/kisokusyu/minzi_kisoku/index.html",
+      "pdfUrl": "https://www.courts.go.jp/assets/080521hasannkisoku.pdf",
+      "categories": [
+        "民事"
+      ]
+    },
+    {
+      "id": "COURTRULE73C75EDD703",
+      "slug": "court-rule-73c75edd703b",
+      "title": "船舶所有者等責任制限事件手続規則",
+      "lawNum": "昭和五十一年五月十五日最高裁判所規則第二号",
+      "lawType": "Rule",
+      "aliases": [
+        "船舶所有者等責任制限事件手続規則",
+        "船舶所有者等責任制限事件"
+      ],
+      "baseLawId": "",
+      "baseLawTitle": "",
+      "sourceLabel": "裁判所公式PDF・2026年9月3日取得",
+      "dataPath": "data/court-rules/court-rule-73c75edd703b.xml",
+      "officialUrl": "https://www.courts.go.jp/toukei_siryou/kisokusyu/minzi_kisoku/index.html",
+      "pdfUrl": "https://www.courts.go.jp/assets/080521sennpakusyoyusya.pdf",
+      "categories": [
+        "民事"
+      ]
+    },
+    {
+      "id": "COURTRULEC3AA942F11A",
+      "slug": "court-rule-c3aa942f11a1",
+      "title": "船舶油濁等損害賠償責任制限事件等手続規則",
+      "lawNum": "昭和五十一年五月十五日最高裁判所規則第三号",
+      "lawType": "Rule",
+      "aliases": [
+        "船舶油濁等損害賠償責任制限事件等手続規則",
+        "船舶油濁等損害賠償責任制限事件等"
+      ],
+      "baseLawId": "350AC0000000095",
+      "baseLawTitle": "第一条船舶油濁等損害賠償保障法",
+      "sourceLabel": "裁判所公式PDF・2026年9月3日取得",
+      "dataPath": "data/court-rules/court-rule-c3aa942f11a1.xml",
+      "officialUrl": "https://www.courts.go.jp/toukei_siryou/kisokusyu/minzi_kisoku/index.html",
+      "pdfUrl": "https://www.courts.go.jp/vc-files/courts/2020/R021001sennpakuyudakutousongaibaisyousekininseigenjikentoutetuzukikisoku.pdf",
+      "categories": [
+        "民事"
+      ]
+    },
+    {
+      "id": "COURTRULE3B6F75900F9",
+      "slug": "court-rule-3b6f75900f9e",
+      "title": "都市再開発法による権利の変換と強制執行等との調整に関する規則",
+      "lawNum": "昭和四十五年四月二十五日最高裁判所規則第二号",
+      "lawType": "Rule",
+      "aliases": [
+        "都市再開発法による権利の変換と強制執行等との調整に関する規則",
+        "都市再開発法による権利の変換と強制執行等との調整"
+      ],
+      "baseLawId": "",
+      "baseLawTitle": "",
+      "sourceLabel": "裁判所公式PDF・2026年9月3日取得",
+      "dataPath": "data/court-rules/court-rule-3b6f75900f9e.xml",
+      "officialUrl": "https://www.courts.go.jp/toukei_siryou/kisokusyu/minzi_kisoku/index.html",
+      "pdfUrl": "https://www.courts.go.jp/vc-files/courts/2022/toshisaikaihatsuhoutyouseikisokuR4.2.pdf",
+      "categories": [
+        "民事"
+      ]
+    },
+    {
+      "id": "COURTRULE189CF4119D4",
+      "slug": "court-rule-189cf4119d41",
+      "title": "配偶者暴力等に関する保護命令手続規則",
+      "lawNum": "平成一三年七月二七日最高裁判所規則第七号",
+      "lawType": "Rule",
+      "aliases": [
+        "配偶者暴力等に関する保護命令手続規則",
+        "配偶者暴力等に関する保護命令"
+      ],
+      "baseLawId": "",
+      "baseLawTitle": "",
+      "sourceLabel": "裁判所公式PDF・2026年9月3日取得",
+      "dataPath": "data/court-rules/court-rule-189cf4119d41.xml",
+      "officialUrl": "https://www.courts.go.jp/toukei_siryou/kisokusyu/minzi_kisoku/index.html",
+      "pdfUrl": "https://www.courts.go.jp/assets/20260521hogomeireitetsuzukikisoku.pdf",
+      "categories": [
+        "民事"
+      ]
+    },
+    {
+      "id": "COURTRULE2C7617A6A3D",
+      "slug": "court-rule-2c7617a6a3d4",
+      "title": "金融機関等の更生手続の特例等に関する規則",
+      "lawNum": "平成十五年二月十九日最高裁判所規則第三号",
+      "lawType": "Rule",
+      "aliases": [
+        "金融機関等の更生手続の特例等に関する規則",
+        "金融機関等の更生手続の特例等"
+      ],
+      "baseLawId": "",
+      "baseLawTitle": "",
+      "sourceLabel": "裁判所公式PDF・2026年9月3日取得",
+      "dataPath": "data/court-rules/court-rule-2c7617a6a3d4.xml",
+      "officialUrl": "https://www.courts.go.jp/toukei_siryou/kisokusyu/minzi_kisoku/index.html",
+      "pdfUrl": "https://www.courts.go.jp/vc-files/courts/2022/kinnyukikankouseikisokuR4.2.pdf",
+      "categories": [
+        "民事"
+      ]
+    },
+    {
+      "id": "COURTRULE882B190CC61",
+      "slug": "court-rule-882b190cc61f",
+      "title": "鑑定委員規則",
+      "lawNum": "昭和四二年三月二三日最高裁判所規則第四号",
+      "lawType": "Rule",
+      "aliases": [
+        "鑑定委員規則",
+        "鑑定委員"
+      ],
+      "baseLawId": "",
+      "baseLawTitle": "",
+      "sourceLabel": "裁判所公式PDF・2026年9月3日取得",
+      "dataPath": "data/court-rules/court-rule-882b190cc61f.xml",
+      "officialUrl": "https://www.courts.go.jp/toukei_siryou/kisokusyu/minzi_kisoku/index.html",
+      "pdfUrl": "https://www.courts.go.jp/assets/20260701kanteiiinkisoku.pdf",
+      "categories": [
+        "民事"
+      ]
+    },
+    {
+      "id": "COURTRULEA185A213628",
+      "slug": "court-rule-a185a2136284",
+      "title": "非訟事件手続規則",
+      "lawNum": "平成二十四年七月十七日最高裁判所規則第七号",
+      "lawType": "Rule",
+      "aliases": [
+        "非訟事件手続規則",
+        "非訟事件"
+      ],
+      "baseLawId": "423AC0000000051",
+      "baseLawTitle": "非訟事件手続法",
+      "sourceLabel": "裁判所公式PDF・2026年9月3日取得",
+      "dataPath": "data/court-rules/court-rule-a185a2136284.xml",
+      "officialUrl": "https://www.courts.go.jp/toukei_siryou/kisokusyu/minzi_kisoku/index.html",
+      "pdfUrl": "https://www.courts.go.jp/assets/080521hisyoukisoku.pdf",
+      "categories": [
+        "民事"
+      ]
+    }
+  ],
+  "referenceLaws": [
+    [
+      "大規模な災害の被災地における借地借家に関する特別措置法",
+      "425AC0000000061"
+    ],
+    [
+      "民事執行法附則第三条の規定による改正前の民事訴訟法",
+      "123AC0000000029"
+    ],
+    [
+      "第十五条法第二十二条において準用する非訟事件手続法",
+      "423AC0000000051"
+    ],
+    [
+      "生特例法第四百五十四条において準用する民事再生法",
+      "411AC0000000225"
+    ],
+    [
+      "第三条整備法第三条の規定による廃止前の家事審判法",
+      "322AC0000000152"
+    ],
+    [
+      "第十条法第三十条第四項において準用する民事執行法",
+      "354AC0000000004"
+    ],
+    [
+      "民事執行法附則第二条の規定による廃止前の競売法",
+      "131AC0000000015"
+    ],
+    [
+      "第十七条法第五十条において準用する民事執行法",
+      "354AC0000000004"
+    ],
+    [
+      "その民事調停委員の所属する裁判所の裁判所法",
+      "322AC0000000059"
+    ],
+    [
+      "十一条において読み替えて準用する民事訴訟法",
+      "408AC0000000109"
+    ],
+    [
+      "第二十六条第二項において準用する民事訴訟法",
+      "408AC0000000109"
+    ],
+    [
+      "及び接収不動産に関する借地借家臨時処理法",
+      "331AC1000000138"
+    ],
+    [
+      "条第一項若しくは第二項又は家事事件手続法",
+      "423AC0000000052"
+    ],
+    [
+      "法第三十六条第一項において準用する破産法",
+      "416AC0000000075"
+    ],
+    [
+      "二十七条の十において準用する民事訴訟法",
+      "408AC0000000109"
+    ],
+    [
+      "共通義務確認の訴えを提起する民事訴訟法",
+      "408AC0000000109"
+    ],
+    [
+      "法附則第二条の規定による廃止前の競売法",
+      "131AC0000000015"
+    ],
+    [
+      "災地における借地借家に関する特別措置法",
+      "425AC0000000061"
+    ],
+    [
+      "が法第十条において準用する刑事訴訟法",
+      "323AC0000000131"
+    ],
+    [
+      "る廃止前の罹災都市借地借家臨時処理法",
+      "321AC0000000013"
+    ],
+    [
+      "判所書記官の所属する裁判所の裁判所法",
+      "322AC0000000059"
+    ],
+    [
+      "接収不動産に関する借地借家臨時処理法",
+      "331AC1000000138"
+    ],
+    [
+      "法第十七条において準用する民事訴訟法",
+      "408AC0000000109"
+    ],
+    [
+      "当該裁判書の謄本以外の不動産登記法",
+      "416AC0000000123"
+    ],
+    [
+      "条第一項において準用する民事訴訟法",
+      "408AC0000000109"
+    ],
+    [
+      "法第七条において準用する民事訴訟法",
+      "408AC0000000109"
+    ],
+    [
+      "として任命されるべき者を裁判所法",
+      "322AC0000000059"
+    ],
+    [
+      "十一条において準用する民事訴訟法",
+      "408AC0000000109"
+    ],
+    [
+      "十二条において準用する民事訴訟法",
+      "408AC0000000109"
+    ],
+    [
+      "期日間整理手続調書又は刑事訴訟法",
+      "323AC0000000131"
+    ],
+    [
+      "第一条裁判官に対する裁判官分限法",
+      "322AC0000000127"
+    ],
+    [
+      "第一条船舶油濁等損害賠償保障法",
+      "350AC0000000095"
+    ],
+    [
+      "第二条の規定による改正前の刑法",
+      "140AC0000000045"
+    ],
+    [
+      "び公証をするために民事訴訟法",
+      "408AC0000000109"
+    ],
+    [
+      "二において準用する民事訴訟法",
+      "408AC0000000109"
+    ],
+    [
+      "又は歯科医師として歯科医師法",
+      "323AC0000000202"
+    ],
+    [
+      "四条の規定による改正前の商法",
+      "132AC0000000048"
+    ],
+    [
+      "第一条交通事件即決裁判手続法",
+      "329AC0000000113"
+    ],
+    [
+      "第七条申立人が非訟事件手続法",
+      "423AC0000000051"
+    ],
+    [
+      "該事件について家事事件手続法",
+      "423AC0000000052"
+    ],
+    [
+      "において準用する民事訴訟法",
+      "408AC0000000109"
+    ],
+    [
+      "の所属する裁判所の裁判所法",
+      "322AC0000000059"
+    ],
+    [
+      "保護観察所長から更生保護法",
+      "419AC0000000088"
+    ],
+    [
+      "公証をするために民事訴訟法",
+      "408AC0000000109"
+    ],
+    [
+      "則施行前に従前の刑事訴訟法",
+      "211AC0000000075"
+    ],
+    [
+      "当該書面以外の不動産登記法",
+      "416AC0000000123"
+    ],
+    [
+      "株式会社商工組合中央金庫法",
+      "419AC0000000074"
+    ],
+    [
+      "第百四十六条電気通信事業法",
+      "359AC0000000086"
+    ],
+    [
+      "罹災都市借地借家臨時処理法",
+      "321AC0000000013"
+    ],
+    [
+      "おいて準用する民事訴訟法",
+      "408AC0000000109"
+    ],
+    [
+      "この規則は，不動産登記法",
+      "416AC0000000123"
+    ],
+    [
+      "である場合又は民事訴訟法",
+      "408AC0000000109"
+    ],
+    [
+      "及び日本郵政公社法施行法",
+      "414AC0000000098"
+    ],
+    [
+      "知的財産高等裁判所設置法",
+      "416AC0000000119"
+    ],
+    [
+      "第九十八条建設機械抵当法",
+      "329AC0000000097"
+    ],
+    [
+      "第八十六条道路運送車両法",
+      "326AC0000000185"
+    ],
+    [
+      "律関係に関して弁護士法",
+      "324AC1000000205"
+    ],
+    [
+      "次に掲げる地の地方税法",
+      "325AC0000000226"
+    ],
+    [
+      "第一条国際受刑者移送法",
+      "414AC0000000066"
+    ],
+    [
+      "第一条逃亡犯罪人引渡法",
+      "328AC0000000068"
+    ],
+    [
+      "第五十八条少年鑑別所法",
+      "426AC0000000059"
+    ],
+    [
+      "裁判所に提出した破産法",
+      "416AC0000000075"
+    ],
+    [
+      "不動産特定共同事業法",
+      "406AC0000000077"
+    ],
+    [
+      "担保権の実行及び民法",
+      "129AC0000000089"
+    ],
+    [
+      "第一条不正競争防止法",
+      "405AC0000000047"
+    ],
+    [
+      "第一条総合法律支援法",
+      "416AC0000000074"
+    ],
+    [
+      "第七条非訟事件手続法",
+      "423AC0000000051"
+    ],
+    [
+      "第三条の二民事訴訟法",
+      "408AC0000000109"
+    ],
+    [
+      "第二百七十八条少年法",
+      "323AC0000000168"
+    ],
+    [
+      "第二百三十九条特許法",
+      "334AC0000000121"
+    ],
+    [
+      "第八条道路運送車両法",
+      "326AC0000000185"
+    ],
+    [
+      "財産について地方税法",
+      "325AC0000000226"
+    ],
+    [
+      "に係る不動産登記法",
+      "416AC0000000123"
+    ],
+    [
+      "刑事訴訟法（旧法）",
+      "211AC0000000075"
+    ],
+    [
+      "別表農業協同組合法",
+      "322AC0000000132"
+    ],
+    [
+      "改正前の刑事訴訟法",
+      "211AC0000000075"
+    ],
+    [
+      "施行日が人事訴訟法",
+      "415AC0000000109"
+    ],
+    [
+      "民事訴訟法（旧法）",
+      "123AC0000000029"
+    ],
+    [
+      "消費生活協同組合法",
+      "323AC0000000200"
+    ],
+    [
+      "準用する民事訴訟法",
+      "408AC0000000109"
+    ],
+    [
+      "第十八条民事執行法",
+      "354AC0000000004"
+    ],
+    [
+      "医師として医師法",
+      "323AC0000000201"
+    ],
+    [
+      "家事審判法施行法",
+      "322AC0000000153"
+    ],
+    [
+      "成年後見人に民法",
+      "129AC0000000089"
+    ],
+    [
+      "用する土地収用法",
+      "326AC0100000219"
+    ],
+    [
+      "第一条人事訴訟法",
+      "415AC0000000109"
+    ],
+    [
+      "第一条企業担保法",
+      "333AC0000000106"
+    ],
+    [
+      "第一条借地借家法",
+      "403AC0000000090"
+    ],
+    [
+      "第一条労働審判法",
+      "416AC0000000045"
+    ],
+    [
+      "第一条民事訴訟法",
+      "408AC0000000109"
+    ],
+    [
+      "第一条民事調停法",
+      "326AC1000000222"
+    ],
+    [
+      "第三条の三特許法",
+      "334AC0000000121"
+    ],
+    [
+      "第二条人事訴訟法",
+      "415AC0000000109"
+    ],
+    [
+      "第五条民事執行法",
+      "354AC0000000004"
+    ],
+    [
+      "第八十四条航空法",
+      "327AC0000000231"
+    ],
+    [
+      "第六条刑事訴訟法",
+      "323AC0000000131"
+    ],
+    [
+      "不正競争防止法",
+      "405AC0000000047"
+    ],
+    [
+      "厚生年金保険法",
+      "329AC0000000115"
+    ],
+    [
+      "又は民事訴訟法",
+      "408AC0000000109"
+    ],
+    [
+      "家事事件手続法",
+      "423AC0000000052"
+    ],
+    [
+      "建設機械抵当法",
+      "329AC0000000097"
+    ],
+    [
+      "第一条裁判所法",
+      "322AC0000000059"
+    ],
+    [
+      "第三十四条民法",
+      "129AC0000000089"
+    ],
+    [
+      "第十六条破産法",
+      "416AC0000000075"
+    ],
+    [
+      "総合法律支援法",
+      "416AC0000000074"
+    ],
+    [
+      "行政事件訴訟法",
+      "337AC0000000139"
+    ],
+    [
+      "裁判所が少年法",
+      "323AC0000000168"
+    ],
+    [
+      "農林中央金庫法",
+      "413AC0000000093"
+    ],
+    [
+      "農業協同組合法",
+      "322AC0000000132"
+    ],
+    [
+      "道路運送車両法",
+      "326AC0000000185"
+    ],
+    [
+      "金融商品取引法",
+      "323AC0000000025"
+    ],
+    [
+      "長期信用銀行法",
+      "327AC0000000187"
+    ],
+    [
+      "電子記録債権法",
+      "419AC0000000102"
+    ],
+    [
+      "電気通信事業法",
+      "359AC0000000086"
+    ],
+    [
+      "非訟事件手続法",
+      "423AC0000000051"
+    ],
+    [
+      "不動産登記法",
+      "416AC0000000123"
+    ],
+    [
+      "少年鑑別所法",
+      "426AC0000000059"
+    ],
+    [
+      "政事件訴訟法",
+      "337AC0000000139"
+    ],
+    [
+      "第一条会社法",
+      "417AC0000000086"
+    ],
+    [
+      "第一条特許法",
+      "334AC0000000121"
+    ],
+    [
+      "自動車抵当法",
+      "326AC0000000187"
+    ],
+    [
+      "都市再開発法",
+      "344AC0000000038"
+    ],
+    [
+      "項及び銀行法",
+      "356AC0000000059"
+    ],
+    [
+      "人事訴訟法",
+      "415AC0000000109"
+    ],
+    [
+      "会社更生法",
+      "414AC0000000154"
+    ],
+    [
+      "信用金庫法",
+      "326AC1000000238"
+    ],
+    [
+      "借地借家法",
+      "403AC0000000090"
+    ],
+    [
+      "刑事訴訟法",
+      "323AC0000000131"
+    ],
+    [
+      "労働審判法",
+      "416AC0000000045"
+    ],
+    [
+      "労働金庫法",
+      "328AC0100000227"
+    ],
+    [
+      "司法書士法",
+      "325AC1000000197"
+    ],
+    [
+      "商品取引法",
+      "323AC0000000025"
+    ],
+    [
+      "商業登記法",
+      "338AC0000000125"
+    ],
+    [
+      "土地収用法",
+      "326AC0100000219"
+    ],
+    [
+      "地方自治法",
+      "322AC0000000067"
+    ],
+    [
+      "学校教育法",
+      "322AC0000000026"
+    ],
+    [
+      "家事審判法",
+      "322AC0000000152"
+    ],
+    [
+      "建築基準法",
+      "325AC0000000201"
+    ],
+    [
+      "更生保護法",
+      "419AC0000000088"
+    ],
+    [
+      "歯科医師法",
+      "323AC0000000202"
+    ],
+    [
+      "民事再生法",
+      "411AC0000000225"
+    ],
+    [
+      "民事執行法",
+      "354AC0000000004"
+    ],
+    [
+      "民事訴訟法",
+      "408AC0000000109"
+    ],
+    [
+      "民事調停法",
+      "326AC1000000222"
+    ],
+    [
+      "第一条民法",
+      "129AC0000000089"
+    ],
+    [
+      "行政手続法",
+      "405AC0000000088"
+    ],
+    [
+      "道路交通法",
+      "335AC0000000105"
+    ],
+    [
+      "都市計画法",
+      "343AC0000000100"
+    ],
+    [
+      "９執行官法",
+      "341AC0000000111"
+    ],
+    [
+      "保険業法",
+      "407AC0000000105"
+    ],
+    [
+      "信託業法",
+      "416AC0000000154"
+    ],
+    [
+      "公証人法",
+      "141AC0000000053"
+    ],
+    [
+      "地方税法",
+      "325AC0000000226"
+    ],
+    [
+      "執行官法",
+      "341AC0000000111"
+    ],
+    [
+      "少年院法",
+      "426AC0000000058"
+    ],
+    [
+      "弁護士法",
+      "324AC1000000205"
+    ],
+    [
+      "所得税法",
+      "340AC0000000033"
+    ],
+    [
+      "無尽業法",
+      "306AC0000000042"
+    ],
+    [
+      "著作権法",
+      "345AC0000000048"
+    ],
+    [
+      "裁判所法",
+      "322AC0000000059"
+    ],
+    [
+      "警備業法",
+      "347AC0000000117"
+    ],
+    [
+      "仲裁法",
+      "415AC0000000138"
+    ],
+    [
+      "会社法",
+      "417AC0000000086"
+    ],
+    [
+      "信託法",
+      "418AC0000000108"
+    ],
+    [
+      "医師法",
+      "323AC0000000201"
+    ],
+    [
+      "少年法",
+      "323AC0000000168"
+    ],
+    [
+      "特許法",
+      "334AC0000000121"
+    ],
+    [
+      "破産法",
+      "416AC0000000075"
+    ],
+    [
+      "競売法",
+      "131AC0000000015"
+    ],
+    [
+      "航空法",
+      "327AC0000000231"
+    ],
+    [
+      "証人法",
+      "141AC0000000053"
+    ],
+    [
+      "銀行法",
+      "356AC0000000059"
+    ],
+    [
+      "商法",
+      "132AC0000000048"
+    ],
+    [
+      "民法",
+      "129AC0000000089"
+    ]
+  ]
+}

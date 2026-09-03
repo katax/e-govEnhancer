@@ -42,10 +42,22 @@ document.addEventListener('DOMContentLoaded', () => {
   let debounceTimer      = null;
   let isComposing        = false;
   let currentResults     = [];
+  let currentSearchQuery = '';
+  let currentSearchHasMore = false;
   let focusedResultIndex = -1;
   let mainHoverEnabled   = true;
   let liteModeDefault    = false;
   let ctrlPressed        = false;
+
+  const LOCAL_COURT_RULES = (globalThis.EgovCourtRuleCatalog?.rules || []).map((rule) => ({
+    lawId: rule.id,
+    lawName: rule.title,
+    lawNum: rule.lawNum,
+    lawType: rule.lawType || 'Rule',
+    localRule: rule.slug,
+    aliases: Array.isArray(rule.aliases) ? rule.aliases : [rule.title],
+  }));
+  const LOCAL_COURT_RULE_BY_ID = new Map(LOCAL_COURT_RULES.map((rule) => [rule.lawId, rule]));
 
   // 履歴・お気に入りデータ
   let queryHistory     = [];   // 検索クエリ履歴（文字列）
@@ -79,6 +91,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const lawName = fields.lawName || law?.lawName || '';
     if (!lawId) return '';
     const params = new URLSearchParams();
+    const localRule = law?.localRule || LOCAL_COURT_RULE_BY_ID.get(lawId)?.localRule || '';
+    if (localRule) {
+      params.set('localRule', localRule);
+      return chrome.runtime.getURL(`viewer.html?${params.toString()}`);
+    }
     params.set('lawId', lawId);
     params.set('lawName', lawName || '');
     params.set('sourceUrl', buildLawUrl(lawId));
@@ -118,7 +135,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const { lawId, lawName, lawNum, lawType } = getLawFields(law);
     if (!lawId) return false;
     pushOpenedLaw({ lawId, lawName, lawNum, lawType });
-    const useLite = shouldOpenLite(alternate);
+    const useLite = LOCAL_COURT_RULE_BY_ID.has(lawId) || shouldOpenLite(alternate);
     const url = useLite ? buildLiteViewerUrl(law) : buildLawUrl(lawId);
     if (!url) return false;
     chrome.tabs.create({ url });
@@ -551,8 +568,10 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       } else if (e.shiftKey) {
         if (focusedResultIndex >= 0 && currentResults[focusedResultIndex]) {
-          toggleFavorite(currentResults[focusedResultIndex]);
-          updateFavBtnAt(focusedResultIndex);
+          const law = currentResults[focusedResultIndex];
+          const { lawId } = getLawFields(law);
+          toggleFavorite(law);
+          showResults(currentResults, currentSearchQuery, currentSearchHasMore, lawId);
         }
       } else {
         if (focusedResultIndex >= 0 && currentResults[focusedResultIndex]) {
@@ -1388,8 +1407,8 @@ document.addEventListener('DOMContentLoaded', () => {
       openResult(currentResults[focusedResultIndex]);
   });
 
-  // クイックリンク
-  document.querySelectorAll('.quick-link').forEach((link) => {
+  // ボトムバーの外部リンク
+  document.querySelectorAll('.footer-link').forEach((link) => {
     link.addEventListener('click', (e) => {
       e.preventDefault();
       chrome.tabs.create({ url: link.dataset.url });
@@ -1442,17 +1461,6 @@ document.addEventListener('DOMContentLoaded', () => {
     openLaw(law, options);
   }
 
-  // ★ ボタン表示を最新状態に更新
-  function updateFavBtnAt(idx) {
-    const items = resultsEl.querySelectorAll('.result-item');
-    const li = items[idx];
-    if (!li) return;
-    const btn = li.querySelector('.result-fav-btn');
-    if (!btn || !currentResults[idx]) return;
-    const { lawId } = getLawFields(currentResults[idx]);
-    applyFavButtonState(btn, isFavorite(lawId), 'result-fav-active', { shortcut: true });
-  }
-
   // ================================================
   // API検索
   // ================================================
@@ -1462,9 +1470,22 @@ document.addEventListener('DOMContentLoaded', () => {
     focusedResultIndex = -1;
     showLoading(true);
     try {
-      const laws = await searchLawsByTitle(query, { limit: 31 });
+      const normalizedQuery = query.replace(/[\s　]+/g, '').toLowerCase();
+      const localLaws = LOCAL_COURT_RULES.filter((rule) =>
+        rule.aliases.some((alias) => alias.toLowerCase().includes(normalizedQuery) || normalizedQuery.includes(alias.toLowerCase()))
+      );
+      let laws = [];
+      let remoteError = null;
+      try {
+        laws = await searchLawsByTitle(query, { limit: 31 });
+      } catch (error) {
+        remoteError = error;
+      }
+      if (remoteError && localLaws.length === 0) throw remoteError;
       const hasMore = laws.length > 30;
-      const display = hasMore ? laws.slice(0, 30) : laws;
+      const remoteDisplay = hasMore ? laws.slice(0, 30) : laws;
+      const localIds = new Set(localLaws.map((rule) => rule.lawId));
+      const display = [...localLaws, ...remoteDisplay.filter((law) => !localIds.has(getLawFields(law).lawId))];
       // currentResults は showResults 内で表示順（sortedLaws）に確定させる
       showResults(display, query, hasMore);
       if (display.length > 0) pushQueryHistory(query);
@@ -1531,10 +1552,12 @@ document.addEventListener('DOMContentLoaded', () => {
   // ================================================
   // 結果表示
   // ================================================
-  function showResults(laws, query, hasMore = false) {
+  function showResults(laws, query, hasMore = false, focusedLawId = null) {
     isEmptyState        = false;
     resultsEl.innerHTML = '';
     focusedResultIndex  = -1;
+    currentSearchQuery  = query ?? '';
+    currentSearchHasMore = hasMore;
 
     if (laws.length === 0) {
       resultsEl.innerHTML = `
@@ -1547,11 +1570,19 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
-    // Mode2（開いた法令）に含まれる法令を上位表示
+    // お気に入りを最上位、その次にMode2（開いた法令）に含まれる法令を表示
+    const favoriteIds = new Set(favorites.map(f => f.lawId));
     const visitedIds = new Set(openedLawHistory.map(l => l.lawId));
     const sortedLaws = [
-      ...laws.filter(l => visitedIds.has(getLawFields(l).lawId)),
-      ...laws.filter(l => !visitedIds.has(getLawFields(l).lawId)),
+      ...laws.filter(l => favoriteIds.has(getLawFields(l).lawId)),
+      ...laws.filter(l => {
+        const lawId = getLawFields(l).lawId;
+        return !favoriteIds.has(lawId) && visitedIds.has(lawId);
+      }),
+      ...laws.filter(l => {
+        const lawId = getLawFields(l).lawId;
+        return !favoriteIds.has(lawId) && !visitedIds.has(lawId);
+      }),
     ];
 
     resultsEl.innerHTML = `<div class="results-label">${sortedLaws.length}件${hasMore ? '（上限）' : ''} &nbsp;｜&nbsp; ↑↓ 移動 ｜ Enter 開く ｜ Shift+Enter ★</div>`;
@@ -1563,13 +1594,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
     sortedLaws.forEach((law, i) => {
       const { lawId, lawName, lawNum, lawType } = getLawFields(law);
+      const isLocalCourtRule = Boolean(law.localRule || LOCAL_COURT_RULE_BY_ID.has(lawId));
+      const typeTags = isLocalCourtRule
+        ? [
+            '<span class="result-type">裁判所規則</span>',
+            '<span class="result-type result-type-local">ローカル</span>',
+          ].join('')
+        : (lawType ? `<span class="result-type">${escapeHtml(formatType(lawType))}</span>` : '');
       const isVisited = visitedIds.has(lawId);
       const fav       = isFavorite(lawId);
       const li        = document.createElement('li');
-      li.className    = isVisited ? 'result-item result-item-visited' : 'result-item';
+      li.className    = [
+        'result-item',
+        isVisited ? 'result-item-visited' : '',
+        fav ? 'result-item-favorite' : '',
+      ].filter(Boolean).join(' ');
       li.innerHTML = `
         <div class="result-main">
-          ${lawType ? `<span class="result-type">${escapeHtml(formatType(lawType))}</span>` : ''}
+          ${typeTags ? `<div class="result-tags">${typeTags}</div>` : ''}
           <span class="result-name">${formatLawNameHtml(lawName)}</span>
           ${lawNum ? `<span class="result-num">${escapeHtml(lawNum)}</span>` : ''}
         </div>
@@ -1579,8 +1621,7 @@ document.addEventListener('DOMContentLoaded', () => {
       li.querySelector('.result-fav-btn').addEventListener('click', (ev) => {
         ev.stopPropagation();
         toggleFavorite(law);
-        updateFavBtnAt(i);
-        searchInput.focus();
+        showResults(currentResults, query, hasMore, lawId);
       });
       li.addEventListener('click', (ev) => openResult(law, { alternate: ev.ctrlKey }));
       li.addEventListener('mouseenter', () => {
@@ -1597,10 +1638,15 @@ document.addEventListener('DOMContentLoaded', () => {
     currentResults = sortedLaws;
     resultsEl.appendChild(list);
 
-    const firstItem = list.querySelector('.result-item');
-    if (firstItem) {
-      focusedResultIndex = 0;
-      firstItem.classList.add('result-item-focused');
+    const resultItems = list.querySelectorAll('.result-item');
+    const preferredIndex = focusedLawId
+      ? sortedLaws.findIndex(law => getLawFields(law).lawId === focusedLawId)
+      : 0;
+    const focusedItem = resultItems[preferredIndex >= 0 ? preferredIndex : 0];
+    if (focusedItem) {
+      focusedResultIndex = preferredIndex >= 0 ? preferredIndex : 0;
+      focusedItem.classList.add('result-item-focused');
+      focusedItem.scrollIntoView({ block: 'nearest' });
       blurSearchInputForListSelection();
     }
 

@@ -1319,6 +1319,15 @@ mark.egov-ext-mark-current {
   background: #e8f0fe !important;
 }
 
+.egov-ext-law-result-item.favorite {
+  background: #fffbea !important;
+}
+
+.egov-ext-law-result-item.favorite:hover,
+.egov-ext-law-result-item.favorite.focused {
+  background: #fff3c4 !important;
+}
+
 .egov-ext-law-result-main {
   flex: 1 !important;
   min-width: 0 !important;

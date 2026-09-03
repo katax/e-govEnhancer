@@ -1,2 +1,5 @@
 PROPOSALS.md
 release/
+tmp/
+__pycache__/
+*.pyc

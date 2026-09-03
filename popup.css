@@ -425,6 +425,18 @@ body.keyboard-nav-hide-cursor * {
   font-weight: 600;
 }
 
+.result-tags {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.result-type-local {
+  color: #5f6368;
+  background: #eef0f2;
+}
+
 .result-name {
   font-size: 13px;
   color: #222;
@@ -449,6 +461,16 @@ body.keyboard-nav-hide-cursor * {
 .result-item-visited:hover,
 .result-item-visited.result-item-focused {
   background: #d6f0da;
+}
+
+/* お気に入りの検索結果（履歴の薄緑とは異なる薄黄色） */
+.result-item-favorite {
+  background: #fffbea;
+}
+
+.result-item-favorite:hover,
+.result-item-favorite.result-item-focused {
+  background: #fff3c4;
 }
 
 /* 通常モード用ガイドヒント */
@@ -565,42 +587,27 @@ body.keyboard-nav-hide-cursor * {
   text-align: center;
 }
 
-/* クイックリンク */
-.quick-links {
-  padding: 8px 10px;
-  border-bottom: 1px solid #f0f0f0;
-}
-
-.quick-link {
-  padding: 7px 10px;
-  border-radius: 5px;
-  text-decoration: none;
-  color: #555;
-  font-size: 12px;
-  transition: background 0.12s;
-  display: flex;
-  align-items: center;
-  gap: 5px;
-}
-
-.quick-link:hover {
-  background: #e8f0fe;
-  color: #1976D2;
-}
-
 /* フッター */
 .popup-footer {
   padding: 7px 14px;
   display: flex;
   justify-content: flex-end;
   gap: 6px;
+  flex-shrink: 0;
+  border-top: 1px solid #f0f0f0;
+  background: #fff;
 }
 
 .footer-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   background: none;
   border: none;
   color: #aaa;
+  font-family: inherit;
   font-size: 11px;
+  line-height: 1.4;
   cursor: pointer;
   padding: 3px 7px;
   border-radius: 4px;
@@ -610,6 +617,11 @@ body.keyboard-nav-hide-cursor * {
 .footer-btn:hover {
   background: #f0f0f0;
   color: #555;
+}
+
+.footer-link {
+  margin-right: auto;
+  text-decoration: none;
 }
 
 /* フォルダ作成ボタン（タイトルバー内） */

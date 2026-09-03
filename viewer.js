@@ -49,10 +49,41 @@
   } = app;
   const persistLocal = (items, options = { errorLabel: '設定の保存' }) => persistSharedLocal(items, options);
   const params = new URLSearchParams(location.search);
-  const lawId = params.get('lawId') || '';
+  const courtRuleCatalog = globalThis.EgovCourtRuleCatalog || { rules: [], referenceLaws: [] };
+  const LOCAL_RULES = Object.fromEntries(courtRuleCatalog.rules.map((rule) => [rule.slug, rule]));
+  const LOCAL_RULE_BY_ID = new Map(courtRuleCatalog.rules.map((rule) => [rule.id, rule]));
+  const LOCAL_RULE_REFERENCE_RULES = courtRuleCatalog.rules
+    .map((rule) => [rule.title, rule.id])
+    .sort(([left], [right]) => right.length - left.length);
+  const LOCAL_RULE_REFERENCE_LAWS = [
+    ...(courtRuleCatalog.referenceLaws || []),
+    ['行政手続における特定の個人を識別するための番号の利用等に関する法律', '425AC0000000027'],
+    ['刑事収容施設及び被収容者等の処遇に関する法律', '417AC0000000050'],
+    ['特定電子メールの送信の適正化等に関する法律', '414AC0100000026'],
+    ['特定電子メ－ルの送信の適正化等に関する法律', '414AC0100000026'],
+    ['電子署名及び認証業務に関する法律', '412AC0000000102'],
+    ['民事訴訟費用等に関する法律', '346AC0000000040'],
+    ['一般社団法人及び一般財団法人に関する法律', '418AC0000000048'],
+    ['民事訴訟法', '408AC0000000109'],
+    ['刑事訴訟法', '323AC0000000131'],
+    ['商業登記法', '338AC0000000125'],
+    ['著作権法', '345AC0000000048'],
+    ['裁判所法', '322AC0000000059'],
+    ['弁護士法', '324AC1000000205'],
+    ['少年法', '323AC0000000168'],
+    ['特許法', '334AC0000000121'],
+    ['刑法', '140AC0000000045'],
+  ].filter(([title, id], index, values) =>
+    values.findIndex(([candidateTitle]) => candidateTitle === title) === index
+  ).sort(([left], [right]) => right.length - left.length);
+  const localRuleSlug = params.get('localRule') || '';
+  const localRule = LOCAL_RULES[localRuleSlug] || null;
+  const lawId = localRule?.id || params.get('lawId') || '';
   const revisionIdParam = params.get('revisionId') || '';
-  const sourceUrl = params.get('sourceUrl') || (lawId ? `https://laws.e-gov.go.jp/law/${encodeURIComponent(lawId)}` : '');
-  const fallbackLawName = params.get('lawName') || '法令ビューア';
+  const localViewerUrl = localRule ? new URL(location.href) : null;
+  if (localViewerUrl) localViewerUrl.hash = '';
+  const sourceUrl = params.get('sourceUrl') || (localViewerUrl ? localViewerUrl.href : (lawId ? `https://laws.e-gov.go.jp/law/${encodeURIComponent(lawId)}` : ''));
+  const fallbackLawName = localRule?.title || params.get('lawName') || '法令ビューア';
   const embeddedMode = params.get('embedded') === '1';
   const API_V2_BASE = 'https://laws.e-gov.go.jp/api/2';
   const LITE_FONT_SIZE_KEY = 'liteFontSize';
@@ -76,9 +107,10 @@
     'TableStruct', 'TableStructTitle', 'Table', 'TableRow', 'TableColumn'
   ]);
   const INLINE_ALLOWED = new Set(['a', 'b', 'strong']);
-  const KANJI_DIGITS = new Map([['零', 0], ['〇', 0], ['一', 1], ['二', 2], ['三', 3], ['四', 4], ['五', 5], ['六', 6], ['七', 7], ['八', 8], ['九', 9]]);
+  const KANJI_DIGITS = new Map([['零', 0], ['〇', 0], ['○', 0], ['一', 1], ['二', 2], ['三', 3], ['四', 4], ['五', 5], ['六', 6], ['七', 7], ['八', 8], ['九', 9]]);
   const titleEl = document.getElementById('law-title');
   const metaEl = document.getElementById('law-meta');
+  const sourceNoticeEl = document.getElementById('source-notice');
   const leftPaneEl = document.getElementById('left-pane');
   const rightPaneEl = document.getElementById('right-pane');
   const contentEl = document.getElementById('law-content');
@@ -173,6 +205,7 @@
   document.body.dataset.fontSize = '2';
   document.body.dataset.contentWidth = 'full';
   if (embeddedMode) document.body.dataset.embedded = 'true';
+  if (localRule) normalModeButton.hidden = true;
 
   function setViewerToggleButtonState(button, active, title) {
     button.classList.toggle('is-active', active);
@@ -269,6 +302,7 @@
     persistLocal({ [LITE_CONTENT_WIDTH_KEY]: contentWidthSelect.value });
   });
   function openNormalMode() {
+    if (localRule) return;
     location.href = sourceUrl || `https://laws.e-gov.go.jp/law/${encodeURIComponent(lawId)}`;
   }
 
@@ -580,10 +614,55 @@
     return !/(?:この|本)(?:法律|法|政令|府令|省令|規則|条例)(?:（[^）]*）)?の?$/.test(prefix);
   }
 
+  function resolveLocalRuleReferenceLawId(text, index, previousLawId = '') {
+    const prefix = String(text || '').slice(Math.max(0, index - 260), index).replace(/\s+/g, '');
+    for (const [title, targetRuleId] of LOCAL_RULE_REFERENCE_RULES) {
+      const escapedTitle = title.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      if (new RegExp(`${escapedTitle}(?:（[^）]*）)?$`).test(prefix)) return targetRuleId;
+    }
+    for (const [title, targetLawId] of LOCAL_RULE_REFERENCE_LAWS) {
+      const escapedTitle = title.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      if (new RegExp(`${escapedTitle}(?:（[^）]*）)?$`).test(prefix)) return targetLawId;
+    }
+    if (/同法(?:（[^）]*）)?$/.test(prefix)) return previousLawId;
+    if (/(?:旧法|新法)(?:（[^）]*）)?$/.test(prefix)) return '';
+    return /法(?:（[^）]*）)?$/.test(prefix) ? (localRule?.baseLawId || '') : '';
+  }
+
+  function isCoordinatedLawReferenceText(text) {
+    let compact = '';
+    let parenthesisDepth = 0;
+    for (const char of String(text || '')) {
+      if (char === '（') {
+        parenthesisDepth += 1;
+      } else if (char === '）' && parenthesisDepth > 0) {
+        parenthesisDepth -= 1;
+      } else if (parenthesisDepth === 0 && !/\s/.test(char)) {
+        compact += char;
+      }
+    }
+    return /^(?:[、,，]|又は|若しくは|及び|並びに|から|まで|ないし|乃至)+$/.test(compact);
+  }
+
+  function buildExternalProvisionHref(targetLawId, article, paragraph = '', item = '') {
+    if (!targetLawId || !article) return '';
+    const articlePath = String(article).replace(/-/g, '_');
+    const paragraphPath = paragraph ? `-Pr_${String(paragraph).replace(/-/g, '_')}` : '';
+    const itemPath = item ? `-It_${String(item).replace(/-/g, '_')}` : '';
+    const targetLocalRule = LOCAL_RULE_BY_ID.get(targetLawId);
+    if (targetLocalRule) {
+      const url = new URL(chrome.runtime.getURL('viewer.html'));
+      url.searchParams.set('localRule', targetLocalRule.slug);
+      url.hash = `Mp-At_${articlePath}${paragraphPath}${itemPath}`;
+      return url.href;
+    }
+    return `https://laws.e-gov.go.jp/law/${encodeURIComponent(targetLawId)}#Mp-At_${articlePath}${paragraphPath}${itemPath}`;
+  }
+
   function renderInternalArticleReferenceText(text, contextElement = null) {
     const source = String(text || '');
     if (!renderContextLawId || !source.includes('条')) return escapeHtml(source);
-    const number = '[0-9０-９〇零一二三四五六七八九十百千万]+';
+    const number = '[0-9０-９〇○零一二三四五六七八九十百千万]+';
     const pattern = new RegExp(
       `第(${number})条(?:の(${number}))?` +
       `(?:(?:第(${number})項)(?:第(${number})号)?|第(${number})号|から第?(${number})条(?:の(${number}))?まで)?`,
@@ -591,6 +670,9 @@
     );
     let html = '';
     let lastIndex = 0;
+    let coordinatedExternalLawId = '';
+    let coordinatedExternalIsUnlinked = false;
+    let previousExplicitLawId = '';
     let match;
     while ((match = pattern.exec(source))) {
       html += escapeHtml(source.slice(lastIndex, match.index));
@@ -603,14 +685,37 @@
         (match[2] && !Number.isInteger(branch)) ||
         (match[3] && !Number.isInteger(paragraph)) ||
         (itemSource && !Number.isInteger(item));
-      if (hasInvalidNumber || isExternalLawArticleReference(source, match.index)) {
+      const explicitExternalLawReference = isExternalLawArticleReference(source, match.index);
+      const explicitLawId = explicitExternalLawReference
+        ? resolveLocalRuleReferenceLawId(source, match.index, previousExplicitLawId)
+        : '';
+      const continuesExternalLawReference = (coordinatedExternalLawId || coordinatedExternalIsUnlinked) &&
+        isCoordinatedLawReferenceText(source.slice(lastIndex, match.index));
+      if (explicitLawId) {
+        coordinatedExternalLawId = explicitLawId;
+        coordinatedExternalIsUnlinked = false;
+        previousExplicitLawId = explicitLawId;
+      } else if (explicitExternalLawReference) {
+        coordinatedExternalLawId = '';
+        coordinatedExternalIsUnlinked = true;
+      } else if (!continuesExternalLawReference) {
+        coordinatedExternalLawId = '';
+        coordinatedExternalIsUnlinked = false;
+      }
+
+      if (hasInvalidNumber || coordinatedExternalIsUnlinked) {
         html += escapeHtml(match[0]);
       } else {
         const articlePath = [article, branch || ''].filter(Boolean).join('_');
         const prefix = source.slice(Math.max(0, match.index - 12), match.index).replace(/\s+/g, '');
         const scope = /附則$/.test(prefix) ? (getLiteProvisionScope(contextElement) || 'Sp') : '';
-        const href = buildLiteProvisionHref(articlePath, paragraph, item, scope);
-        html += `<a href="${escapeHtml(href)}" target="_blank" rel="noreferrer">${escapeHtml(match[0])}</a>`;
+        const href = coordinatedExternalLawId
+          ? buildExternalProvisionHref(coordinatedExternalLawId, articlePath, paragraph, item)
+          : buildLiteProvisionHref(articlePath, paragraph, item, scope);
+        const navigationAttrs = (coordinatedExternalLawId && !LOCAL_RULE_BY_ID.has(coordinatedExternalLawId)) || !localRule
+          ? ' target="_blank" rel="noreferrer"'
+          : '';
+        html += `<a href="${escapeHtml(href)}"${navigationAttrs}>${escapeHtml(match[0])}</a>`;
       }
       lastIndex = pattern.lastIndex;
     }
@@ -623,7 +728,13 @@
     const paragraphPath = paragraph ? `-Pr_${String(paragraph).replace(/-/g, '_')}` : '';
     const itemPath = item ? `-It_${String(item).replace(/-/g, '_')}` : '';
     const pathPrefix = scope ? `${renderContextLawId}-${scope}` : 'Mp';
-    return `https://laws.e-gov.go.jp/law/${encodeURIComponent(renderContextLawId)}#${pathPrefix}-At_${articlePath}${paragraphPath}${itemPath}`;
+    const hash = `${pathPrefix}-At_${articlePath}${paragraphPath}${itemPath}`;
+    if (localRule && renderContextLawId === lawId) {
+      const url = new URL(location.href);
+      url.hash = hash;
+      return url.href;
+    }
+    return `https://laws.e-gov.go.jp/law/${encodeURIComponent(renderContextLawId)}#${hash}`;
   }
 
   function getLiteRelativeReferenceHref(node, unit, offset, articles, paragraph = '', item = '') {
@@ -685,7 +796,7 @@
     let node;
     while ((node = walker.nextNode())) textNodes.push(node);
 
-    const numberPattern = '[0-9０-９〇零一二三四五六七八九十百千万]+';
+    const numberPattern = '[0-9０-９〇○零一二三四五六七八九十百千万]+';
     const pattern = new RegExp(
       `前(${numberPattern})(条|項|号)|((?:前|次)条)(?:(?:第(${numberPattern})項)(?:第(${numberPattern})号)?|第(${numberPattern})号)?`,
       'g'
@@ -716,8 +827,10 @@
         fragment.appendChild(document.createTextNode(text.slice(lastIndex, match.index)));
         const anchor = document.createElement('a');
         anchor.href = href;
-        anchor.target = '_blank';
-        anchor.rel = 'noreferrer';
+        if (!localRule) {
+          anchor.target = '_blank';
+          anchor.rel = 'noreferrer';
+        }
         anchor.textContent = match[0];
         fragment.appendChild(anchor);
         lastIndex = pattern.lastIndex;
@@ -825,8 +938,11 @@
   }
 
   function kanjiToNumber(text) {
-    const s = String(text || '').replace(/[第条\s]/g, '').replace(/の.*$/, '');
+    const s = String(text || '').replace(/[第条\s]/g, '').replace(/の.*$/, '').replace(/○/g, '〇');
     if (/^\d+$/.test(s)) return s;
+    if (!/[十百千万]/.test(s) && /^[〇零一二三四五六七八九]+$/.test(s)) {
+      return Array.from(s, (char) => KANJI_DIGITS.get(char)).join('').replace(/^0+(?=\d)/, '');
+    }
     let total = 0;
     let current = 0;
     for (const ch of s) {
@@ -1380,10 +1496,23 @@
       return;
     }
     articleElementsCache = [];
-    contentEl.innerHTML = '<p class="viewer-status">e-Gov APIから条文XMLを読み込んでいます...</p>';
+    contentEl.innerHTML = `<p class="viewer-status">${localRule ? '同梱された規則データ' : 'e-Gov APIから条文XML'}を読み込んでいます...</p>`;
     let renderedTarget = '';
     let renderedSignature = '';
     try {
+      if (localRule) {
+        const response = await fetch(chrome.runtime.getURL(localRule.dataPath));
+        if (!response.ok) throw new Error(`同梱データを読み込めません（HTTP ${response.status}）`);
+        const xmlText = await response.text();
+        renderLawXml(xmlText);
+        revisionSelect.innerHTML = `<option value="local">${escapeHtml(localRule.sourceLabel)}</option>`;
+        revisionSelect.disabled = true;
+        sourceNoticeEl.hidden = false;
+        sourceNoticeEl.innerHTML = `同梱ローカル版（${escapeHtml(localRule.sourceLabel)}）・<a href="${escapeHtml(localRule.officialUrl)}" target="_blank" rel="noreferrer">裁判所の公式規則集</a>`;
+        jumpToInitialHash();
+        await refreshFavoriteButton();
+        return;
+      }
       // 先行取得と同じバックグラウンド処理に合流させ、改正履歴と本文を並列取得する。
       const liveLoadPromise = chrome.runtime.sendMessage({
         type: 'egov-load-lite-law',
@@ -2116,7 +2245,15 @@
 
   function getLawIdFromUrl(url) {
     try {
-      return new URL(url, location.href).pathname.match(/\/law\/([^/?#]+)/)?.[1] || '';
+      const parsed = new URL(url, location.href);
+      const egovLawId = parsed.pathname.match(/\/law\/([^/?#]+)/)?.[1] || '';
+      if (egovLawId) return egovLawId;
+      const isSameLocalRule = localRule &&
+        parsed.protocol === location.protocol &&
+        parsed.host === location.host &&
+        parsed.pathname === location.pathname &&
+        parsed.searchParams.get('localRule') === localRuleSlug;
+      return isSameLocalRule ? lawId : '';
     } catch (_) {
       return '';
     }
@@ -2168,6 +2305,16 @@
     const targetLawId = decodeURIComponent(pathMatch?.[1] || resolvedLawId || '');
     if (!targetLawId) return null;
 
+    const isLocalTarget = localRule &&
+      targetLawId === lawId &&
+      parsed.protocol === location.protocol &&
+      parsed.host === location.host &&
+      parsed.pathname === location.pathname &&
+      parsed.searchParams.get('localRule') === localRuleSlug;
+    if (isLocalTarget) {
+      return { parsed, targetLawId, apiTarget: '', asOf: '', isLocal: true };
+    }
+
     const revisionSegment = decodeURIComponent(pathMatch?.[2] || '');
     const occasionDate = normalizeReferenceAsOf(parsed.searchParams.get('occasion_date'));
     let apiTarget = targetLawId;
@@ -2203,6 +2350,7 @@
     const parts = parseProvisionPathFromEgovUrl(url, location.href);
     const elm = buildReferenceArticleElm(parts);
     if (!context || !parts?.article || !elm) return { context, parts, elm: '', apiUrl: '' };
+    if (context.isLocal) return { context, parts, elm, apiUrl: '' };
 
     const apiUrl = new URL(`${API_V2_BASE}/law_data/${encodeURIComponent(context.apiTarget)}`);
     apiUrl.searchParams.set('response_format', 'xml');
@@ -2263,6 +2411,7 @@
   }
 
   function prefixReferencePopupIds(root, prefix) {
+    if (root.id) root.id = `${prefix}-${root.id}`;
     root.querySelectorAll('[id]').forEach((element) => {
       element.id = `${prefix}-${element.id}`;
     });
@@ -2454,6 +2603,42 @@
       if (popup.dataset.pinned !== 'true') hideReferenceViewerPopup(popup);
       openLawReferenceUrl(anchor.href, event);
     });
+
+    if (request.context?.isLocal) {
+      const jumpKey = buildReferenceJumpKey(request.parts);
+      const sourceTarget = jumpKey ? findJumpTarget(jumpKey) : null;
+      const sourceArticle = sourceTarget?.closest('.law-article');
+      if (!sourceArticle) {
+        body.innerHTML = '<div class="egov-lite-reference-viewer-status is-error">対象条文の位置を見つけられませんでした。</div>';
+        return;
+      }
+
+      loadedReferenceData = { revisionId: currentRevisionId };
+      scrollButton.disabled = false;
+      title.textContent = lawTitleText;
+      meta.textContent = [lawNumText, targetLabel].filter(Boolean).join('　');
+
+      const articleHost = document.createElement('div');
+      articleHost.className = 'egov-lite-reference-viewer-article';
+      const clonedArticle = sourceArticle.cloneNode(true);
+      clonedArticle.querySelectorAll('.lite-bookmark-gutter').forEach((button) => button.remove());
+      prefixReferencePopupIds(clonedArticle, popupId);
+      articleHost.appendChild(clonedArticle);
+      body.replaceChildren(articleHost);
+
+      const target = findReferencePopupTarget(articleHost, request.parts);
+      if (target) {
+        target.classList.add('egov-lite-reference-viewer-target');
+        requestAnimationFrame(() => {
+          if (!popup.isConnected) return;
+          const bodyRect = body.getBoundingClientRect();
+          const targetRect = target.getBoundingClientRect();
+          const centeredOffset = Math.max(24, (body.clientHeight - Math.min(targetRect.height, body.clientHeight)) / 2);
+          body.scrollTop += targetRect.top - bodyRect.top - centeredOffset;
+        });
+      }
+      return;
+    }
 
     if (!request.apiUrl) {
       body.innerHTML = '<div class="egov-lite-reference-viewer-status is-error">対象条文を特定できません。「新しいタブで開く」を使用してください。</div>';
@@ -2679,9 +2864,18 @@
   }
 
   function jumpToInitialHash() {
-    const key = decodeURIComponent(location.hash || '').replace(/^#/, '');
-    if (!key) return;
-    runWhenIdle(() => jumpToKey(key, false), 300);
+    const rawHash = decodeURIComponent(location.hash || '').replace(/^#/, '');
+    if (!rawHash) return;
+    runWhenIdle(() => {
+      const directTarget = document.getElementById(rawHash);
+      if (directTarget) {
+        scrollToElement(directTarget, 'start');
+        flashJumpTarget(directTarget);
+        return;
+      }
+      const provisionKey = getReferenceTargetKeyFromEgovUrl(location.href, location.href) || rawHash;
+      jumpToKey(provisionKey, false);
+    }, 300);
   }
 
   function getCurrentJumpReturnPosition() {
@@ -3179,6 +3373,8 @@
     if (liteProvisionItemsCache) return liteProvisionItemsCache;
     const items = [];
     const baseUrl = sourceUrl.split('#')[0];
+    const localRuleCopyUrl = localRule?.pdfUrl || '';
+    const provisionCopyUrl = (id) => localRuleCopyUrl || `${baseUrl}#${encodeURIComponent(id)}`;
     Array.from(contentEl.querySelectorAll('.law-article')).forEach((article) => {
       const articleNum = article.dataset.articleNum || '';
       const articleTitle = formatProvisionNumber({ article: articleNum }) ||
@@ -3195,7 +3391,7 @@
         targetKey: getLiteBookmarkTargetKey(article, 'article'),
         title: articleTitle,
         copyTitle: articleTitle,
-        url: `${baseUrl}#${encodeURIComponent(article.id)}`,
+        url: provisionCopyUrl(article.id),
       });
       article.querySelectorAll('.law-paragraph[data-paragraph-num]').forEach((paragraph) => {
         const paragraphNum = paragraph.dataset.paragraphNum || '';
@@ -3210,7 +3406,7 @@
           targetKey: getLiteBookmarkTargetKey(paragraph, 'paragraph'),
           title: label,
           copyTitle: label,
-          url: `${baseUrl}#${encodeURIComponent(paragraph.id)}`,
+          url: provisionCopyUrl(paragraph.id),
         });
         paragraph.querySelectorAll(':scope > div:nth-child(2) > .law-item[data-item-num]').forEach((item) => {
           const itemNum = item.dataset.itemNum || '';
@@ -3226,7 +3422,7 @@
             targetKey: getLiteBookmarkTargetKey(item, 'item'),
             title: itemLabel,
             copyTitle: itemLabel,
-            url: `${baseUrl}#${encodeURIComponent(item.id)}`,
+            url: provisionCopyUrl(item.id),
           });
         });
       });

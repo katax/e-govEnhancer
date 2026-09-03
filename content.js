@@ -6934,15 +6934,19 @@
       closeDialog();
     }
 
-    function renderResults() {
+    function renderResults(focusedLawId = null) {
       hideLawNameTooltip();
       listEl.innerHTML = '';
       if (results.length === 0) { listEl.style.setProperty('display', 'none', 'important'); return; }
       listEl.style.setProperty('display', 'block', 'important');
+      results = [
+        ...results.filter(law => isFav(law.lawId)),
+        ...results.filter(law => !isFav(law.lawId)),
+      ];
       results.forEach((law, i) => {
         const li  = document.createElement('li');
-        li.className = 'egov-ext-law-result-item';
         const fav = isFav(law.lawId);
+        li.className = `egov-ext-law-result-item${fav ? ' favorite' : ''}`;
         li.innerHTML =
           `<div class="egov-ext-law-result-main">` +
             `<span class="egov-ext-law-result-name">${formatLawNameHtml(law.lawName)}</span>` +
@@ -6953,18 +6957,15 @@
         li.querySelector('.egov-ext-law-result-fav').addEventListener('click', (e) => {
           e.stopPropagation();
           toggleFav(law);
-          const btn    = e.currentTarget;
-          const nowFav = isFav(law.lawId);
-          btn.textContent = nowFav ? '★' : '☆';
-          btn.classList.toggle('active', nowFav);
-          btn.title = nowFav ? 'お気に入りから削除' : 'お気に入りに追加';
+          renderResults(law.lawId);
         });
 
         li.addEventListener('mouseenter', () => { if (hoverEnabled) setFocus(i); });
         li.addEventListener('click', () => openLaw(law));
         listEl.appendChild(li);
       });
-      focusedIdx = -1;
+      focusedIdx = focusedLawId ? results.findIndex(law => law.lawId === focusedLawId) : -1;
+      if (focusedIdx >= 0) setFocus(focusedIdx);
     }
 
     listEl.addEventListener('scroll', () => {
@@ -7010,17 +7011,9 @@
       if (e.key === 'Enter' && e.shiftKey) {
         e.preventDefault();
         if (focusedIdx >= 0 && results[focusedIdx]) {
-          toggleFav(results[focusedIdx]);
-          const items = listEl.querySelectorAll('.egov-ext-law-result-item');
-          if (items[focusedIdx]) {
-            const btn    = items[focusedIdx].querySelector('.egov-ext-law-result-fav');
-            const nowFav = isFav(results[focusedIdx].lawId);
-            if (btn) {
-              btn.textContent = nowFav ? '★' : '☆';
-              btn.classList.toggle('active', nowFav);
-              btn.title = nowFav ? 'お気に入りから削除' : 'お気に入りに追加';
-            }
-          }
+          const law = results[focusedIdx];
+          toggleFav(law);
+          renderResults(law.lawId);
         }
         return;
       }

@@ -14,7 +14,7 @@
   // 旧キャッシュには法令IDの取得結果が現行改正IDとして保存されている可能性があるため、再利用しない。
   const LITE_LAW_CACHE_NAME = 'egov-lite-law-xml-v3';
   const LITE_LAW_CACHE_MAX_ENTRIES = 100;
-  const JAPANESE_REFERENCE_NUMBER_PATTERN = '[0-9０-９〇零一二三四五六七八九十百千万]+';
+  const JAPANESE_REFERENCE_NUMBER_PATTERN = '[0-9０-９〇○零一二三四五六七八九十百千万]+';
   const PRIOR_REFERENCE_PATTERN = new RegExp(`前(${JAPANESE_REFERENCE_NUMBER_PATTERN})(条|項|号)`);
   const ITEM_RANGE_END_PATTERN = new RegExp(`から第?(${JAPANESE_REFERENCE_NUMBER_PATTERN})号まで`);
   const PARAGRAPH_RANGE_END_PATTERN = new RegExp(`から第?(${JAPANESE_REFERENCE_NUMBER_PATTERN})項まで`);
@@ -379,10 +379,13 @@
   function parseJapaneseReferenceNumber(value) {
     const normalized = String(value || '')
       .replace(/[０-９]/g, (char) => String.fromCharCode(char.charCodeAt(0) - 0xFEE0))
-      .replace(/[〇零]/g, '0');
+      .replace(/[〇○零]/g, '0');
     if (!normalized) return NaN;
     if (/^\d+$/.test(normalized)) return Number(normalized);
     const digits = { 一: 1, 二: 2, 三: 3, 四: 4, 五: 5, 六: 6, 七: 7, 八: 8, 九: 9 };
+    if (!/[十百千万]/.test(normalized) && /^[0一二三四五六七八九]+$/.test(normalized)) {
+      return Number(Array.from(normalized, (char) => char === '0' ? '0' : String(digits[char])).join(''));
+    }
     const units = { 十: 10, 百: 100, 千: 1000, 万: 10000 };
     let total = 0;
     let section = 0;

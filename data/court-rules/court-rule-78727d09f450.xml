@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Law Era="" Year="" Num="" LawType="Rule" Lang="ja">
+  <LawNum>平成二十七年十月二十八日最高裁判所規則第十号</LawNum>
+  <LawBody>
+    <LawTitle>不正競争防止法による保全手続等に関する規則</LawTitle>
+    <TOC/>
+    <MainProvision>
+      <Article Num="1">
+        <ArticleCaption>（趣旨）</ArticleCaption>
+        <ArticleTitle>第一条</ArticleTitle>
+        <Paragraph Num="1">
+          <ParagraphNum></ParagraphNum>
+          <ParagraphSentence>
+            <Sentence>不正競争防止法（平成五年法律第四十七号。以下この条及び次条において「法」という。）による被告人以外の者の財産等の没収に関する手続並びに没収保全及び追徴保全に関する手続については、法に定めるもののほか、この規則の定めるところによる。</Sentence>
+          </ParagraphSentence>
+        </Paragraph>
+      </Article>
+      <Article Num="2">
+        <ArticleCaption>（刑事事件における第三者所有物の没収手続に関する規則の準用）</ArticleCaption>
+        <ArticleTitle>第二条</ArticleTitle>
+        <Paragraph Num="1">
+          <ParagraphNum></ParagraphNum>
+          <ParagraphSentence>
+            <Sentence>法第三十二条第一項及び第二項の没収に関する手続については、刑事事件における第三者所有物の没収手続に関する規則（昭和三十八年最高裁判所規則第八号）の規定を準用する。</Sentence>
+          </ParagraphSentence>
+        </Paragraph>
+      </Article>
+      <Article Num="3">
+        <ArticleCaption>（没収保全の請求の方式）</ArticleCaption>
+        <ArticleTitle>第三条</ArticleTitle>
+        <Paragraph Num="1">
+          <ParagraphNum></ParagraphNum>
+          <ParagraphSentence>
+            <Sentence>没収保全の請求については、犯罪収益に係る保全手続等に関する規則（平成十一年最高裁判所規則第十号。以下「犯罪収益保全規則」という。）第三条の規定を準用する。この場合において、同条第一項第五号及び第二項中「法第二十二条第一項」とあるのは「不正競争防止法第三十五条第一項」と、同条第一項第六号中「法第二十三条第一項」とあるのは「不正競争防止法第三十五条第三項」と読み替えるものとする。</Sentence>
+          </ParagraphSentence>
+        </Paragraph>
+      </Article>
+      <Article Num="4">
+        <ArticleCaption>（附帯保全の請求の方式）</ArticleCaption>
+        <ArticleTitle>第四条</ArticleTitle>
+        <Paragraph Num="1">
+          <ParagraphNum></ParagraphNum>
+          <ParagraphSentence>
+            <Sentence>附帯保全の請求については、犯罪収益保全規則第四条の規定を準用する。この場合において、同条第一項第三号及び第二項中「法第二十二条第二項」とあるのは、「不正競争防止法第三十五条第二項」と読み替えるものとする。</Sentence>
+          </ParagraphSentence>
+        </Paragraph>
+      </Article>
+      <Article Num="5">
+        <ArticleCaption>（追徴保全の請求の方式）</ArticleCaption>
+        <ArticleTitle>第五条</ArticleTitle>
+        <Paragraph Num="1">
+          <ParagraphNum></ParagraphNum>
+          <ParagraphSentence>
+            <Sentence>追徴保全の請求については、犯罪収益保全規則第二十一条の規定を準用する。この場合において、同条第一項第五号及び第二項中「法第四十二条第一項」とあるのは、「不正競争防止法第三十六条第一項」と読み替えるものとする。</Sentence>
+          </ParagraphSentence>
+        </Paragraph>
+      </Article>
+      <SupplProvision>
+        <SupplProvisionLabel>附則</SupplProvisionLabel>
+        <Article Num="1">
+          <ArticleTitle></ArticleTitle>
+          <Paragraph Num="1">
+            <ParagraphNum></ParagraphNum>
+            <ParagraphSentence>
+              <Sentence>この規則は、不正競争防止法の一部を改正する法律（平成二十七年法律第五十四号）の施行の日から施行する。（施行の日＝平成二八年一月一日）</Sentence>
+            </ParagraphSentence>
+          </Paragraph>
+        </Article>
+      </SupplProvision>
+    </MainProvision>
+  </LawBody>
+</Law>

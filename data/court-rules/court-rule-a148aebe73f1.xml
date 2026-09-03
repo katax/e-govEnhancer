@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Law Era="" Year="" Num="" LawType="Rule" Lang="ja">
+  <LawNum>昭和22年10月9日最高裁判所規則第５号</LawNum>
+  <LawBody>
+    <LawTitle>高等裁判所刑事上告事件移送規則</LawTitle>
+    <TOC/>
+    <MainProvision>
+      <Article Num="1">
+        <ArticleTitle></ArticleTitle>
+        <Paragraph Num="1">
+          <ParagraphNum></ParagraphNum>
+          <ParagraphSentence>
+            <Sentence>昭和22年10月9日最高裁判所規則第５号改正昭和23年11月1日最高裁判所規則第３１号昭和31年3月1日同第４号高等裁判所上告事件移送規則を次のように定める。高等裁判所刑事上告事件移送規則（昭三一最裁規四・改称）昭和二十二年法律第七十六号（日本国憲法の施行に伴う刑事訴訟法の応急的措置に関する法律）第十五条の規定により、上告裁判所である高等裁判所が事件を最高裁判所に移送する場合は、左の通りとする。</Sentence>
+          </ParagraphSentence>
+          <Item Num="1">
+            <ItemTitle>一</ItemTitle>
+            <ItemSentence>
+              <Sentence> 憲法その他の法令の解釈について、意見が前に最高裁判所のした裁判に反するとき</Sentence>
+            </ItemSentence>
+          </Item>
+          <Item Num="2">
+            <ItemTitle>二</ItemTitle>
+            <ItemSentence>
+              <Sentence> 憲法その他の法令の解釈について、意見が前に上告裁判所である高等裁判所又は大審院若しくは上告裁判所である控訴院のした判決に反するとき</Sentence>
+            </ItemSentence>
+          </Item>
+        </Paragraph>
+      </Article>
+      <SupplProvision>
+        <SupplProvisionLabel>附則</SupplProvisionLabel>
+        <Article Num="1">
+          <ArticleTitle></ArticleTitle>
+          <Paragraph Num="1">
+            <ParagraphNum></ParagraphNum>
+            <ParagraphSentence>
+              <Sentence>この規則は、公布の日から、これを施行する。</Sentence>
+            </ParagraphSentence>
+          </Paragraph>
+        </Article>
+      </SupplProvision>
+      <SupplProvision>
+        <SupplProvisionLabel>附則（昭和二三年一一月一日最高裁判所規則第三一号）</SupplProvisionLabel>
+        <Article Num="1">
+          <ArticleTitle></ArticleTitle>
+          <Paragraph Num="1">
+            <ParagraphNum></ParagraphNum>
+            <ParagraphSentence>
+              <Sentence>この規則は、昭和二十四年一月一日から、これを施行する。</Sentence>
+            </ParagraphSentence>
+          </Paragraph>
+        </Article>
+      </SupplProvision>
+      <SupplProvision>
+        <SupplProvisionLabel>附則（昭和三一年三月一日最高裁判所規則第四号）</SupplProvisionLabel>
+        <Article Num="1">
+          <ArticleTitle></ArticleTitle>
+          <Paragraph Num="1">
+            <ParagraphNum></ParagraphNum>
+            <ParagraphSentence>
+              <Sentence>この規則は、昭和三十一年六月一日から施行する。</Sentence>
+            </ParagraphSentence>
+          </Paragraph>
+        </Article>
+      </SupplProvision>
+    </MainProvision>
+  </LawBody>
+</Law>

@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Law Era="" Year="" Num="" LawType="Rule" Lang="ja">
+  <LawNum>平成一五年一〇月一日最高裁判所規則第一五号</LawNum>
+  <LawBody>
+    <LawTitle>民事調停官及び家事調停官規則</LawTitle>
+    <TOC/>
+    <MainProvision>
+      <Article Num="1">
+        <ArticleCaption>（趣旨）</ArticleCaption>
+        <ArticleTitle>第一条</ArticleTitle>
+        <Paragraph Num="1">
+          <ParagraphNum></ParagraphNum>
+          <ParagraphSentence>
+            <Sentence>民事調停官及び家事調停官の任免等に関しては、民事調停法（昭和二十六年法律第二百二十二号）、家事事件手続法（平成二十三法律第五十二号）その他の法令に定めるもののほか、この規則の定めるところによる。</Sentence>
+          </ParagraphSentence>
+        </Paragraph>
+      </Article>
+      <Article Num="2">
+        <ArticleCaption>（勤務裁判所の指定）</ArticleCaption>
+        <ArticleTitle>第二条</ArticleTitle>
+        <Paragraph Num="1">
+          <ParagraphNum></ParagraphNum>
+          <ParagraphSentence>
+            <Sentence>民事調停官及び家事調停官の勤務する裁判所は、最高裁判所が指定する。</Sentence>
+          </ParagraphSentence>
+        </Paragraph>
+      </Article>
+      <Article Num="3">
+        <ArticleCaption>（解任）</ArticleCaption>
+        <ArticleTitle>第三条</ArticleTitle>
+        <Paragraph Num="1">
+          <ParagraphNum></ParagraphNum>
+          <ParagraphSentence>
+            <Sentence>最高裁判所は、民事調停官が民事調停法第二十三条の二第五項各号のいずれかに該当するに至ったとき又は家事調停官が家事事件手続法第二百五十条第五項各号のいずれかに該当するに至ったときは、その民事調停官又は家事調停官を解任しなければならない。</Sentence>
+          </ParagraphSentence>
+        </Paragraph>
+      </Article>
+      <Article Num="4">
+        <ArticleCaption>（政治的行為の制限）</ArticleCaption>
+        <ArticleTitle>第四条</ArticleTitle>
+        <Paragraph Num="1">
+          <ParagraphNum></ParagraphNum>
+          <ParagraphSentence>
+            <Sentence>民事調停官及び家事調停官は、在任中、政党その他の政治的団体の役員となり、又は積極的に政治運動をしてはならない。</Sentence>
+          </ParagraphSentence>
+        </Paragraph>
+      </Article>
+      <Article Num="5">
+        <ArticleCaption>（旅費、日当及び宿泊料）</ArticleCaption>
+        <ArticleTitle>第五条</ArticleTitle>
+        <Paragraph Num="1">
+          <ParagraphNum></ParagraphNum>
+          <ParagraphSentence>
+            <Sentence>民事調停官又は家事調停官が第二条の規定により指定された裁判所で職務を行う場合には、次項の規定により旅費を支給する。</Sentence>
+          </ParagraphSentence>
+        </Paragraph>
+        <Paragraph Num="2">
+          <ParagraphNum>2</ParagraphNum>
+          <ParagraphSentence>
+            <Sentence> 旅費は、鉄道賃、船賃及び車賃の三種とし、その金額は、国家公務員等の旅費に関する法律（昭和二十五年法律第百十四号。次項において「旅費法」という。）の規定に基づいて受ける旅費の金額と同一とする。</Sentence>
+          </ParagraphSentence>
+        </Paragraph>
+        <Paragraph Num="3">
+          <ParagraphNum>3</ParagraphNum>
+          <ParagraphSentence>
+            <Sentence> 第一項の規定により旅費のみが支給される場合を除き、民事調停官又は家事調停官には、旅費、日当及び宿泊料を支給するものとし、その種類及び金額は、旅費法の規定に基づいて受ける旅費の種類及び金額と同一とする。</Sentence>
+          </ParagraphSentence>
+        </Paragraph>
+        <Paragraph Num="4">
+          <ParagraphNum>4</ParagraphNum>
+          <ParagraphSentence>
+            <Sentence> 前三項に定めるもののほか、民事調停官又は家事調停官に支給する旅費、日当及び宿泊料については、別に最高裁判所の定めるところによる。附則抄（施行期日）</Sentence>
+          </ParagraphSentence>
+        </Paragraph>
+        <Paragraph Num="1">
+          <ParagraphNum></ParagraphNum>
+          <ParagraphSentence>
+            <Sentence> この規則は、平成十六年一月一日から施行する。</Sentence>
+          </ParagraphSentence>
+        </Paragraph>
+      </Article>
+      <SupplProvision>
+        <SupplProvisionLabel>附則（平成二四年七月一七日最高裁判所規則第九号）抄</SupplProvisionLabel>
+        <Article Num="1">
+          <ArticleCaption>（施行期日）</ArticleCaption>
+          <ArticleTitle>第一条</ArticleTitle>
+          <Paragraph Num="1">
+            <ParagraphNum></ParagraphNum>
+            <ParagraphSentence>
+              <Sentence>この規則は、非訟事件手続法（平成二十三年法律第五十一号）の施行の日から施行する。（施行の日＝平成二五年一月一日）</Sentence>
+            </ParagraphSentence>
+          </Paragraph>
+        </Article>
+      </SupplProvision>
+    </MainProvision>
+  </LawBody>
+</Law>

@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Law Era="" Year="" Num="" LawType="Rule" Lang="ja">
+  <LawNum>昭和38年7月23日最高裁判所規則第８号</LawNum>
+  <LawBody>
+    <LawTitle>刑事事件における第三者所有物の没収手続に関する規則</LawTitle>
+    <TOC/>
+    <MainProvision>
+      <Article Num="1">
+        <ArticleCaption>（手続の基準）</ArticleCaption>
+        <ArticleTitle>第一条</ArticleTitle>
+        <Paragraph Num="1">
+          <ParagraphNum></ParagraphNum>
+          <ParagraphSentence>
+            <Sentence>刑事事件における第三者所有物の没収手続に関する応急措置法（昭和三十八年法律第百三十八号。以下法という。）による手続については、法及びこの規則に定めるもののほか、その性質に反しない限り、刑事訴訟規則（昭和二十三年最高裁判所規則第三十二号）の定めるところによる。この場合において、法第三条の規定により被告事件の手続への参加を許された者及び法第十三条の規定により没収の裁判の取消しを請求した者については被告人に関する規定を、法第十条（法第十三条第七項において準用する場合を含む。）の規定により選任される代理人については弁護人に関する規定を準用するものとする。</Sentence>
+          </ParagraphSentence>
+        </Paragraph>
+      </Article>
+      <Article Num="2">
+        <ArticleCaption>（検察官への通知・法第十三条）</ArticleCaption>
+        <ArticleTitle>第二条</ArticleTitle>
+        <Paragraph Num="1">
+          <ParagraphNum></ParagraphNum>
+          <ParagraphSentence>
+            <Sentence>法第十三条の規定による請求又はその取下げがあつたときは、裁判所書記官は、すみやかにこれを検察官に通知しなければならない。</Sentence>
+          </ParagraphSentence>
+        </Paragraph>
+      </Article>
+      <SupplProvision>
+        <SupplProvisionLabel>附則</SupplProvisionLabel>
+        <Article Num="1">
+          <ArticleTitle></ArticleTitle>
+          <Paragraph Num="1">
+            <ParagraphNum></ParagraphNum>
+            <ParagraphSentence>
+              <Sentence>この規則は、法施行の日から施行する。（施行の日＝昭三八年八月一日）</Sentence>
+            </ParagraphSentence>
+          </Paragraph>
+        </Article>
+      </SupplProvision>
+    </MainProvision>
+  </LawBody>
+</Law>

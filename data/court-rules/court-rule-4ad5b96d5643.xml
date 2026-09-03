@@ -1,0 +1,180 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Law Era="" Year="" Num="" LawType="Rule" Lang="ja">
+  <LawNum>（令和7年11月28日最高裁判所告示第4号）</LawNum>
+  <LawBody>
+    <LawTitle>民事事件等に関する手続における電子情報処理組織の使用に関する細則</LawTitle>
+    <TOC/>
+    <MainProvision>
+      <Article Num="1">
+        <ArticleCaption>（民事訴訟規則第四十五条の二等の通信方式）</ArticleCaption>
+        <ArticleTitle>第一条</ArticleTitle>
+        <Paragraph Num="1">
+          <ParagraphNum></ParagraphNum>
+          <ParagraphSentence>
+            <Sentence>民事訴訟規則（平成八年最高裁判所規則第五号）第四十五条の二及び民事事件等に関する手続において用いる識別符号の付与等に関する規則（令和六年最高裁判所規則第十五号）第一条第一項第三号の最高裁判所の細則で定める通信方式は、その全部又は一部においてシンプルメールトランスファープロトコルが用いられる通信方式とする。</Sentence>
+          </ParagraphSentence>
+        </Paragraph>
+      </Article>
+      <Article Num="2">
+        <ArticleCaption>（民事訴訟規則第五十二条の九第一項に規定する事項を入力する方法等）</ArticleCaption>
+        <ArticleTitle>第二条</ArticleTitle>
+        <Paragraph Num="1">
+          <ParagraphNum></ParagraphNum>
+          <ParagraphSentence>
+            <Sentence>民事訴訟規則第五十二条の九第一項（これを準用し、又はその例による場合を含む。）及び民事執行規則（昭和五十四年最高裁判所規則第五号）附則第十条第一項に規定する事項を入力する方法は、次の各号に掲げる要件のいずれにも該当する電磁的記録（電子的方式、磁気的方式その他人の知覚によっては認識することができない方式で作られる記録であって、電子計算機による情報処理の用に供されるものをいう。以下同じ。）を裁判所の使用に係る電子計算機に備えられたファイルに記録する方法とする。</Sentence>
+          </ParagraphSentence>
+          <Item Num="1">
+            <ItemTitle>一</ItemTitle>
+            <ItemSentence>
+              <Sentence> ファイル形式がＰＤＦ形式であること。</Sentence>
+            </ItemSentence>
+          </Item>
+          <Item Num="2">
+            <ItemTitle>二</ItemTitle>
+            <ItemSentence>
+              <Sentence> 出力した場合における用紙の大きさを日本産業規格Ａ４又はＡ３とすること。</Sentence>
+            </ItemSentence>
+          </Item>
+        </Paragraph>
+        <Paragraph Num="2">
+          <ParagraphNum>2</ParagraphNum>
+          <ParagraphSentence>
+            <Sentence> 裁判所は、電子判決書の作成に用いる場合、当事者に視覚障害がある場合その他必要があると認める場合には、前項の電磁的記録を裁判所の使用に係る電子計算機に備えられたファイルに記録した者又は記録しようとする者に対し、当該電磁的記録のほか、音声情報に変換可能な情報を有するファイル形式その他の適切なファイル形式の電磁的記録を裁判所に提供することを求めることができる。</Sentence>
+          </ParagraphSentence>
+        </Paragraph>
+      </Article>
+      <Article Num="3">
+        <ArticleCaption>（電磁的記録のファイルへの記録の方法等）</ArticleCaption>
+        <ArticleTitle>第三条</ArticleTitle>
+        <Paragraph Num="1">
+          <ParagraphNum></ParagraphNum>
+          <ParagraphSentence>
+            <Sentence>次の各号に掲げる規定により裁判所の使用に係る電子計算機に備えられたファイルに記録し、又は提出若しくは送付する電磁的記録は、前条第一項各号の要件のいずれにも該当するものでなければならない。</Sentence>
+          </ParagraphSentence>
+          <Item Num="1">
+            <ItemTitle>一</ItemTitle>
+            <ItemSentence>
+              <Sentence> 民事訴訟規則第十四条第二項及び第三項、第十五条第二項、第二十四条第三項及び第四項、第三十四条第八項、第四十九条第二項、第五十一条第三項及び第四項、第五十二条の六第四項、第五十二条の七第七項、第五十二条の二十第七項、第五十二条の二十二第二項、第五十五条第三項、第八十二条第三項、第百五条の三、第百二十四条第四項、第百三十一条第二項（第二号に係る部分に限る。）、第百三十二条第三項、第百三十五条の二、第百三十七条第三項、第百四十三条第三項、第二百十一条第二項並びに第二百二十条第二項（これらを準用し、又はその例による場合を含む。）</Sentence>
+            </ItemSentence>
+          </Item>
+          <Item Num="2">
+            <ItemTitle>二</ItemTitle>
+            <ItemSentence>
+              <Sentence> 民事訴訟費用等に関する規則（昭和四十六年最高裁判所規則第五号）第四条の二第三項及び第四項、第九条第二項、附則第十四条第一項及び第二項、附則第十七条第一項及び第二項並びに附則第二十条第一項</Sentence>
+            </ItemSentence>
+          </Item>
+          <Item Num="3">
+            <ItemTitle>三</ItemTitle>
+            <ItemSentence>
+              <Sentence> 人身保護規則（昭和二十三年最高裁判所規則第二十二号）第二十七条第三項</Sentence>
+            </ItemSentence>
+          </Item>
+          <Item Num="4">
+            <ItemTitle>四</ItemTitle>
+            <ItemSentence>
+              <Sentence> 消費者の財産的被害等の集団的な回復のための民事の裁判手続の特例に関する規則（平成二十七年最高裁判所規則第五号）第二条第四項及び第五項並びに第三十七条第二項</Sentence>
+            </ItemSentence>
+          </Item>
+          <Item Num="5">
+            <ItemTitle>五</ItemTitle>
+            <ItemSentence>
+              <Sentence> 性的な姿態を撮影する行為等の処罰及び押収物に記録された性的な姿態の影像に係る電磁的記録の消去等に関する法律による消去等の手続等に関する規則（令和六年最高裁判所規則第十号）第八条第九項</Sentence>
+            </ItemSentence>
+          </Item>
+          <Item Num="6">
+            <ItemTitle>六</ItemTitle>
+            <ItemSentence>
+              <Sentence> 人事官弾劾裁判手続規則（昭和二十五年最高裁判所規則第五号）第四条第二項</Sentence>
+            </ItemSentence>
+          </Item>
+        </Paragraph>
+        <Paragraph Num="2">
+          <ParagraphNum>2</ParagraphNum>
+          <ParagraphSentence>
+            <Sentence> 前項各号に掲げる規定により電磁的記録を裁判所の使用に係る電子計算機に備えられたファイルに記録し、又は提出若しくは送付しようとする者（民事訴訟法（平成八年法律第百九号）第百三十二条の四第一項第四号の命令を受けた者を除く。）は、当該者に係る当事者等識別符号（民事事件等に関する手続において用いる識別符号の付与等に関する規則第一条第三項又は第二条第二項の規定により付与された識別符号をいう。次項において同じ。）及び暗証符号（同規則第三条の規定により設定された暗証符号をいう。次項において同じ。）を当該者の使用に係る電子計算機から入力しなければならない。</Sentence>
+          </ParagraphSentence>
+        </Paragraph>
+        <Paragraph Num="3">
+          <ParagraphNum>3</ParagraphNum>
+          <ParagraphSentence>
+            <Sentence> 前項の規定にかかわらず、次に掲げる行為をしようとする者は、裁判所書記官から通知された提出等用識別符号（当該者に対し、裁判所書記官から当該行為をするためにその都度付与される符号をいう。）を当該者の使用に係る電子計算機から入力することをもって、当事者等識別符号及び暗証符号の入力に代えることができる。</Sentence>
+          </ParagraphSentence>
+          <Item Num="1">
+            <ItemTitle>一</ItemTitle>
+            <ItemSentence>
+              <Sentence> 民事訴訟規則第五十二条の七第七項の規定による調査結果に係る情報又は意見の内容に係る情報の入力</Sentence>
+            </ItemSentence>
+          </Item>
+          <Item Num="2">
+            <ItemTitle>二</ItemTitle>
+            <ItemSentence>
+              <Sentence> 民事訴訟規則第百五条の三の規定による調査結果に係る情報を記録した電磁的記録の裁判所の使用に係る電子計算機に備えられたファイルへの記録</Sentence>
+            </ItemSentence>
+          </Item>
+          <Item Num="3">
+            <ItemTitle>三</ItemTitle>
+            <ItemSentence>
+              <Sentence> 民事訴訟規則第百四十三条第三項の規定による民事訴訟法第二百二十六条の嘱託に係る文書の画像情報の送付</Sentence>
+            </ItemSentence>
+          </Item>
+        </Paragraph>
+      </Article>
+      <Article Num="4">
+        <ArticleCaption>（民事訴訟規則第六十三条の二等の場合における電磁的記録の入力方法）</ArticleCaption>
+        <ArticleTitle>第四条</ArticleTitle>
+        <Paragraph Num="1">
+          <ParagraphNum></ParagraphNum>
+          <ParagraphSentence>
+            <Sentence>民事訴訟規則第六十三条の二、第百四十九条の二第三項又は第百四十九条の三の規定により電磁的記録を提出し、又は送付しようとする者が入力する当該電磁的記録のファイル形式は、ＤＯＣＸ形式、ＸＬＳＸ形式、ＰＰＴＸ形式、ＪＰＥＧ形式、ＰＮＧ形式、ＰＤＦ形式、ＭＰ４形式又はＭＰ３形式とする。</Sentence>
+          </ParagraphSentence>
+        </Paragraph>
+        <Paragraph Num="2">
+          <ParagraphNum>2</ParagraphNum>
+          <ParagraphSentence>
+            <Sentence> 前条第二項の規定は、前項に規定する者について準用する。</Sentence>
+          </ParagraphSentence>
+        </Paragraph>
+        <Paragraph Num="3">
+          <ParagraphNum>3</ParagraphNum>
+          <ParagraphSentence>
+            <Sentence> 前条第三項の規定は、民事訴訟規則第百四十九条の三の規定による民事訴訟法第二百三十一条の三第二項（同法第百三十二条の六第六項において準用する場合を含む。）に規定する電磁的記録の送付をしようとする者について準用する。</Sentence>
+          </ParagraphSentence>
+        </Paragraph>
+      </Article>
+      <Article Num="5">
+        <ArticleCaption>（電磁的記録に記録された情報の内容に係る証拠調べの申出に係る電磁的記録の複製のファイルへの記録の方法等）</ArticleCaption>
+        <ArticleTitle>第五条</ArticleTitle>
+        <Paragraph Num="1">
+          <ParagraphNum></ParagraphNum>
+          <ParagraphSentence>
+            <Sentence>民事訴訟規則第百四十九条の二第一項の規定により裁判所の使用に係る電子計算機に備えられたファイルに記録する電磁的記録の複製のファイル形式は、ＰＤＦ形式、ＪＰＥＧ形式、ＰＮＧ形式、ＭＰ４形式又はＭＰ３形式とする。</Sentence>
+          </ParagraphSentence>
+        </Paragraph>
+        <Paragraph Num="2">
+          <ParagraphNum>2</ParagraphNum>
+          <ParagraphSentence>
+            <Sentence> 民事訴訟規則第百四十九条の二第一項の規定により提出する記録媒体に記録する電磁的記録の複製のファイル形式は、前項に規定するファイル形式とし、そのファイルのサイズは、裁判所の使用する電子計算機に備えられたファイルに記録することが可能なファイルのサイズとする。ただし、当該電磁的記録を前項に規定するファイル形式及び裁判所の使用する電子計算機に備えられたファイルに記録することが可能なファイルのサイズにより複製することが困難な場合には、当該電磁的記録の複製のファイル形式及びファイルのサイズは、当該電磁的記録のファイル形式及びファイルのサイズとする。</Sentence>
+          </ParagraphSentence>
+        </Paragraph>
+        <Paragraph Num="3">
+          <ParagraphNum>3</ParagraphNum>
+          <ParagraphSentence>
+            <Sentence> 第三条第二項の規定は、民事訴訟規則第百四十九条の二第一項の規定により電磁的記録の複製を裁判所の使用に係る電子計算機に備えられたファイルに記録しようとする者について準用する。</Sentence>
+          </ParagraphSentence>
+        </Paragraph>
+      </Article>
+      <SupplProvision>
+        <SupplProvisionLabel>附則</SupplProvisionLabel>
+        <Article Num="1">
+          <ArticleTitle></ArticleTitle>
+          <Paragraph Num="1">
+            <ParagraphNum></ParagraphNum>
+            <ParagraphSentence>
+              <Sentence>この細則は、民事訴訟規則等の一部を改正する規則（令和六年最高裁判所規則第十四号）の施行の日から施行する。</Sentence>
+            </ParagraphSentence>
+          </Paragraph>
+        </Article>
+      </SupplProvision>
+    </MainProvision>
+  </LawBody>
+</Law>

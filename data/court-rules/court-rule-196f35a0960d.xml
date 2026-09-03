@@ -1,0 +1,647 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Law Era="" Year="" Num="" LawType="Rule" Lang="ja">
+  <LawNum>令和５年最高裁判所規則第９号</LawNum>
+  <LawBody>
+    <LawTitle>事件記録等の特別保存に関する規則</LawTitle>
+    <TOC>
+      <TOCChapter>
+        <ChapterTitle>第１章総則</ChapterTitle>
+        <ArticleRange>第１条 － 第６条</ArticleRange>
+      </TOCChapter>
+      <TOCChapter>
+        <ChapterTitle>第２章特別保存の要望等</ChapterTitle>
+        <ArticleRange>第７条・第８条</ArticleRange>
+      </TOCChapter>
+      <TOCChapter>
+        <ChapterTitle>第３章記録の保存の在り方に関する委員会</ChapterTitle>
+        <ArticleRange>第９条 － 第１９条</ArticleRange>
+      </TOCChapter>
+      <TOCChapter>
+        <ChapterTitle>第４章補則</ChapterTitle>
+        <ArticleRange>第２０条</ArticleRange>
+      </TOCChapter>
+    </TOC>
+    <MainProvision>
+      <Chapter>
+        <ChapterTitle>第１章総則</ChapterTitle>
+        <Article Num="1">
+          <ArticleCaption>（目的）</ArticleCaption>
+          <ArticleTitle>第１条</ArticleTitle>
+          <Paragraph Num="1">
+            <ParagraphNum></ParagraphNum>
+            <ParagraphSentence>
+              <Sentence>この規則は、事件記録、事件書類又は少年調査記録（以下「記録等」という。）のうち、歴史的、社会的な意義を有し、史料又は参考資料として価値を有するものを適切かつ確実に選別し、国民共有の財産として保存し、後世に引き継いでいくことを目的とする。</Sentence>
+            </ParagraphSentence>
+          </Paragraph>
+        </Article>
+        <Article Num="2">
+          <ArticleCaption>（定義）</ArticleCaption>
+          <ArticleTitle>第２条</ArticleTitle>
+          <Paragraph Num="1">
+            <ParagraphNum></ParagraphNum>
+            <ParagraphSentence>
+              <Sentence>この規則において「事件記録」とは、別表第一に掲げる事件及びその再審事件の記録をいう。</Sentence>
+            </ParagraphSentence>
+          </Paragraph>
+          <Paragraph Num="2">
+            <ParagraphNum>2</ParagraphNum>
+            <ParagraphSentence>
+              <Sentence> この規則において「事件書類」とは、別表第一に掲げる事件及びその再審事件に関する書類で最高裁判所が別に定めるところにより事件記録から分離されたものをいう。</Sentence>
+            </ParagraphSentence>
+          </Paragraph>
+          <Paragraph Num="3">
+            <ParagraphNum>3</ParagraphNum>
+            <ParagraphSentence>
+              <Sentence> この規則において「少年調査記録」とは、少年の処遇に関する意見書及び少年調査票その他少年の処遇上参考となる書類を編てつして作成されたものをいう。</Sentence>
+            </ParagraphSentence>
+          </Paragraph>
+          <Paragraph Num="4">
+            <ParagraphNum>4</ParagraphNum>
+            <ParagraphSentence>
+              <Sentence> この規則において「特別保存」とは、記録等のうち、史料又は参考資料となるべきものについて、永久に保存することをいう。</Sentence>
+            </ParagraphSentence>
+          </Paragraph>
+        </Article>
+        <Article Num="3">
+          <ArticleCaption>（特別保存に付する認定を行う者）</ArticleCaption>
+          <ArticleTitle>第３条</ArticleTitle>
+          <Paragraph Num="1">
+            <ParagraphNum></ParagraphNum>
+            <ParagraphSentence>
+              <Sentence>記録等を特別保存に付する認定は、次の各号に掲げる区分に応じ、当該各号に定める裁判所の長が行う。ただし、既に特別保存に付する認定がされた記録等については、重ねて特別保存に付する認定を行わない。</Sentence>
+            </ParagraphSentence>
+            <Item Num="1">
+              <ItemTitle>一</ItemTitle>
+              <ItemSentence>
+                <Sentence> 事件記録及び事件書類（次号から第４号までに掲げるものを除く。）当該事件の第一審裁判所（別表第一の２９の項に掲げる事件にあっては、当該事件を担当する執行官の所属する地方裁判所）</Sentence>
+              </ItemSentence>
+            </Item>
+            <Item Num="2">
+              <ItemTitle>二</ItemTitle>
+              <ItemSentence>
+                <Sentence> 上訴裁判所において調停に付された事件に係る調停事件で当該上訴裁判所が処理したものの事件記録及び事件書類当該調停に付された事件の事件記録を保存する裁判所</Sentence>
+              </ItemSentence>
+            </Item>
+            <Item Num="3">
+              <ItemTitle>三</ItemTitle>
+              <ItemSentence>
+                <Sentence> 再審事件の事件記録不服申立ての対象となった裁判がされた事件の事件記録を保存する裁判所</Sentence>
+              </ItemSentence>
+            </Item>
+            <Item Num="4">
+              <ItemTitle>四</ItemTitle>
+              <ItemSentence>
+                <Sentence> 事件書類のうち、別表第一に掲げる事件又はその再審事件の移送の決定の原本、少額訴訟債権執行事件の移行の決定の原本及び別表第二に掲げる裁判書の原本当該裁判をした裁判所</Sentence>
+              </ItemSentence>
+            </Item>
+            <Item Num="5">
+              <ItemTitle>五</ItemTitle>
+              <ItemSentence>
+                <Sentence> 少年調査記録特別保存に付する認定を行う原因となるべき事件について終局決定をした家庭裁判所</Sentence>
+              </ItemSentence>
+            </Item>
+          </Paragraph>
+        </Article>
+        <Article Num="4">
+          <ArticleCaption>（特別保存に付する認定の効果）</ArticleCaption>
+          <ArticleTitle>第４条</ArticleTitle>
+          <Paragraph Num="1">
+            <ParagraphNum></ParagraphNum>
+            <ParagraphSentence>
+              <Sentence>特別保存に付する認定を行った記録等は、第６条の規定により送付する場合を除き、当該認定を行った裁判所の長の所属する裁判所において特別保存をする。</Sentence>
+            </ParagraphSentence>
+          </Paragraph>
+        </Article>
+        <Article Num="5">
+          <ArticleCaption>（最高裁判所への移管）</ArticleCaption>
+          <ArticleTitle>第５条</ArticleTitle>
+          <Paragraph Num="1">
+            <ParagraphNum></ParagraphNum>
+            <ParagraphSentence>
+              <Sentence>特別保存をした記録等は、最高裁判所の指示により、最高裁判所に移管することができる。</Sentence>
+            </ParagraphSentence>
+          </Paragraph>
+        </Article>
+        <Article Num="6">
+          <ArticleCaption>（内閣総理大臣への移管）</ArticleCaption>
+          <ArticleTitle>第６条</ArticleTitle>
+          <Paragraph Num="1">
+            <ParagraphNum></ParagraphNum>
+            <ParagraphSentence>
+              <Sentence>公文書等の管理に関する法律（平成２１年法律第６６号）第１４条第１項の規定に基づく協議による定め（同法附則第３条の規定により同法第１４条第１項の規定に基づく協議による定めとみなされるものを含む。）において同法第２条第６項に規定する歴史公文書等として内閣総理大臣に移管することとされた記録等は、最高裁判所の指示を受けて独立行政法人国立公文書館に送付する。</Sentence>
+            </ParagraphSentence>
+          </Paragraph>
+        </Article>
+      </Chapter>
+      <Chapter>
+        <ChapterTitle>第２章特別保存の要望等</ChapterTitle>
+        <Article Num="7">
+          <ArticleCaption>（特別保存の要望）</ArticleCaption>
+          <ArticleTitle>第７条</ArticleTitle>
+          <Paragraph Num="1">
+            <ParagraphNum></ParagraphNum>
+            <ParagraphSentence>
+              <Sentence>何人も、第３条本文の規定により特別保存に付する認定を行う裁判所の長に対し、最高裁判所が別に定めるところにより、記録等について、史料又は参考資料となるべきものに当たるとして、特別保存を要望することができる。</Sentence>
+            </ParagraphSentence>
+          </Paragraph>
+        </Article>
+        <Article Num="8">
+          <ArticleCaption>（委員会への求意見）</ArticleCaption>
+          <ArticleTitle>第８条</ArticleTitle>
+          <Paragraph Num="1">
+            <ParagraphNum></ParagraphNum>
+            <ParagraphSentence>
+              <Sentence>前条の要望を受けた裁判所の長は、要望があった事件の記録等について特別保存に付さない認定をしようとする場合には、その適否について、次条の委員会に意見を求めなければならない。ただし、前条の要望があった少年調査記録について、既に他の家庭裁判所の長が特別保存に付する認定をした場合は、この限りでない。</Sentence>
+            </ParagraphSentence>
+          </Paragraph>
+        </Article>
+      </Chapter>
+      <Chapter>
+        <ChapterTitle>第３章記録の保存の在り方に関する委員会</ChapterTitle>
+        <Article Num="9">
+          <ArticleCaption>（設置）</ArticleCaption>
+          <ArticleTitle>第９条</ArticleTitle>
+          <Paragraph Num="1">
+            <ParagraphNum></ParagraphNum>
+            <ParagraphSentence>
+              <Sentence>最高裁判所に、記録の保存の在り方に関する委員会（以下「委員会」という。）を置く。</Sentence>
+            </ParagraphSentence>
+          </Paragraph>
+        </Article>
+        <Article Num="10">
+          <ArticleCaption>（所掌事務）</ArticleCaption>
+          <ArticleTitle>第１０条</ArticleTitle>
+          <Paragraph Num="1">
+            <ParagraphNum></ParagraphNum>
+            <ParagraphSentence>
+              <Sentence>委員会は、次に掲げる事項について意見を述べる。</Sentence>
+            </ParagraphSentence>
+            <Item Num="1">
+              <ItemTitle>一</ItemTitle>
+              <ItemSentence>
+                <Sentence> 第８条本文の認定の適否</Sentence>
+              </ItemSentence>
+            </Item>
+            <Item Num="2">
+              <ItemTitle>二</ItemTitle>
+              <ItemSentence>
+                <Sentence> 記録等の保存の在り方の見直しや特別保存の運用等に関する事項</Sentence>
+              </ItemSentence>
+            </Item>
+            <Item Num="3">
+              <ItemTitle>三</ItemTitle>
+              <ItemSentence>
+                <Sentence> 一定の重大な社会事象が生じた場合にこれに関連する記録等の保存に関する事項</Sentence>
+              </ItemSentence>
+            </Item>
+          </Paragraph>
+        </Article>
+        <Article Num="11">
+          <ArticleCaption>（組織）</ArticleCaption>
+          <ArticleTitle>第１１条</ArticleTitle>
+          <Paragraph Num="1">
+            <ParagraphNum></ParagraphNum>
+            <ParagraphSentence>
+              <Sentence>委員会は、委員６人で組織する。</Sentence>
+            </ParagraphSentence>
+          </Paragraph>
+          <Paragraph Num="2">
+            <ParagraphNum>2</ParagraphNum>
+            <ParagraphSentence>
+              <Sentence> 委員は、非常勤とする。</Sentence>
+            </ParagraphSentence>
+          </Paragraph>
+        </Article>
+        <Article Num="12">
+          <ArticleCaption>（委員）</ArticleCaption>
+          <ArticleTitle>第１２条</ArticleTitle>
+          <Paragraph Num="1">
+            <ParagraphNum></ParagraphNum>
+            <ParagraphSentence>
+              <Sentence>委員は、法律又は公文書の管理等に関して優れた識見を有する者の中から、最高裁判所が任命する。</Sentence>
+            </ParagraphSentence>
+          </Paragraph>
+          <Paragraph Num="2">
+            <ParagraphNum>2</ParagraphNum>
+            <ParagraphSentence>
+              <Sentence> 委員の任期は、３年とする。ただし、補欠の委員の任期は、前任者の残任期間とする。</Sentence>
+            </ParagraphSentence>
+          </Paragraph>
+          <Paragraph Num="3">
+            <ParagraphNum>3</ParagraphNum>
+            <ParagraphSentence>
+              <Sentence> 委員は、再任されることができる。</Sentence>
+            </ParagraphSentence>
+          </Paragraph>
+          <Paragraph Num="4">
+            <ParagraphNum>4</ParagraphNum>
+            <ParagraphSentence>
+              <Sentence> 委員の任期が満了したときは、当該委員は、後任者が任命されるまで引き続きその職務を行うものとする。</Sentence>
+            </ParagraphSentence>
+          </Paragraph>
+          <Paragraph Num="5">
+            <ParagraphNum>5</ParagraphNum>
+            <ParagraphSentence>
+              <Sentence> 最高裁判所は、委員が心身の故障のために職務の執行ができないと認める場合又は委員に職務上の義務違反その他委員たるに適しない非行があると認める場合には、その委員を罷免することができる。</Sentence>
+            </ParagraphSentence>
+          </Paragraph>
+        </Article>
+        <Article Num="13">
+          <ArticleCaption>（委員長）</ArticleCaption>
+          <ArticleTitle>第１３条</ArticleTitle>
+          <Paragraph Num="1">
+            <ParagraphNum></ParagraphNum>
+            <ParagraphSentence>
+              <Sentence>委員会に、委員長を置き、委員の互選により選任する。</Sentence>
+            </ParagraphSentence>
+          </Paragraph>
+          <Paragraph Num="2">
+            <ParagraphNum>2</ParagraphNum>
+            <ParagraphSentence>
+              <Sentence> 委員長は、会務を総理し、委員会を代表する。</Sentence>
+            </ParagraphSentence>
+          </Paragraph>
+          <Paragraph Num="3">
+            <ParagraphNum>3</ParagraphNum>
+            <ParagraphSentence>
+              <Sentence> 委員長に事故があるときは、あらかじめ委員長の指名する委員が、その職務を代理する。</Sentence>
+            </ParagraphSentence>
+          </Paragraph>
+        </Article>
+        <Article Num="14">
+          <ArticleCaption>（会議）</ArticleCaption>
+          <ArticleTitle>第１４条</ArticleTitle>
+          <Paragraph Num="1">
+            <ParagraphNum></ParagraphNum>
+            <ParagraphSentence>
+              <Sentence>委員長は、第８条本文の規定により意見を求められたときその他必要と認められるときは、委員会を招集する。</Sentence>
+            </ParagraphSentence>
+          </Paragraph>
+          <Paragraph Num="2">
+            <ParagraphNum>2</ParagraphNum>
+            <ParagraphSentence>
+              <Sentence> 委員会は、過半数の委員が出席しなければ、会議を開き、議決することができない。ただし、委員長が相当と認める場合において、委員が音声の送受信により同時に通話することができる方法により会議に関与したときは、当該委員は会議に出席したものとみなす。</Sentence>
+            </ParagraphSentence>
+          </Paragraph>
+          <Paragraph Num="3">
+            <ParagraphNum>3</ParagraphNum>
+            <ParagraphSentence>
+              <Sentence> 第１０条第１号に掲げる事項についての意見に関し議決するときは、出席した委員長及びその他の委員の過半数により決し、可否同数のときは、委員長の決するところによる。</Sentence>
+            </ParagraphSentence>
+          </Paragraph>
+        </Article>
+        <Article Num="15">
+          <ArticleCaption>（庶務）</ArticleCaption>
+          <ArticleTitle>第１５条</ArticleTitle>
+          <Paragraph Num="1">
+            <ParagraphNum></ParagraphNum>
+            <ParagraphSentence>
+              <Sentence>委員会の庶務は、最高裁判所事務総局総務局において処理する。</Sentence>
+            </ParagraphSentence>
+          </Paragraph>
+        </Article>
+        <Article Num="16">
+          <ArticleCaption>（委員会の調査方法）</ArticleCaption>
+          <ArticleTitle>第１６条</ArticleTitle>
+          <Paragraph Num="1">
+            <ParagraphNum></ParagraphNum>
+            <ParagraphSentence>
+              <Sentence>委員会は、必要があると認めるときは、第８条本文の規定により意見を求めた裁判所の長に対し記録等の提出、説明その他の必要な協力を依頼し、要望を申し出た者に対し意見書の提出を求めることができる。</Sentence>
+            </ParagraphSentence>
+          </Paragraph>
+        </Article>
+        <Article Num="17">
+          <ArticleCaption>（手続の非公開）</ArticleCaption>
+          <ArticleTitle>第１７条</ArticleTitle>
+          <Paragraph Num="1">
+            <ParagraphNum></ParagraphNum>
+            <ParagraphSentence>
+              <Sentence>委員会の行う手続は、公開しない。</Sentence>
+            </ParagraphSentence>
+          </Paragraph>
+        </Article>
+        <Article Num="18">
+          <ArticleCaption>（意見書の送付等）</ArticleCaption>
+          <ArticleTitle>第１８条</ArticleTitle>
+          <Paragraph Num="1">
+            <ParagraphNum></ParagraphNum>
+            <ParagraphSentence>
+              <Sentence>委員会が第１０条の規定により意見を述べる場合には、同条第１号に掲げる事項についての意見は当該意見を求めた裁判所の長宛てに意見書を送付する方法により、その余の事項についての意見は最高裁判所長官宛てに意見書を送付する方法により行う。</Sentence>
+            </ParagraphSentence>
+          </Paragraph>
+          <Paragraph Num="2">
+            <ParagraphNum>2</ParagraphNum>
+            <ParagraphSentence>
+              <Sentence> 第８条本文の規定により委員会に意見を求めた裁判所の長は、前項に規定する意見書の送付を受けたときは、当該記録等について特別保存に付する認定又は特別保存に付さない認定を行い、その結果について委員会に報告する。</Sentence>
+            </ParagraphSentence>
+          </Paragraph>
+        </Article>
+        <Article Num="19">
+          <ArticleCaption>（委員会の運営）</ArticleCaption>
+          <ArticleTitle>第１９条</ArticleTitle>
+          <Paragraph Num="1">
+            <ParagraphNum></ParagraphNum>
+            <ParagraphSentence>
+              <Sentence>この規則に定めるもののほか、委員会の運営に関し必要な事項は、委員会がこれを定める。</Sentence>
+            </ParagraphSentence>
+          </Paragraph>
+        </Article>
+      </Chapter>
+      <Chapter>
+        <ChapterTitle>第４章補則</ChapterTitle>
+        <Article Num="20">
+          <ArticleCaption>（補則）</ArticleCaption>
+          <ArticleTitle>第２０条</ArticleTitle>
+          <Paragraph Num="1">
+            <ParagraphNum></ParagraphNum>
+            <ParagraphSentence>
+              <Sentence>この規則に定めるもののほか、記録等の特別保存に関し必要な事項は、最高裁判所が定める。</Sentence>
+            </ParagraphSentence>
+          </Paragraph>
+        </Article>
+      </Chapter>
+      <SupplProvision>
+        <SupplProvisionLabel>附則</SupplProvisionLabel>
+        <Article Num="1">
+          <ArticleTitle></ArticleTitle>
+          <Paragraph Num="1">
+            <ParagraphNum></ParagraphNum>
+            <ParagraphSentence>
+              <Sentence>１ この規則は、令和６年１月３０日から施行する。ただし、附則第３項の規定は、公布の日から施行する。</Sentence>
+            </ParagraphSentence>
+          </Paragraph>
+          <Paragraph Num="2">
+            <ParagraphNum>2</ParagraphNum>
+            <ParagraphSentence>
+              <Sentence> この規則の施行の際現に事件記録等保存規程及び少年調査記録規程の一部を改正する規程（令和５年最高裁判所規程第１号。以下この項において「改正規程」という。）第１条の規定による改正前の事件記録等保存規程（昭和３９年最高裁判所規程第８号）第９条第２項又は改正規程第２条の規定による改正前の少年調査記録規程（昭和２９年最高裁判所規程第５号）第８条第２項の規定により保存期間満了の後も保存されている記録等は、第３条本文の規定による特別保存に付する認定がされたものとみなす。</Sentence>
+            </ParagraphSentence>
+          </Paragraph>
+          <Paragraph Num="3">
+            <ParagraphNum>3</ParagraphNum>
+            <ParagraphSentence>
+              <Sentence> 第１２条第１項の規定による委員会の委員の任命に関し必要な行為は、この規則の施行日前においても、同項の規定の例によりすることができる。</Sentence>
+            </ParagraphSentence>
+          </Paragraph>
+        </Article>
+      </SupplProvision>
+      <SupplProvision>
+        <SupplProvisionLabel>附則（令和６年３月１１日最高裁判所規則第９号）</SupplProvisionLabel>
+        <Article Num="1">
+          <ArticleTitle></ArticleTitle>
+          <Paragraph Num="1">
+            <ParagraphNum></ParagraphNum>
+            <ParagraphSentence>
+              <Sentence>この規則は、令和６年４月１日から施行する。</Sentence>
+            </ParagraphSentence>
+          </Paragraph>
+        </Article>
+      </SupplProvision>
+      <SupplProvision>
+        <SupplProvisionLabel>附則（令和７年１０月１６日最高裁判所規則第１２号）</SupplProvisionLabel>
+        <Article Num="1">
+          <ArticleTitle></ArticleTitle>
+          <Paragraph Num="1">
+            <ParagraphNum></ParagraphNum>
+            <ParagraphSentence>
+              <Sentence>この規則は、令和７年１１月４日から施行する。</Sentence>
+            </ParagraphSentence>
+          </Paragraph>
+        </Article>
+      </SupplProvision>
+      <SupplProvision>
+        <SupplProvisionLabel>附則（令和８年５月１４日最高裁判所規則第９号）</SupplProvisionLabel>
+        <Article Num="1">
+          <ArticleTitle></ArticleTitle>
+          <Paragraph Num="1">
+            <ParagraphNum></ParagraphNum>
+            <ParagraphSentence>
+              <Sentence>この規則は、事業性融資の推進等に関する法律（令和６年法律第５２号）の施行の日（令和８年５月２５日）から施行する。別表第一（第２条、第３条関係）事件の種類</Sentence>
+            </ParagraphSentence>
+          </Paragraph>
+          <Paragraph Num="1">
+            <ParagraphNum></ParagraphNum>
+            <ParagraphSentence>
+              <Sentence> 和解事件</Sentence>
+            </ParagraphSentence>
+          </Paragraph>
+          <Paragraph Num="2">
+            <ParagraphNum>2</ParagraphNum>
+            <ParagraphSentence>
+              <Sentence> 督促事件</Sentence>
+            </ParagraphSentence>
+          </Paragraph>
+          <Paragraph Num="3">
+            <ParagraphNum>3</ParagraphNum>
+            <ParagraphSentence>
+              <Sentence> 少額訴訟事件少額訴訟判決に対する異議申立て事件民事通常訴訟事件手形訴訟事件及び小切手訴訟事件人事訴訟事件行政訴訟事件（選挙に関する訴訟事件を含む。）</Sentence>
+            </ParagraphSentence>
+          </Paragraph>
+          <Paragraph Num="4">
+            <ParagraphNum>4</ParagraphNum>
+            <ParagraphSentence>
+              <Sentence> 公示催告事件</Sentence>
+            </ParagraphSentence>
+          </Paragraph>
+          <Paragraph Num="5">
+            <ParagraphNum>5</ParagraphNum>
+            <ParagraphSentence>
+              <Sentence> 保全命令事件</Sentence>
+            </ParagraphSentence>
+          </Paragraph>
+          <Paragraph Num="6">
+            <ParagraphNum>6</ParagraphNum>
+            <ParagraphSentence>
+              <Sentence> 民事一般調停事件宅地建物調停事件商事調停事件農事調停事件鉱害調停事件交通調停事件公害等調停事件特定調停事件</Sentence>
+            </ParagraphSentence>
+          </Paragraph>
+          <Paragraph Num="7">
+            <ParagraphNum>7</ParagraphNum>
+            <ParagraphSentence>
+              <Sentence> 過料事件</Sentence>
+            </ParagraphSentence>
+          </Paragraph>
+          <Paragraph Num="8">
+            <ParagraphNum>8</ParagraphNum>
+            <ParagraphSentence>
+              <Sentence> 民事非訟事件商事非訟事件</Sentence>
+            </ParagraphSentence>
+          </Paragraph>
+          <Paragraph Num="9">
+            <ParagraphNum>9</ParagraphNum>
+            <ParagraphSentence>
+              <Sentence> 借地非訟事件</Sentence>
+            </ParagraphSentence>
+          </Paragraph>
+          <Paragraph Num="1">
+            <ParagraphNum></ParagraphNum>
+            <ParagraphSentence>
+              <Sentence> ０罹災都市借地借家臨時処理事件及び接収不動産に関する借地借家臨時処理事件</Sentence>
+            </ParagraphSentence>
+          </Paragraph>
+          <Paragraph Num="1">
+            <ParagraphNum></ParagraphNum>
+            <ParagraphSentence>
+              <Sentence> １発信者情報開示命令事件</Sentence>
+            </ParagraphSentence>
+          </Paragraph>
+          <Paragraph Num="1">
+            <ParagraphNum></ParagraphNum>
+            <ParagraphSentence>
+              <Sentence> ２配偶者暴力等に関する保護命令事件</Sentence>
+            </ParagraphSentence>
+          </Paragraph>
+          <Paragraph Num="1">
+            <ParagraphNum></ParagraphNum>
+            <ParagraphSentence>
+              <Sentence> ３労働審判事件</Sentence>
+            </ParagraphSentence>
+          </Paragraph>
+          <Paragraph Num="1">
+            <ParagraphNum></ParagraphNum>
+            <ParagraphSentence>
+              <Sentence> ４少額訴訟債権執行事件事情届に基づいて執行裁判所が実施する配当等手続事件不動産、船舶、航空機、自動車、建設機械及び小型船舶に対する強制執行事件債権及びその他の財産権に対する強制執行事件不動産、船舶、航空機、自動車、建設機械及び小型船舶を目的とする担保権の実行としての競売等事件債権及びその他の財産権を目的とする担保権の実行及び行使事件財産開示事件第三者からの情報取得事件企業担保権実行事件</Sentence>
+            </ParagraphSentence>
+          </Paragraph>
+          <Paragraph Num="1">
+            <ParagraphNum></ParagraphNum>
+            <ParagraphSentence>
+              <Sentence> ５破産事件再生事件小規模個人再生事件給与所得者等再生事件会社更生事件承認援助事件企業価値担保権実行事件船舶所有者等責任制限事件油濁等損害賠償責任制限事件</Sentence>
+            </ParagraphSentence>
+          </Paragraph>
+          <Paragraph Num="1">
+            <ParagraphNum></ParagraphNum>
+            <ParagraphSentence>
+              <Sentence> ６簡易確定事件</Sentence>
+            </ParagraphSentence>
+          </Paragraph>
+          <Paragraph Num="1">
+            <ParagraphNum></ParagraphNum>
+            <ParagraphSentence>
+              <Sentence> ７仲裁関係事件</Sentence>
+            </ParagraphSentence>
+          </Paragraph>
+          <Paragraph Num="1">
+            <ParagraphNum></ParagraphNum>
+            <ParagraphSentence>
+              <Sentence> ８特定和解の執行決定事件</Sentence>
+            </ParagraphSentence>
+          </Paragraph>
+          <Paragraph Num="1">
+            <ParagraphNum></ParagraphNum>
+            <ParagraphSentence>
+              <Sentence> ９人身保護事件</Sentence>
+            </ParagraphSentence>
+          </Paragraph>
+          <Paragraph Num="2">
+            <ParagraphNum>2</ParagraphNum>
+            <ParagraphSentence>
+              <Sentence> ０家事審判事件</Sentence>
+            </ParagraphSentence>
+          </Paragraph>
+          <Paragraph Num="2">
+            <ParagraphNum>2</ParagraphNum>
+            <ParagraphSentence>
+              <Sentence> １家事調停事件</Sentence>
+            </ParagraphSentence>
+          </Paragraph>
+          <Paragraph Num="2">
+            <ParagraphNum>2</ParagraphNum>
+            <ParagraphSentence>
+              <Sentence> ２子の返還申立事件</Sentence>
+            </ParagraphSentence>
+          </Paragraph>
+          <Paragraph Num="2">
+            <ParagraphNum>2</ParagraphNum>
+            <ParagraphSentence>
+              <Sentence> ３少年保護事件（少年法（昭和２３年法律第１６８号）第１８条、第１９条第２項、第２０条第１項又は第６２条第１項の決定により終局した事件を除く。）</Sentence>
+            </ParagraphSentence>
+          </Paragraph>
+          <Paragraph Num="2">
+            <ParagraphNum>2</ParagraphNum>
+            <ParagraphSentence>
+              <Sentence> ４準少年保護事件</Sentence>
+            </ParagraphSentence>
+          </Paragraph>
+          <Paragraph Num="2">
+            <ParagraphNum>2</ParagraphNum>
+            <ParagraphSentence>
+              <Sentence> ５医療観察処遇事件</Sentence>
+            </ParagraphSentence>
+          </Paragraph>
+          <Paragraph Num="2">
+            <ParagraphNum>2</ParagraphNum>
+            <ParagraphSentence>
+              <Sentence> ６法廷等の秩序維持に関する法律違反事件</Sentence>
+            </ParagraphSentence>
+          </Paragraph>
+          <Paragraph Num="2">
+            <ParagraphNum>2</ParagraphNum>
+            <ParagraphSentence>
+              <Sentence> ７裁判官の分限事件</Sentence>
+            </ParagraphSentence>
+          </Paragraph>
+          <Paragraph Num="2">
+            <ParagraphNum>2</ParagraphNum>
+            <ParagraphSentence>
+              <Sentence> ８民事雑事件行政雑事件人身保護雑事件執行雑事件家事雑事件少年審判雑事件医療観察雑事件</Sentence>
+            </ParagraphSentence>
+          </Paragraph>
+          <Paragraph Num="2">
+            <ParagraphNum>2</ParagraphNum>
+            <ParagraphSentence>
+              <Sentence> ９執行官法（昭和４１年法律第１１１号）第１７条第１項の執行記録が作成された事件</Sentence>
+            </ParagraphSentence>
+          </Paragraph>
+          <Paragraph Num="3">
+            <ParagraphNum>3</ParagraphNum>
+            <ParagraphSentence>
+              <Sentence> ０刑事損害賠償命令事件</Sentence>
+            </ParagraphSentence>
+          </Paragraph>
+          <Paragraph Num="3">
+            <ParagraphNum>3</ParagraphNum>
+            <ParagraphSentence>
+              <Sentence> １その他の事件で、最高裁判所民事判例集、最高裁判所裁判集（民事）、最高裁判所刑事判例集又は最高裁判所裁判集（刑事）のいずれかに判決等が登載されたもの別表第二（第３条関係）事件の種類裁判書の種類</Sentence>
+            </ParagraphSentence>
+          </Paragraph>
+          <Paragraph Num="1">
+            <ParagraphNum></ParagraphNum>
+            <ParagraphSentence>
+              <Sentence> 民事上告提起事件上告状却下命令の原本民事上告受理申立て事件上告受理申立書却下命令の原本民事特別上告提起事件特別上告状却下命令の原本民事抗告提起事件再抗告状却下命令の原本民事特別抗告提起事件特別抗告状却下命令の原本民事許可抗告申立て事件許可抗告申立書却下命令の原本行政上告提起事件上告却下決定の原本行政上告受理申立て事件上告受理申立て却下決定の原本行政特別上告提起事件特別上告却下決定の原本行政抗告提起事件抗告却下決定の原本行政特別抗告提起事件再抗告却下決定の原本行政許可抗告申立て事件特別抗告却下決定の原本抗告不許可決定の原本移送の決定の原本</Sentence>
+            </ParagraphSentence>
+          </Paragraph>
+          <Paragraph Num="2">
+            <ParagraphNum>2</ParagraphNum>
+            <ParagraphSentence>
+              <Sentence> 民事控訴事件控訴状却下命令の原本行政控訴事件控訴却下決定の原本移送の決定の原本判決の原本</Sentence>
+            </ParagraphSentence>
+          </Paragraph>
+          <Paragraph Num="3">
+            <ParagraphNum>3</ParagraphNum>
+            <ParagraphSentence>
+              <Sentence> 民事抗告事件抗告状却下命令の原本民事特別抗告事件保全命令の原本民事許可抗告事件保全命令を取り消し、又は変更する裁行政抗告事件判の原本行政特別抗告事件少年保護抗告事件の終局決定の原本行政許可抗告事件医療観察抗告事件の終局決定の原本少年保護抗告事件借地非訟事件の終局決定の原本（抗告少年保護抗告受理申立て事件を却下するものを除く。）医療観察抗告事件罹災都市借地借家臨時処理事件及び接法廷等の秩序維持に関する法律収不動産に関する借地借家臨時処理事違反抗告事件件の裁判上の和解と同一の効力を有す法廷等の秩序維持に関する法律る決定の原本違反異議申立事件破産手続開始の決定の原本法廷等の秩序維持に関する法律破産法（平成１６年法律第７５号）第違反特別抗告事件２５２条第１項及び第２項の免責許可裁判官の分限抗告事件の決定の原本民事再生法（平成１１年法律第２２５号）第２３５条第１項（同法第２４４条において準用する場合を含む。）の免責の決定の原本破産法第２５４条第１項の免責取消しの決定の原本復権の決定の原本簡易確定手続開始の決定の原本執行認許の決定の原本家事審判事件の終局決定の原本（抗告を却下するものを除く。）子の返還申立事件の終局決定の原本（抗告を却下するものを除く。）国際的な子の奪取の民事上の側面に関する条約の実施に関する法律（平成２</Sentence>
+            </ParagraphSentence>
+          </Paragraph>
+          <Paragraph Num="5">
+            <ParagraphNum>5</ParagraphNum>
+            <ParagraphSentence>
+              <Sentence> 年法律第４８号）第１１７条第４項の終局決定を変更する決定又は同条第５項の決定（同条第１項の規定により終局決定を変更する決定をいう。）を変更する決定の原本訴訟等の費用の額の確定の決定の原本訴訟上の救助又は手続上の救助により納付を猶予された費用の支払を命ずる決定又は取立ての決定の原本秘密保持命令又は秘密保持命令の取消しの決定の原本その他の終局決定の原本</Sentence>
+            </ParagraphSentence>
+          </Paragraph>
+          <Paragraph Num="4">
+            <ParagraphNum>4</ParagraphNum>
+            <ParagraphSentence>
+              <Sentence> 民事上告事件上告却下決定の原本民事上告受理事件上告棄却決定の原本民事特別上告事件上告不受理決定の原本行政上告事件特別上告却下決定の原本行政上告受理事件特別上告棄却決定の原本行政特別上告事件移送の決定の原本判決の原本</Sentence>
+            </ParagraphSentence>
+          </Paragraph>
+          <Paragraph Num="5">
+            <ParagraphNum>5</ParagraphNum>
+            <ParagraphSentence>
+              <Sentence> 国庫において立て替えた費用の取立ての決定の原本</Sentence>
+            </ParagraphSentence>
+          </Paragraph>
+        </Article>
+      </SupplProvision>
+    </MainProvision>
+  </LawBody>
+</Law>

@@ -67,6 +67,15 @@ h1 {
   display: none;
 }
 
+.viewer-source-notice {
+  margin: 2px 0 0;
+  color: #8a5a00;
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.viewer-source-notice a { color: #075d8f; }
+
 .viewer-actions {
   display: flex;
   align-items: center;

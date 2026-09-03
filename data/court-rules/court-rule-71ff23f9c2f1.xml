@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Law Era="" Year="" Num="" LawType="Rule" Lang="ja">
+  <LawNum>平成15年11月13日最高裁判所規則第26号</LawNum>
+  <LawBody>
+    <LawTitle>裁判の迅速化に係る検証に関する規則</LawTitle>
+    <TOC/>
+    <MainProvision>
+      <Article Num="1">
+        <ArticleTitle></ArticleTitle>
+        <Paragraph Num="1">
+          <ParagraphNum></ParagraphNum>
+          <ParagraphSentence>
+            <Sentence>(検証の手続)</Sentence>
+          </ParagraphSentence>
+        </Paragraph>
+      </Article>
+      <Article Num="1">
+        <ArticleTitle>第一条</ArticleTitle>
+        <Paragraph Num="1">
+          <ParagraphNum></ParagraphNum>
+          <ParagraphSentence>
+            <Sentence>最高裁判所が裁判の迅速化に関する法律(平成十五年法律第百七号)第八条第一項の規定による裁判の迅速化に係る検証(以下「裁判の迅速化に係る検証」という。)を行うに当たっては、裁判所における手続の状況についての検証の実施に関する事項について、最高裁判所事務総長が検討会を開催して裁判官、検察官、弁護士及び学識経験のある者の意見を聴くものとする。(協力依頼)</Sentence>
+          </ParagraphSentence>
+        </Paragraph>
+      </Article>
+      <Article Num="2">
+        <ArticleTitle>第二条</ArticleTitle>
+        <Paragraph Num="1">
+          <ParagraphNum></ParagraphNum>
+          <ParagraphSentence>
+            <Sentence>最高裁判所は、裁判の迅速化に係る検証を行うため必要があると認めるときは、関係行政機関、日本弁護士連合会その他の団体又は個人に対して、資料の提出、説明その他の必要な協力を依頼することができる。(検証結果の公表の方法)</Sentence>
+          </ParagraphSentence>
+        </Paragraph>
+      </Article>
+      <Article Num="3">
+        <ArticleTitle>第三条</ArticleTitle>
+        <Paragraph Num="1">
+          <ParagraphNum></ParagraphNum>
+          <ParagraphSentence>
+            <Sentence>裁判の迅速化に係る検証の結果の公表は、インターネットの利用その他の適切な方法によってするものとする。(検討会の運営に関する細則)</Sentence>
+          </ParagraphSentence>
+        </Paragraph>
+      </Article>
+      <Article Num="4">
+        <ArticleTitle>第四条</ArticleTitle>
+        <Paragraph Num="1">
+          <ParagraphNum></ParagraphNum>
+          <ParagraphSentence>
+            <Sentence>第一条に規定する検討会の運営に関し必要な細目は、最高裁判所事務総長が定める。</Sentence>
+          </ParagraphSentence>
+        </Paragraph>
+      </Article>
+      <SupplProvision>
+        <SupplProvisionLabel>附則</SupplProvisionLabel>
+        <Article Num="1">
+          <ArticleTitle></ArticleTitle>
+          <Paragraph Num="1">
+            <ParagraphNum></ParagraphNum>
+            <ParagraphSentence>
+              <Sentence>この規則は、公布の日から、これを施行する。</Sentence>
+            </ParagraphSentence>
+          </Paragraph>
+        </Article>
+      </SupplProvision>
+      <SupplProvision>
+        <SupplProvisionLabel>附則（令和四年一一月二八日最高裁判所規則第一八号）</SupplProvisionLabel>
+        <Article Num="1">
+          <ArticleTitle></ArticleTitle>
+          <Paragraph Num="1">
+            <ParagraphNum></ParagraphNum>
+            <ParagraphSentence>
+              <Sentence>この規則は、公布の日から、これを施行する。</Sentence>
+            </ParagraphSentence>
+          </Paragraph>
+        </Article>
+      </SupplProvision>
+    </MainProvision>
+  </LawBody>
+</Law>

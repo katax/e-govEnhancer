@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Law Era="" Year="" Num="" LawType="Rule" Lang="ja">
+  <LawNum>（令和8年3月31日最高裁判所告示第5号）</LawNum>
+  <LawBody>
+    <LawTitle>民事事件等に関する手続において用いる識別符号の付与における本人確認方法に関する要綱</LawTitle>
+    <TOC/>
+    <MainProvision>
+      <Article Num="1">
+        <ArticleTitle></ArticleTitle>
+        <Paragraph Num="1">
+          <ParagraphNum></ParagraphNum>
+          <ParagraphSentence>
+            <Sentence>（令和8年3月31日最高裁判所告示第5号）民事事件等に関する手続において用いる識別符号の付与等に関する規則第一条第一項第五号に規定する最高裁判所が定める事項、同条第二項に規定する最高裁判所が定める方法及び同規則第二条第一項に規定する最高裁判所が定める者を定める件（令和八年最高裁判所告示第一号）第二条に規定する最高裁判所が適当と認める方法は、次の各号に掲げる場合の区分に応じ、それぞれ当該各号に定める方法とする。</Sentence>
+          </ParagraphSentence>
+          <Item Num="1">
+            <ItemTitle>一</ItemTitle>
+            <ItemSentence>
+              <Sentence> 弁護士等（民事事件等に関する手続において用いる識別符号の付与等に関する規則（令和六年最高裁判所規則第十五号。以下「規則」という。）第二条第一項に規定する弁護士等（弁理士を除く。）をいう。以下同じ。）がその業務として規則第一条第一項の規定による届出を行う場合その所属する弁護士会又は司法書士会の発行する身分証明書、印鑑証明書その他の当該届出を行う者が弁護士等であることを証明する書面（当該届出の日に有効なものに限る。）の画像情報を当該届出を行う者の使用に係る電子計算機から送信する方法</Sentence>
+            </ItemSentence>
+          </Item>
+          <Item Num="2">
+            <ItemTitle>二</ItemTitle>
+            <ItemSentence>
+              <Sentence> 国若しくは地方公共団体（以下「国等」という。）の代表者、国等の機関（当該機関が合議制の機関である場合にあっては、当該機関の代表者）又は民事訴訟法（平成八年法律第百九号）第百三十二条の十一第一項第二号若しくは第三号に掲げる者が規則第一条第一項の規定による届出を行う場合当該届出を行う者が所属する官公署をして当該届出を行う者の氏名及び電子メールアドレス（同項第三号に規定する電子メールアドレスをいう。）を裁判所に提供させる方法</Sentence>
+            </ItemSentence>
+          </Item>
+        </Paragraph>
+      </Article>
+    </MainProvision>
+  </LawBody>
+</Law>
