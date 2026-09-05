@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Law Era="Showa" Year="57" Num="15" LawType="Misc" Lang="ja">
+  <LawNum>昭和五十七年六月十八日公正取引委員会告示第十五号</LawNum>
+  <LawBody>
+    <LawTitle>不公正な取引方法</LawTitle>
+    <TOC>
+      <TOCArticle><ArticleTitle>共同の取引拒絶</ArticleTitle><ArticleRange>第1条</ArticleRange></TOCArticle>
+      <TOCArticle><ArticleTitle>その他の取引拒絶</ArticleTitle><ArticleRange>第2条</ArticleRange></TOCArticle>
+      <TOCArticle><ArticleTitle>差別対価</ArticleTitle><ArticleRange>第3条</ArticleRange></TOCArticle>
+      <TOCArticle><ArticleTitle>取引条件等の差別取扱い</ArticleTitle><ArticleRange>第4条</ArticleRange></TOCArticle>
+      <TOCArticle><ArticleTitle>事業者団体における差別取扱い等</ArticleTitle><ArticleRange>第5条</ArticleRange></TOCArticle>
+      <TOCArticle><ArticleTitle>不当廉売</ArticleTitle><ArticleRange>第6条</ArticleRange></TOCArticle>
+      <TOCArticle><ArticleTitle>不当高価購入</ArticleTitle><ArticleRange>第7条</ArticleRange></TOCArticle>
+      <TOCArticle><ArticleTitle>ぎまん的顧客誘引</ArticleTitle><ArticleRange>第8条</ArticleRange></TOCArticle>
+      <TOCArticle><ArticleTitle>不当な利益による顧客誘引</ArticleTitle><ArticleRange>第9条</ArticleRange></TOCArticle>
+      <TOCArticle><ArticleTitle>抱き合わせ販売等</ArticleTitle><ArticleRange>第10条</ArticleRange></TOCArticle>
+      <TOCArticle><ArticleTitle>排他条件付取引</ArticleTitle><ArticleRange>第11条</ArticleRange></TOCArticle>
+      <TOCArticle><ArticleTitle>拘束条件付取引</ArticleTitle><ArticleRange>第12条</ArticleRange></TOCArticle>
+      <TOCArticle><ArticleTitle>取引の相手方の役員選任への不当干渉</ArticleTitle><ArticleRange>第13条</ArticleRange></TOCArticle>
+      <TOCArticle><ArticleTitle>競争者に対する取引妨害</ArticleTitle><ArticleRange>第14条</ArticleRange></TOCArticle>
+      <TOCArticle><ArticleTitle>競争会社に対する内部干渉</ArticleTitle><ArticleRange>第15条</ArticleRange></TOCArticle>
+    </TOC>
+    <Preamble>
+      <Paragraph Num="1">
+        <ParagraphNum></ParagraphNum>
+        <ParagraphSentence><Sentence>私的独占の禁止及び公正取引の確保に関する法律（昭和二十二年法律第五十四号）第二条第九項の規定により、不公正な取引方法（昭和二十八年公正取引委員会告示第十一号）の全部を次のように改正し、昭和五十七年九月一日から施行する。</Sentence></ParagraphSentence>
+      </Paragraph>
+    </Preamble>
+    <MainProvision>
+      <Article Num="1">
+        <ArticleCaption>（共同の取引拒絶）</ArticleCaption>
+        <ArticleTitle>1</ArticleTitle>
+        <Paragraph Num="1">
+          <ParagraphNum></ParagraphNum>
+          <ParagraphSentence><Sentence>正当な理由がないのに、自己と競争関係にある他の事業者（以下「競争者」という。）と共同して、次の各号のいずれかに掲げる行為をすること。</Sentence></ParagraphSentence>
+          <Item Num="1"><ItemTitle>一</ItemTitle><ItemSentence><Sentence>ある事業者から商品若しくは役務の供給を受けることを拒絶し、又は供給を受ける商品若しくは役務の数量若しくは内容を制限すること。</Sentence></ItemSentence></Item>
+          <Item Num="2"><ItemTitle>二</ItemTitle><ItemSentence><Sentence>他の事業者に、ある事業者から商品若しくは役務の供給を受けることを拒絶させ、又は供給を受ける商品若しくは役務の数量若しくは内容を制限させること。</Sentence></ItemSentence></Item>
+        </Paragraph>
+      </Article>
+      <Article Num="2">
+        <ArticleCaption>（その他の取引拒絶）</ArticleCaption>
+        <ArticleTitle>2</ArticleTitle>
+        <Paragraph Num="1"><ParagraphNum></ParagraphNum><ParagraphSentence><Sentence>不当に、ある事業者に対し取引を拒絶し若しくは取引に係る商品若しくは役務の数量若しくは内容を制限し、又は他の事業者にこれらに該当する行為をさせること。</Sentence></ParagraphSentence></Paragraph>
+      </Article>
+      <Article Num="3">
+        <ArticleCaption>（差別対価）</ArticleCaption>
+        <ArticleTitle>3</ArticleTitle>
+        <Paragraph Num="1"><ParagraphNum></ParagraphNum><ParagraphSentence><Sentence>私的独占の禁止及び公正取引の確保に関する法律（昭和二十二年法律第五十四号。以下「法」という。）第二条第九項第二号に該当する行為のほか、不当に、地域又は相手方により差別的な対価をもつて、商品若しくは役務を供給し、又はこれらの供給を受けること。</Sentence></ParagraphSentence></Paragraph>
+      </Article>
+      <Article Num="4">
+        <ArticleCaption>（取引条件等の差別取扱い）</ArticleCaption>
+        <ArticleTitle>4</ArticleTitle>
+        <Paragraph Num="1"><ParagraphNum></ParagraphNum><ParagraphSentence><Sentence>不当に、ある事業者に対し取引の条件又は実施について有利な又は不利な取扱いをすること。</Sentence></ParagraphSentence></Paragraph>
+      </Article>
+      <Article Num="5">
+        <ArticleCaption>（事業者団体における差別取扱い等）</ArticleCaption>
+        <ArticleTitle>5</ArticleTitle>
+        <Paragraph Num="1"><ParagraphNum></ParagraphNum><ParagraphSentence><Sentence>事業者団体若しくは共同行為からある事業者を不当に排斥し、又は事業者団体の内部若しくは共同行為においてある事業者を不当に差別的に取り扱い、その事業者の事業活動を困難にさせること。</Sentence></ParagraphSentence></Paragraph>
+      </Article>
+      <Article Num="6">
+        <ArticleCaption>（不当廉売）</ArticleCaption>
+        <ArticleTitle>6</ArticleTitle>
+        <Paragraph Num="1"><ParagraphNum></ParagraphNum><ParagraphSentence><Sentence>法第二条第九項第三号に該当する行為のほか、不当に商品又は役務を低い対価で供給し、他の事業者の事業活動を困難にさせるおそれがあること。</Sentence></ParagraphSentence></Paragraph>
+      </Article>
+      <Article Num="7">
+        <ArticleCaption>（不当高価購入）</ArticleCaption>
+        <ArticleTitle>7</ArticleTitle>
+        <Paragraph Num="1"><ParagraphNum></ParagraphNum><ParagraphSentence><Sentence>不当に商品又は役務を高い対価で購入し、他の事業者の事業活動を困難にさせるおそれがあること。</Sentence></ParagraphSentence></Paragraph>
+      </Article>
+      <Article Num="8">
+        <ArticleCaption>（ぎまん的顧客誘引）</ArticleCaption>
+        <ArticleTitle>8</ArticleTitle>
+        <Paragraph Num="1"><ParagraphNum></ParagraphNum><ParagraphSentence><Sentence>自己の供給する商品又は役務の内容又は取引条件その他これらの取引に関する事項について、実際のもの又は競争者に係るものよりも著しく優良又は有利であると顧客に誤認させることにより、競争者の顧客を自己と取引するように不当に誘引すること。</Sentence></ParagraphSentence></Paragraph>
+      </Article>
+      <Article Num="9">
+        <ArticleCaption>（不当な利益による顧客誘引）</ArticleCaption>
+        <ArticleTitle>9</ArticleTitle>
+        <Paragraph Num="1"><ParagraphNum></ParagraphNum><ParagraphSentence><Sentence>正常な商慣習に照らして不当な利益をもつて、競争者の顧客を自己と取引するように誘引すること。</Sentence></ParagraphSentence></Paragraph>
+      </Article>
+      <Article Num="10">
+        <ArticleCaption>（抱き合わせ販売等）</ArticleCaption>
+        <ArticleTitle>10</ArticleTitle>
+        <Paragraph Num="1"><ParagraphNum></ParagraphNum><ParagraphSentence><Sentence>相手方に対し、不当に、商品又は役務の供給に併せて他の商品又は役務を自己又は自己の指定する事業者から購入させ、その他自己又は自己の指定する事業者と取引するように強制すること。</Sentence></ParagraphSentence></Paragraph>
+      </Article>
+      <Article Num="11">
+        <ArticleCaption>（排他条件付取引）</ArticleCaption>
+        <ArticleTitle>11</ArticleTitle>
+        <Paragraph Num="1"><ParagraphNum></ParagraphNum><ParagraphSentence><Sentence>不当に、相手方が競争者と取引しないことを条件として当該相手方と取引し、競争者の取引の機会を減少させるおそれがあること。</Sentence></ParagraphSentence></Paragraph>
+      </Article>
+      <Article Num="12">
+        <ArticleCaption>（拘束条件付取引）</ArticleCaption>
+        <ArticleTitle>12</ArticleTitle>
+        <Paragraph Num="1"><ParagraphNum></ParagraphNum><ParagraphSentence><Sentence>法第二条第九項第四号又は前項に該当する行為のほか、相手方とその取引の相手方との取引その他相手方の事業活動を不当に拘束する条件をつけて、当該相手方と取引すること。</Sentence></ParagraphSentence></Paragraph>
+      </Article>
+      <Article Num="13">
+        <ArticleCaption>（取引の相手方の役員選任への不当干渉）</ArticleCaption>
+        <ArticleTitle>13</ArticleTitle>
+        <Paragraph Num="1"><ParagraphNum></ParagraphNum><ParagraphSentence><Sentence>自己の取引上の地位が相手方に優越していることを利用して、正常な商慣習に照らして不当に、取引の相手方である会社に対し、当該会社の役員（法第二条第三項の役員をいう。以下同じ。）の選任についてあらかじめ自己の指示に従わせ、又は自己の承認を受けさせること。</Sentence></ParagraphSentence></Paragraph>
+      </Article>
+      <Article Num="14">
+        <ArticleCaption>（競争者に対する取引妨害）</ArticleCaption>
+        <ArticleTitle>14</ArticleTitle>
+        <Paragraph Num="1"><ParagraphNum></ParagraphNum><ParagraphSentence><Sentence>自己又は自己が株主若しくは役員である会社と国内において競争関係にある他の事業者とその取引の相手方との取引について、契約の成立の阻止、契約の不履行の誘引その他いかなる方法をもつてするかを問わず、その取引を不当に妨害すること。</Sentence></ParagraphSentence></Paragraph>
+      </Article>
+      <Article Num="15">
+        <ArticleCaption>（競争会社に対する内部干渉）</ArticleCaption>
+        <ArticleTitle>15</ArticleTitle>
+        <Paragraph Num="1"><ParagraphNum></ParagraphNum><ParagraphSentence><Sentence>自己又は自己が株主若しくは役員である会社と国内において競争関係にある会社の株主又は役員に対し、株主権の行使、株式の譲渡、秘密の漏えいその他いかなる方法をもつてするかを問わず、その会社の不利益となる行為をするように、不当に誘引し、そそのかし、又は強制すること。</Sentence></ParagraphSentence></Paragraph>
+      </Article>
+      <SupplProvision>
+        <SupplProvisionLabel>附則（平成二十一年公正取引委員会告示第十八号）</SupplProvisionLabel>
+        <Article Num="1">
+          <ArticleTitle></ArticleTitle>
+          <Paragraph Num="1"><ParagraphNum></ParagraphNum><ParagraphSentence><Sentence>この告示は、私的独占の禁止及び公正取引の確保に関する法律の一部を改正する法律（平成二十一年法律第五十一号）の施行の日（平成二十二年一月一日）から施行する。</Sentence></ParagraphSentence></Paragraph>
+        </Article>
+      </SupplProvision>
+    </MainProvision>
+  </LawBody>
+</Law>

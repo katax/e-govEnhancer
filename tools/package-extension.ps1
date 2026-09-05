@@ -25,8 +25,9 @@ if (-not (Test-Path -LiteralPath $catalogPath) -or -not (Test-Path -LiteralPath 
 
 $catalog = Get-Content -LiteralPath $catalogPath -Raw -Encoding UTF8 | ConvertFrom-Json
 $catalogRules = @($catalog.rules)
-if ($catalogRules.Count -ne 104) {
-  throw "裁判所規則カタログが104件ではありません: $($catalogRules.Count)件"
+$courtRuleCount = @($catalogRules | Where-Object { $_.lawType -eq 'Rule' }).Count
+if ($courtRuleCount -ne 104) {
+  throw "裁判所規則が104件ではありません: ${courtRuleCount}件"
 }
 
 $requiredRuleFiles = @($catalogRules | ForEach-Object { $_.dataPath.Replace('/', '\') })
@@ -106,7 +107,7 @@ try {
       }
     }
     Write-Output "作成完了: $OutputPath"
-    Write-Output "収録ファイル: $($expectedFiles.Count)件 / 裁判所規則XML: $($requiredRuleFiles.Count)件"
+    Write-Output "収録ファイル: $($expectedFiles.Count)件 / ローカル法令XML: $($requiredRuleFiles.Count)件（裁判所規則: ${courtRuleCount}件）"
   } finally {
     $archive.Dispose()
   }

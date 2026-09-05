@@ -1594,10 +1594,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     sortedLaws.forEach((law, i) => {
       const { lawId, lawName, lawNum, lawType } = getLawFields(law);
-      const isLocalCourtRule = Boolean(law.localRule || LOCAL_COURT_RULE_BY_ID.has(lawId));
-      const typeTags = isLocalCourtRule
+      const isLocalDocument = Boolean(law.localRule || LOCAL_COURT_RULE_BY_ID.has(lawId));
+      const typeTags = isLocalDocument
         ? [
-            '<span class="result-type">裁判所規則</span>',
+            `<span class="result-type">${escapeHtml(lawType === 'Rule' ? '裁判所規則' : formatType(lawType))}</span>`,
             '<span class="result-type result-type-local">ローカル</span>',
           ].join('')
         : (lawType ? `<span class="result-type">${escapeHtml(formatType(lawType))}</span>` : '');
@@ -1678,7 +1678,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const map = {
       'Constitution': '憲法', 'Act': '法律', 'CabinetOrder': '政令',
       'ImperialOrder': '勅令', 'MinisterialOrdinance': '府省令',
-      'Rule': '規則', 'Misc': 'その他',
+      'Rule': '規則', 'Notice': '告示', 'Misc': 'その他',
     };
     return map[type] || type || '法令';
   }

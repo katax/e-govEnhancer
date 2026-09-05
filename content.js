@@ -9,6 +9,7 @@
  *   Space  : 現在位置の条文ブックマークを追加/削除
  *   b      : 条文ブックマーク一覧を開く/閉じる
  *   m      : ハイライト・メモ一覧を開く/閉じる
+ *   Alt+M  : ハイライト・メモを一時的に有効化/無効化
  *   s      : ページ内検索
  *   r      : ジャンプ前の位置に戻る
  *   Alt+R  : 現在の法令名で法令検索
@@ -278,6 +279,9 @@
       }
       if (changes.hideLawSidebarDefault) {
         setLawRevisionAreaExpanded(changes.hideLawSidebarDefault.newValue === true);
+      }
+      if (changes[TEXT_HIGHLIGHT_ENABLED_KEY]) {
+        setTextHighlightFeatureEnabled(changes[TEXT_HIGHLIGHT_ENABLED_KEY].newValue !== false, { notify: false });
       }
       const textHighlightStorageKey = getTextHighlightStorageKey();
       if (textHighlightStorageKey && changes[textHighlightStorageKey]) {
@@ -974,6 +978,10 @@
   }
 
   function scheduleTextHighlightRestoreNotice(records, delay = 1500) {
+    if (!textHighlightFeatureEnabled) {
+      clearTextHighlightRestoreNotice();
+      return;
+    }
     if (textHighlightRestoreNoticeIgnored) {
       clearTextHighlightRestoreNotice();
       return;
@@ -1011,6 +1019,7 @@
   async function restoreTextHighlights() {
     if (!textHighlightFeatureEnabled) return;
     await loadTextHighlightRecords();
+    if (!textHighlightFeatureEnabled) return;
     if (!document.querySelector('#provisionview') || !textHighlightRecords.size) {
       scheduleTextHighlightRestoreNotice([]);
       return;
@@ -1037,6 +1046,7 @@
     let restoredCount = 0;
     const fallbackAnchorIndexRef = { value: null };
     for (const record of displayRecords) {
+      if (!textHighlightFeatureEnabled) break;
       if (connectedRecordIds.has(record.id)) continue;
       if (restoreTextHighlightRecord(record, fallbackAnchorIndexRef)) {
         connectedRecordIds.add(record.id);
@@ -1045,6 +1055,11 @@
       if (restoredCount > 0 && restoredCount % 25 === 0) {
         await new Promise((resolve) => requestAnimationFrame(resolve));
       }
+    }
+    if (!textHighlightFeatureEnabled) {
+      Object.keys(textHighlightRanges).forEach(refreshTextHighlightColor);
+      clearTextHighlightRestoreNotice();
+      return;
     }
     Object.keys(textHighlightRanges).forEach(refreshTextHighlightColor);
     scheduleTextHighlightRestoreNotice(
@@ -1100,6 +1115,10 @@
     textHighlightHitTestCache = null;
     textHighlightRanges[colorKey] = textHighlightRanges[colorKey]
       .filter((range) => range.startContainer?.isConnected && range.endContainer?.isConnected);
+    if (!textHighlightFeatureEnabled) {
+      CSS.highlights.delete(`egov-ext-text-highlight-${colorKey}`);
+      return;
+    }
     CSS.highlights.set(
       `egov-ext-text-highlight-${colorKey}`,
       new Highlight(...textHighlightRanges[colorKey])
@@ -1379,6 +1398,7 @@
   }
 
   function showTextHighlightMemoTooltip(record, source, clientX, clientY) {
+    if (!textHighlightFeatureEnabled) return;
     if (!record?.m || textHighlightPopup) {
       hideTextHighlightMemoTooltip();
       return;
@@ -1446,6 +1466,7 @@
   }
 
   function showTextHighlightPopup(range, clientX, clientY, source = null) {
+    if (!textHighlightFeatureEnabled) return;
     if (isTextHighlightMemoEditing()) return;
     hideTextHighlightPopup({ force: true });
     hideTextHighlightMemoTooltip();
@@ -1570,6 +1591,7 @@
     }
 
     function scheduleTextHighlightMemoHover(event) {
+      if (!textHighlightFeatureEnabled) return;
       if (event.pointerType === 'touch') return;
       memoHoverPoint = { clientX: event.clientX, clientY: event.clientY, target: event.target };
       if (memoHoverRaf) return;
@@ -1603,7 +1625,7 @@
         memoHoverTimer = setTimeout(() => {
           memoHoverTimer = 0;
           pendingMemoRecordId = '';
-          if (!memoHoverPoint || textHighlightPopup) return;
+          if (!textHighlightFeatureEnabled || !memoHoverPoint || textHighlightPopup) return;
           const currentSource = findTextHighlightAtPoint(memoHoverPoint.clientX, memoHoverPoint.clientY);
           const currentRecord = currentSource
             ? textHighlightRecords.get(textHighlightRangeRecordId.get(currentSource.range))
@@ -1636,7 +1658,7 @@
     }
 
     document.addEventListener('pointerdown', (event) => {
-      if (event.button !== 0 || event.isPrimary === false ||
+      if (!textHighlightFeatureEnabled || event.button !== 0 || event.isPrimary === false ||
           event.target.closest?.('#egov-ext-text-highlight-popup, #egov-ext-text-highlight-memo-tooltip')) return;
       if (isTextHighlightMemoEditing()) return;
       clearTextHighlightMemoHover({ immediate: true });
@@ -1654,7 +1676,7 @@
         source,
       };
       longPressTimer = setTimeout(() => {
-        if (!longPressStart) return;
+        if (!textHighlightFeatureEnabled || !longPressStart) return;
         const pressed = longPressStart;
         longPressTimer = 0;
         ignoreSelectionPopupUntil = performance.now() + 1200;
@@ -1669,6 +1691,7 @@
     }, true);
 
     document.addEventListener('pointermove', (event) => {
+      if (!textHighlightFeatureEnabled) return;
       if (longPressStart && event.pointerId === longPressStart.pointerId &&
           Math.hypot(event.clientX - longPressStart.clientX, event.clientY - longPressStart.clientY) > moveTolerance) {
         clearTextHighlightLongPressTimer();
@@ -1679,6 +1702,7 @@
     document.addEventListener('pointercancel', clearTextHighlightLongPressTimer, true);
 
     document.addEventListener('click', (event) => {
+      if (!textHighlightFeatureEnabled) return;
       if (textHighlightRangeAdjusting && !event.target.closest?.('#egov-ext-text-highlight-popup')) {
         event.preventDefault();
         event.stopPropagation();
@@ -1710,6 +1734,7 @@
     }, true);
 
     document.addEventListener('contextmenu', (event) => {
+      if (!textHighlightFeatureEnabled) return;
       if (!suppressLongPressClick || performance.now() > suppressLongPressClick.expiresAt) return;
       if (!matchesLongPressTarget(event.target, suppressLongPressClick.target)) return;
       event.preventDefault();
@@ -1717,7 +1742,7 @@
     }, true);
 
     document.addEventListener('mouseup', (event) => {
-      if (event.button !== 0 ||
+      if (!textHighlightFeatureEnabled || event.button !== 0 ||
           event.target.closest?.('#egov-ext-text-highlight-popup, #egov-ext-text-highlight-memo-tooltip')) return;
       if (!textHighlightRangeAdjusting && isTextHighlightMemoEditing()) return;
       if (performance.now() < ignoreSelectionPopupUntil) return;
@@ -1725,6 +1750,7 @@
       const clientY = event.clientY;
 
       setTimeout(() => {
+        if (!textHighlightFeatureEnabled) return;
         const selection = window.getSelection();
         if (textHighlightRangeAdjusting) {
           const adjustedRange = selection?.rangeCount === 1 ? selection.getRangeAt(0) : null;
@@ -2409,7 +2435,46 @@
       defTooltipEnabled,
       defTooltipEnabled ? '定義語リンクを無効化' : '定義語リンクを有効化'
     );
+    setHeaderToggleButtonState(
+      document.getElementById('egov-ext-highlight-list-button'),
+      textHighlightFeatureEnabled,
+      textHighlightFeatureEnabled
+        ? 'ハイライト・メモを一時的に無効化（Alt+M）'
+        : 'ハイライト・メモを有効化（Alt+M）'
+    );
     updateLawRefModeButton();
+  }
+
+  function setTextHighlightFeatureEnabled(enabled, { notify = true } = {}) {
+    const next = enabled !== false;
+    if (next === textHighlightFeatureEnabled) {
+      updateHeaderToggleButtonStates();
+      return true;
+    }
+    if (!next && isTextHighlightMemoEditing() &&
+        !cancelTextHighlightMemoEdit({ focusButton: false })) return false;
+    textHighlightFeatureEnabled = next;
+    if (!next) {
+      if (textHighlightRestoreTimer) clearTimeout(textHighlightRestoreTimer);
+      textHighlightRestoreTimer = 0;
+      if (textHighlightOverlapNoticeTimer) clearTimeout(textHighlightOverlapNoticeTimer);
+      textHighlightOverlapNoticeTimer = 0;
+      document.querySelector('#egov-ext-text-highlight-overlap-notice')?.remove();
+      hideTextHighlightPopup({ force: true });
+      hideTextHighlightMemoTooltip();
+      clearTextHighlightRestoreNotice();
+      Object.keys(textHighlightRanges).forEach(refreshTextHighlightColor);
+    } else {
+      Object.keys(textHighlightRanges).forEach(refreshTextHighlightColor);
+      scheduleTextHighlightRestore(0);
+    }
+    updateHeaderToggleButtonStates();
+    if (notify) showPageIndicator(`ハイライト・メモを${next ? '有効' : '無効'}にしました`);
+    return true;
+  }
+
+  function toggleTextHighlightFeature() {
+    return setTextHighlightFeatureEnabled(!textHighlightFeatureEnabled);
   }
 
   function toggleDefinitionHeaderLinks() {
@@ -2429,7 +2494,7 @@
       { id: 'egov-ext-external-references-button', label: '逆リンク', onClick: () => toggleExternalReferenceLinks() },
       { id: 'egov-ext-definition-button', label: '定義', onClick: toggleDefinitionHeaderLinks },
       { id: 'egov-ext-law-ref-mode-button', label: 'スクロール', onClick: toggleLawRefPageMode },
-      { id: 'egov-ext-highlight-list-button', label: 'メモ', onClick: () => showTextHighlightListDialog() },
+      { id: 'egov-ext-highlight-list-button', label: 'メモ', onClick: toggleTextHighlightFeature },
     ];
     const buttons = configs.map(({ id, label, onClick }) => {
       let button = document.getElementById(id);
@@ -3626,6 +3691,11 @@
     if (e.altKey && !e.ctrlKey && !e.metaKey && (e.key === 'o' || e.key === 'O')) {
       e.preventDefault();
       chrome.runtime.sendMessage({ type: 'egov-open-options-page' }).catch(() => {});
+      return;
+    }
+    if (e.altKey && !e.ctrlKey && !e.metaKey && (e.key === 'm' || e.key === 'M' || e.code === 'KeyM')) {
+      e.preventDefault();
+      toggleTextHighlightFeature();
       return;
     }
     if (e.altKey && !e.ctrlKey && !e.metaKey && (e.key === 'h' || e.key === 'H') && !activeDialog) {
@@ -7285,6 +7355,8 @@
               <td>カタカナをひらがなに変換</td></tr>
           <tr><td><kbd>Alt</kbd>+<kbd>O</kbd></td>
               <td>オプション画面を開く</td></tr>
+          <tr><td><kbd>Alt</kbd>+<kbd>M</kbd></td>
+              <td>ハイライト・メモの有効 / 無効を切り替える</td></tr>
           <tr><td><kbd>Alt</kbd>+<kbd>L</kbd></td>
               <td>Liteモードに変更</td></tr>
           <tr><td><kbd>Alt</kbd>+<kbd>P</kbd></td>
@@ -7429,7 +7501,7 @@
     runWhenIdle(applyDefaultLawSidebarVisibility, 900);
     runWhenIdle(setupFavoriteHeaderBadge, 1200);
     runWhenIdle(setupArticleBookmarkFeatures, 1600);
-    if (textHighlightFeatureEnabled) setupTextHighlightInteractions();
+    setupTextHighlightInteractions();
     setupDefinitionTooltipInteractions();
     setupExternalReferenceInteractions();
     runAfterPageLoadWhenIdle(() => {

@@ -20,7 +20,7 @@
     { key: 'green', label: '薄い緑' },
   ];
 
-  function create({ root, lawId, onBeforeOpen = null } = {}) {
+  function create({ root, lawId, onBeforeOpen = null, enabled: initiallyEnabled = true } = {}) {
     if (!(root instanceof Element) || !lawId || !global.CSS?.highlights || typeof global.Highlight !== 'function') {
       return null;
     }
@@ -57,6 +57,7 @@
     let unrestoredStablePasses = 0;
     let restoreNoticeIgnored = false;
     let pendingStorageRecords = null;
+    let enabled = initiallyEnabled !== false;
 
     function getContainerElement(node) {
       return node instanceof Element ? node : node?.parentElement || null;
@@ -410,6 +411,10 @@
       hitTestCache = null;
       rangesByColor[colorKey] = rangesByColor[colorKey]
         .filter((range) => range.startContainer?.isConnected && range.endContainer?.isConnected);
+      if (!enabled) {
+        global.CSS.highlights.delete(`egov-ext-text-highlight-${colorKey}`);
+        return;
+      }
       global.CSS.highlights.set(`egov-ext-text-highlight-${colorKey}`, new global.Highlight(...rangesByColor[colorKey]));
     }
 
@@ -563,6 +568,10 @@
     }
 
     function scheduleRestoreNotice(list, delay = 1500) {
+      if (!enabled) {
+        clearRestoreNotice();
+        return;
+      }
       if (restoreNoticeIgnored) {
         clearRestoreNotice();
         return;
@@ -599,6 +608,11 @@
 
     async function restore() {
       await loadRecords();
+      if (!enabled) {
+        Object.keys(rangesByColor).forEach(refreshColor);
+        clearRestoreNotice();
+        return;
+      }
       if (!root.isConnected || !records.size) {
         Object.keys(rangesByColor).forEach(refreshColor);
         scheduleRestoreNotice([]);
@@ -619,6 +633,7 @@
       const anchorIndex = buildAnchorIndex();
       let restored = 0;
       for (const record of displayRecords) {
+        if (!enabled) break;
         if (connected.has(record.id)) continue;
         if (restoreRecord(record, anchorIndex)) {
           connected.add(record.id);
@@ -626,11 +641,17 @@
         }
         if (restored && restored % 25 === 0) await new Promise((resolve) => requestAnimationFrame(resolve));
       }
+      if (!enabled) {
+        Object.keys(rangesByColor).forEach(refreshColor);
+        clearRestoreNotice();
+        return;
+      }
       Object.keys(rangesByColor).forEach(refreshColor);
       scheduleRestoreNotice(Array.from(records.values()).filter((record) => !connected.has(record.id)));
     }
 
     function scheduleRestore(delay = 120) {
+      if (!enabled) return;
       if (restoreTimer) clearTimeout(restoreTimer);
       restoreTimer = setTimeout(() => {
         restoreTimer = 0;
@@ -641,7 +662,7 @@
     function contentChanged() {
       hitTestCache = null;
       if (popup && !isMemoDirty()) hidePopup({ force: true });
-      scheduleRestore(0);
+      if (enabled) scheduleRestore(0);
     }
 
     function layoutChanged() {
@@ -1038,6 +1059,7 @@
     }
 
     function showPopup(range, clientX, clientY, source = null) {
+      if (!enabled) return;
       if (isMemoEditing()) return;
       hidePopup({ force: true });
       hideTooltip();
@@ -1125,6 +1147,7 @@
     }
 
     function showTooltip(record, source, clientX, clientY) {
+      if (!enabled) return;
       if (!record?.m || popup) {
         hideTooltip();
         return;
@@ -1173,6 +1196,7 @@
       }
 
       function scheduleHover(event) {
+        if (!enabled) return;
         if (event.pointerType === 'touch') return;
         hoverPoint = { clientX: event.clientX, clientY: event.clientY, target: event.target };
         if (hoverRaf) return;
@@ -1203,7 +1227,7 @@
           hoverTimer = setTimeout(() => {
             hoverTimer = 0;
             pendingHoverId = '';
-            if (!hoverPoint || popup) return;
+            if (!enabled || !hoverPoint || popup) return;
             const current = findAtPoint(hoverPoint.clientX, hoverPoint.clientY);
             const currentRecord = current ? records.get(rangeRecordIds.get(current.range)) : null;
             if (currentRecord?.id === record.id) showTooltip(record, current, hoverPoint.clientX, hoverPoint.clientY);
@@ -1231,7 +1255,7 @@
       }
 
       document.addEventListener('pointerdown', (event) => {
-        if (event.button !== 0 || event.isPrimary === false ||
+        if (!enabled || event.button !== 0 || event.isPrimary === false ||
             event.target.closest?.('#egov-ext-text-highlight-popup,#egov-ext-text-highlight-memo-tooltip') ||
             isMemoEditing() || !root.contains(event.target)) return;
         clearHover({ immediate: true });
@@ -1246,7 +1270,7 @@
           source,
         };
         longPressTimer = setTimeout(() => {
-          if (!longPressStart) return;
+          if (!enabled || !longPressStart) return;
           const pressed = longPressStart;
           longPressTimer = 0;
           ignoreSelectionUntil = performance.now() + 1200;
@@ -1257,6 +1281,7 @@
         }, longPressDelay);
       }, true);
       document.addEventListener('pointermove', (event) => {
+        if (!enabled) return;
         if (longPressStart && event.pointerId === longPressStart.pointerId &&
             Math.hypot(event.clientX - longPressStart.clientX, event.clientY - longPressStart.clientY) > moveTolerance) {
           clearLongPress();
@@ -1266,6 +1291,7 @@
       document.addEventListener('pointerup', clearLongPress, true);
       document.addEventListener('pointercancel', clearLongPress, true);
       document.addEventListener('click', (event) => {
+        if (!enabled) return;
         if (rangeAdjusting && !event.target.closest?.('#egov-ext-text-highlight-popup')) {
           event.preventDefault();
           event.stopPropagation();
@@ -1295,15 +1321,17 @@
         }
       }, true);
       document.addEventListener('contextmenu', (event) => {
+        if (!enabled) return;
         if (!suppressClick || performance.now() > suppressClick.expiresAt || !matchesTarget(event.target, suppressClick.target)) return;
         event.preventDefault();
         event.stopPropagation();
       }, true);
       document.addEventListener('mouseup', (event) => {
-        if (event.button !== 0 || event.target.closest?.('#egov-ext-text-highlight-popup,#egov-ext-text-highlight-memo-tooltip') ||
+        if (!enabled || event.button !== 0 || event.target.closest?.('#egov-ext-text-highlight-popup,#egov-ext-text-highlight-memo-tooltip') ||
             (!rangeAdjusting && isMemoEditing()) || performance.now() < ignoreSelectionUntil) return;
         const { clientX, clientY } = event;
         setTimeout(() => {
+          if (!enabled) return;
           const selection = getSelection();
           if (rangeAdjusting) {
             const adjusted = selection?.rangeCount === 1 ? selection.getRangeAt(0) : null;
@@ -1437,10 +1465,32 @@
       return true;
     }
 
+    function setEnabled(nextEnabled) {
+      const next = nextEnabled !== false;
+      if (next === enabled) return true;
+      if (!next && isMemoEditing() && !cancelMemoEdit({ focusButton: false })) return false;
+      enabled = next;
+      if (!enabled) {
+        if (restoreTimer) clearTimeout(restoreTimer);
+        restoreTimer = 0;
+        if (overlapNoticeTimer) clearTimeout(overlapNoticeTimer);
+        overlapNoticeTimer = 0;
+        document.querySelector('#egov-ext-text-highlight-overlap-notice')?.remove();
+        hidePopup({ force: true });
+        hideTooltip();
+        clearRestoreNotice();
+        Object.keys(rangesByColor).forEach(refreshColor);
+      } else {
+        Object.keys(rangesByColor).forEach(refreshColor);
+        scheduleRestore(0);
+      }
+      return true;
+    }
+
     const observer = new MutationObserver(() => {
       hitTestCache = null;
       if (popup) scheduleTargetOutline();
-      if (records.size) scheduleRestore(100);
+      if (enabled && records.size) scheduleRestore(100);
     });
     observer.observe(root, { childList: true, subtree: true });
     global.chrome.storage.onChanged.addListener((changes, area) => {
@@ -1459,6 +1509,8 @@
       getEntries,
       removeById,
       closeUi,
+      setEnabled,
+      isEnabled: () => enabled,
       displayLimit: DISPLAY_LIMIT,
     });
   }

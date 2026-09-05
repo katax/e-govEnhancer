@@ -332,7 +332,7 @@
     <h3><span class="num">3.1</span>画面に追加されるUI</h3>
     <figure class="shot wide">
       <img src="images/normal-header-controls.png" alt="通常モード上部のワイド、かっこ、逆リンク、定義ボタン" width="1067" height="95">
-      <figcaption>通常モードの上部メニュー。★お気に入りとLiteボタンの間に、状態表示付きの「ワイド」「かっこ」「逆リンク」「定義」ボタンが並ぶ</figcaption>
+      <figcaption>通常モードの上部メニュー。★お気に入りとLiteボタンの間に、状態表示付きの機能切替ボタンが並ぶ</figcaption>
     </figure>
     <div class="table-scroll"><table>
       <tr><th>場所</th><th>UI</th><th>役割</th></tr>
@@ -341,12 +341,13 @@
       <tr><td>ページ上部</td><td><b>かっこ</b></td><td>括弧書きをほぼ非表示にするモードを切替（<kbd>Shift</kbd>+<kbd>G</kbd>と同じ）</td></tr>
       <tr><td>ページ上部</td><td><b>逆リンク</b></td><td>逆参照リンクを有効化／無効化（<kbd>e</kbd>と同じ）</td></tr>
       <tr><td>ページ上部</td><td><b>定義</b></td><td>定義語リンクを有効化／無効化</td></tr>
+      <tr><td>ページ上部</td><td><b>メモ</b></td><td>ハイライト・メモを一時的に有効化／無効化（<kbd>Alt</kbd>+<kbd>M</kbd>と同じ）</td></tr>
       <tr><td>ページ上部</td><td><b>Liteボタン</b></td><td>Liteモードに切り替え</td></tr>
       <tr><td>条・項・号の左端</td><td><b>青いしおりアイコン</b></td><td>空欄をクリックして追加。表示されたアイコンをクリックして削除</td></tr>
       <tr><td>ページ右下</td><td><b>⌨️ ガイドボタン</b></td><td>ホバーでショートカット一覧を表示。クリックでショートカット有効/無効を切替（青=有効/灰=無効）</td></tr>
       <tr><td>ページ左下（ジャンプ後）</td><td><b>「Rでジャンプ前の位置に戻る」ボタン</b></td><td>条文ジャンプや定義語リンクで移動した後に表示。クリックまたは <kbd>r</kbd> で戻る</td></tr>
     </table></div>
-    <div class="note">4つのトグルボタンは、有効なときに青く表示されます。ショートカットや設定画面から状態を変えた場合も、ボタン表示が追従します。</div>
+    <div class="note">トグルボタンは、有効なときに青く表示されます。ショートカットや設定画面から状態を変えた場合も、ボタン表示が追従します。</div>
   </section>
 
   <section id="normal-keys">
@@ -372,11 +373,12 @@
       <tr><td class="key"><kbd>e</kbd></td><td>逆参照リンクの有効化／無効化</td><td><a href="#normal-ref">3.16</a></td></tr>
       <tr><td class="key"><kbd>Alt</kbd>+<kbd>L</kbd></td><td>Liteモードへ切り替え</td><td><a href="#lite">4章</a></td></tr>
       <tr><td class="key"><kbd>Alt</kbd>+<kbd>P</kbd></td><td>ショートカット有効／無効の切替</td><td><a href="#normal-guide">3.18</a></td></tr>
+      <tr><td class="key"><kbd>Alt</kbd>+<kbd>M</kbd></td><td>ハイライト・メモの有効／無効の切替</td><td><a href="#normal-highlight-memo">3.19</a></td></tr>
       <tr><td class="key"><kbd>Alt</kbd>+<kbd>O</kbd></td><td>オプション画面を開く</td><td>—</td></tr>
       <tr><td class="key"><kbd>?</kbd></td><td>ショートカットガイドを表示</td><td><a href="#normal-guide">3.18</a></td></tr>
       <tr><td class="key"><kbd>Esc</kbd></td><td>開いているダイアログを閉じる</td><td>—</td></tr>
     </table></div>
-    <div class="note">ショートカットは検索欄などの入力中には動作しません（<kbd>Alt</kbd>+<kbd>P</kbd> / <kbd>Alt</kbd>+<kbd>O</kbd> / <kbd>Alt</kbd>+<kbd>L</kbd> は例外的に入力中でも動作します）。</div>
+    <div class="note">ショートカットは検索欄などの入力中には動作しません（<kbd>Alt</kbd>+<kbd>P</kbd> / <kbd>Alt</kbd>+<kbd>M</kbd> / <kbd>Alt</kbd>+<kbd>O</kbd> / <kbd>Alt</kbd>+<kbd>L</kbd> は例外的に入力中でも動作します）。</div>
   </section>
 
   <section id="normal-jump">
@@ -575,6 +577,7 @@ https://laws.e-gov.go.jp/law/405AC0000000088#Mp-Ch_1-At_2-Pr_1-It_4</pre>
   <section id="normal-highlight-memo">
     <h3><span class="num">3.19</span>ハイライトとメモ<span class="mode-chip chip-both">通常 / Lite</span></h3>
     <p>法令本文の気になる箇所を範囲選択し、薄い黄色・薄いピンク・薄い緑のいずれかでハイライトできます。ハイライトにはメモも付けられます。操作方法と保存内容は通常モード・Liteモードで共通です。</p>
+    <p>画面上部の「メモ」ボタンまたは <kbd>Alt</kbd>+<kbd>M</kbd> で、この機能を一時的に有効／無効にできます。有効時はボタンが青く表示されます。無効時は保存済みのハイライトを描画せず、本文を範囲選択しても操作パネルを表示しません。保存データは削除されず、再び有効にすると表示が戻ります。</p>
     <figure class="shot wide">
       <img src="images/highlight-memo.png" alt="黄色のハイライトにメモを入力している画面。メモ入力欄の下に色選択、メモ、削除のボタンが表示されている" width="1303" height="452">
       <figcaption>ハイライトのメモ編集画面。色を選ぶか <kbd>Ctrl</kbd>+<kbd>Enter</kbd> で確定します</figcaption>
@@ -641,12 +644,13 @@ https://laws.e-gov.go.jp/law/405AC0000000088#Mp-Ch_1-At_2-Pr_1-It_4</pre>
       <tr><td><b>かっこ</b></td><td><kbd>Shift</kbd>+<kbd>G</kbd>相当の括弧内表示抑制を切替</td></tr>
       <tr><td><b>逆リンク</b></td><td>逆参照リンクを有効化／無効化</td></tr>
       <tr><td><b>定義</b></td><td>定義語リンクを有効化／無効化</td></tr>
+      <tr><td><b>メモ</b></td><td>ハイライト・メモを一時的に有効化／無効化（<kbd>Alt</kbd>+<kbd>M</kbd>と同じ）</td></tr>
       <tr><td><b>並べて表示</b></td><td>比較モードのON/OFF（<a href="#lite-compare">4.3</a>）</td></tr>
       <tr><td><b>★お気に入り</b></td><td>お気に入りに追加／解除（メインウィンドウと共通）</td></tr>
       <tr><td><b>通常モード</b></td><td>e-Govの元ページへ戻る</td></tr>
       <tr><td><b>?</b></td><td>Lite内ショートカット一覧を表示（<a href="#lite-keys">4.4</a>）。一覧右上の「マニュアル」からこのマニュアルを開けます</td></tr>
     </table></div>
-    <div class="note">「かっこ」「逆リンク」「定義」は有効なときに状態表示が付きます。Liteモードには「ワイド」ボタンはなく、本文幅は「幅」選択欄で変更します。</div>
+    <div class="note">「かっこ」「逆リンク」「定義」「メモ」は有効なときに状態表示が付きます。Liteモードには「ワイド」ボタンはなく、本文幅は「幅」選択欄で変更します。</div>
   </section>
 
   <section id="lite-compare">
@@ -677,6 +681,7 @@ https://laws.e-gov.go.jp/law/405AC0000000088#Mp-Ch_1-At_2-Pr_1-It_4</pre>
       <tr><td class="key"><kbd>Alt</kbd>+<kbd>S</kbd></td><td>並べて表示の切替</td></tr>
       <tr><td class="key"><kbd>Tab</kbd></td><td>並べて表示中の左右ペイン切替</td></tr>
       <tr><td class="key"><kbd>Alt</kbd>+<kbd>L</kbd></td><td>通常モードへ戻る</td></tr>
+      <tr><td class="key"><kbd>Alt</kbd>+<kbd>M</kbd></td><td>ハイライト・メモの有効／無効の切替</td></tr>
       <tr><td class="key"><kbd>Alt</kbd>+<kbd>O</kbd></td><td>オプション画面を開く</td></tr>
       <tr><td class="key"><kbd>?</kbd></td><td>ショートカット一覧を表示</td></tr>
       <tr><td class="key"><kbd>Esc</kbd></td><td>ダイアログを閉じる</td></tr>

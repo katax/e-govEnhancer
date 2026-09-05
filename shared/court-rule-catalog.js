@@ -2081,9 +2081,37 @@ globalThis.EgovCourtRuleCatalog = {
       "categories": [
         "民事"
       ]
+    },
+    {
+      "id": "LOCALDOC80320A680A7A",
+      "slug": "local-doc-80320a680a7a",
+      "title": "不公正な取引方法",
+      "lawNum": "昭和五十七年六月十八日公正取引委員会告示第十五号",
+      "lawType": "Notice",
+      "aliases": [
+        "不公正な取引方法",
+        "一般指定",
+        "独占禁止法",
+        "独禁法",
+        "私的独占の禁止及び公正取引の確保に関する法律"
+      ],
+      "baseLawId": "322AC0000000054",
+      "baseLawTitle": "私的独占の禁止及び公正取引の確保に関する法律",
+      "sourceLabel": "公正取引委員会公式ページ・2026年9月6日確認",
+      "dataPath": "data/court-rules/local-doc-80320a680a7a.xml",
+      "officialUrl": "https://www.jftc.go.jp/dk/guideline/fukousei.html",
+      "copyUrl": "https://www.jftc.go.jp/dk/guideline/fukousei.html",
+      "sourceLinkLabel": "公正取引委員会の公式ページ",
+      "categories": [
+        "告示"
+      ]
     }
   ],
   "referenceLaws": [
+    [
+      "私的独占の禁止及び公正取引の確保に関する法律",
+      "322AC0000000054"
+    ],
     [
       "大規模な災害の被災地における借地借家に関する特別措置法",
       "425AC0000000061"

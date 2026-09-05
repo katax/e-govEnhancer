@@ -93,6 +93,31 @@ LAW_CITATION_OVERRIDES = {
     "昭和二十六年法律第二百二十二号": {"id": "326AC1000000222", "title": "民事調停法"},
 }
 
+STATIC_LOCAL_DOCUMENTS = [
+    {
+        "id": "LOCALDOC80320A680A7A",
+        "slug": "local-doc-80320a680a7a",
+        "title": "不公正な取引方法",
+        "lawNum": "昭和五十七年六月十八日公正取引委員会告示第十五号",
+        "lawType": "Notice",
+        "aliases": [
+            "不公正な取引方法",
+            "一般指定",
+            "独占禁止法",
+            "独禁法",
+            "私的独占の禁止及び公正取引の確保に関する法律",
+        ],
+        "baseLawId": "322AC0000000054",
+        "baseLawTitle": "私的独占の禁止及び公正取引の確保に関する法律",
+        "sourceLabel": "公正取引委員会公式ページ・2026年9月6日確認",
+        "dataPath": "data/court-rules/local-doc-80320a680a7a.xml",
+        "officialUrl": "https://www.jftc.go.jp/dk/guideline/fukousei.html",
+        "copyUrl": "https://www.jftc.go.jp/dk/guideline/fukousei.html",
+        "sourceLinkLabel": "公正取引委員会の公式ページ",
+        "categories": ["告示"],
+    },
+]
+
 
 def kanji_number(value: str) -> int:
     source = unicodedata.normalize("NFKC", value).replace("○", "〇")
@@ -337,6 +362,11 @@ def main() -> None:
             **diagnostic,
         })
 
+    catalog.extend(STATIC_LOCAL_DOCUMENTS)
+    all_reference_laws.setdefault(
+        "私的独占の禁止及び公正取引の確保に関する法律",
+        "322AC0000000054",
+    )
     catalog.sort(key=lambda item: (str(item["categories"][0]), str(item["title"])))
     reference_laws = sorted(all_reference_laws.items(), key=lambda item: (-len(item[0]), item[0]))
     payload = {"rules": catalog, "referenceLaws": reference_laws}

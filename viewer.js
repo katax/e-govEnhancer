@@ -185,6 +185,7 @@
   let liteTooltipHideTimer = 0;
   let jumpReturnButtonTimer = 0;
   let textHighlightController = null;
+  let textHighlightsEnabled = true;
   let favoriteScrollSaveTimer = 0;
   let favoriteScrollRestoreStarted = false;
   let favoriteScrollPersistenceSetup = false;
@@ -316,7 +317,34 @@
   externalReferencesButton.addEventListener('click', toggleExternalReferenceLinks);
   definitionLinksButton.addEventListener('click', toggleDefinitionLinks);
   lawRefModeButton.addEventListener('click', toggleLawRefPageMode);
-  highlightListButton.addEventListener('click', () => showLiteTextHighlightListDialog());
+  function updateTextHighlightButtonState() {
+    highlightListButton.classList.toggle('is-active', textHighlightsEnabled);
+    highlightListButton.setAttribute('aria-pressed', String(textHighlightsEnabled));
+    highlightListButton.title = textHighlightsEnabled
+      ? 'ハイライト・メモを一時的に無効化（Alt+M）'
+      : 'ハイライト・メモを有効化（Alt+M）';
+    highlightListButton.setAttribute('aria-label', highlightListButton.title);
+  }
+
+  function setTextHighlightsEnabled(enabled, { notify = true } = {}) {
+    const next = enabled !== false;
+    if (next === textHighlightsEnabled) {
+      updateTextHighlightButtonState();
+      return true;
+    }
+    if (textHighlightController?.setEnabled?.(next) === false) return false;
+    textHighlightsEnabled = next;
+    updateTextHighlightButtonState();
+    if (notify) showToast(`ハイライト・メモを${next ? '有効' : '無効'}にしました`);
+    return true;
+  }
+
+  function toggleTextHighlights() {
+    return setTextHighlightsEnabled(!textHighlightsEnabled);
+  }
+
+  highlightListButton.addEventListener('click', toggleTextHighlights);
+  updateTextHighlightButtonState();
   compareModeButton.addEventListener('click', () => toggleCompareMode());
   favoriteButton.addEventListener('click', () => toggleFavorite());
   shortcutButton.addEventListener('click', () => showShortcutDialog());
@@ -389,6 +417,9 @@
     }
     if (area === 'local' && changes[EXTERNAL_REFERENCES_AUTO_ENABLE_KEY]) {
       externalReferencesAutoEnable = changes[EXTERNAL_REFERENCES_AUTO_ENABLE_KEY].newValue === true;
+    }
+    if (area === 'local' && changes[TEXT_HIGHLIGHTS_ENABLED_KEY]) {
+      setTextHighlightsEnabled(changes[TEXT_HIGHLIGHTS_ENABLED_KEY].newValue !== false, { notify: false });
     }
     if (area === 'local' && changes.favorites) {
       refreshFavoriteButton();
@@ -1508,7 +1539,8 @@
         revisionSelect.innerHTML = `<option value="local">${escapeHtml(localRule.sourceLabel)}</option>`;
         revisionSelect.disabled = true;
         sourceNoticeEl.hidden = false;
-        sourceNoticeEl.innerHTML = `同梱ローカル版（${escapeHtml(localRule.sourceLabel)}）・<a href="${escapeHtml(localRule.officialUrl)}" target="_blank" rel="noreferrer">裁判所の公式規則集</a>`;
+        const sourceLinkLabel = localRule.sourceLinkLabel || '裁判所の公式規則集';
+        sourceNoticeEl.innerHTML = `同梱ローカル版（${escapeHtml(localRule.sourceLabel)}）・<a href="${escapeHtml(localRule.officialUrl)}" target="_blank" rel="noreferrer">${escapeHtml(sourceLinkLabel)}</a>`;
         jumpToInitialHash();
         await refreshFavoriteButton();
         return;
@@ -3373,7 +3405,7 @@
     if (liteProvisionItemsCache) return liteProvisionItemsCache;
     const items = [];
     const baseUrl = sourceUrl.split('#')[0];
-    const localRuleCopyUrl = localRule?.pdfUrl || '';
+    const localRuleCopyUrl = localRule?.copyUrl || localRule?.pdfUrl || localRule?.officialUrl || '';
     const provisionCopyUrl = (id) => localRuleCopyUrl || `${baseUrl}#${encodeURIComponent(id)}`;
     Array.from(contentEl.querySelectorAll('.law-article')).forEach((article) => {
       const articleNum = article.dataset.articleNum || '';
@@ -4241,6 +4273,7 @@
       <div class="lite-shortcut-list">
         <div><kbd>Alt+s</kbd><span>並べて表示の切替</span></div>
         <div><kbd>Alt+O</kbd><span>設定画面を開く</span></div>
+        <div><kbd>Alt+M</kbd><span>ハイライト・メモの有効 / 無効を切替</span></div>
         <div><kbd>s</kbd><span>ページ内検索</span></div>
         <div><kbd>0-9</kbd><span>条文ジャンプダイアログ</span></div>
         <div><kbd>h / l</kbd><span>条文ジャンプ履歴を前後移動</span></div>
@@ -4475,6 +4508,11 @@
   document.addEventListener('keydown', (event) => {
     if (event.defaultPrevented) return;
     const lower = event.key.toLowerCase();
+    if (event.altKey && !event.ctrlKey && !event.metaKey && (lower === 'm' || event.code === 'KeyM')) {
+      event.preventDefault();
+      toggleTextHighlights();
+      return;
+    }
     if (event.altKey && !event.ctrlKey && !event.metaKey && lower === 'o' && !activeDialog && !isInputActive()) {
       event.preventDefault();
       chrome.runtime.openOptionsPage();
@@ -4552,16 +4590,18 @@
   document.addEventListener('pointerdown', () => { keyboardBookmarkTargetId = ''; });
 
   chrome.storage.local.get([TEXT_HIGHLIGHTS_ENABLED_KEY]).then((stored) => {
-    if (stored[TEXT_HIGHLIGHTS_ENABLED_KEY] === false) return;
+    textHighlightsEnabled = stored[TEXT_HIGHLIGHTS_ENABLED_KEY] !== false;
     textHighlightController = globalThis.EgovTextHighlights?.create({
       root: contentEl,
       lawId,
+      enabled: textHighlightsEnabled,
       onBeforeOpen() {
         hideLiteTooltip(true);
         hideReferencesPopup();
         hideUnpinnedReferenceViewerPopups();
       },
     }) || null;
+    updateTextHighlightButtonState();
   }).catch(() => {});
   setupExternalReferenceInteractions();
   loadLaw();

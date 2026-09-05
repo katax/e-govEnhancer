@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAsb/ZxA/dvTTBeBcNVzMDZilWWpAxXbOomZhoKNZG87HMPX+3lniVVvwAciVbM5XCDr//ig4CFD+nrVt4REBpSGWvzqvYzslEaEAiKBwHv3Jwni7Q4PhGnjhwqZ2P+TMcyUioXws29V+FNvURJFcxPo6QjdbWz33K5K7YDa5++3N5O7VK0IBvHWv+I4ZnImHGnznZdL/Lzi/PIFJl9HtxEJqv9+tLi4226U+sFyktimtfX6DefK1fr+vbGf1KAP1/uAAuqzatG6Kc+WbWhBlyt9OURNFy3W/RXkeB4NcCWOoMP3kGVVuZf/aBijQGUMCbltknvCE+jmC+6GSBpeDTRwIDAQAB",
   "name": "e-Gov法令検索 Enhancer",
-  "version": "2.6.0",
+  "version": "2.6.1",
   "description": "e-Gov法令検索をもっと便利にします。",
   "permissions": ["storage", "tabs"],
   "host_permissions": ["https://laws.e-gov.go.jp/*"],
