@@ -7,6 +7,7 @@
   const QUOTE_TAIL_LENGTH = 128;
   const CONTEXT_LENGTH = 32;
   const MEMO_MAX_LENGTH = 2000;
+  const POPUP_SCROLL_GRACE_MS = 750;
   const TEXT_EXCLUDE_SELECTOR =
     '#egov-ext-text-highlight-popup,#egov-ext-text-highlight-memo-tooltip,' +
     '#egov-ext-text-highlight-target-outline,#egov-ext-text-highlight-restore-notice,' +
@@ -35,6 +36,7 @@
     const rangeSequences = new WeakMap();
     let sequence = 0;
     let popup = null;
+    let popupOpenedAt = 0;
     let targetOutline = null;
     let targetOutlineRaf = 0;
     let tooltip = null;
@@ -762,6 +764,7 @@
       rangeAdjusting = false;
       popup?.remove();
       popup = null;
+      popupOpenedAt = 0;
       hideTargetOutline();
       pendingRange = null;
       pendingSource = null;
@@ -1119,6 +1122,7 @@
       });
       document.body.appendChild(element);
       popup = element;
+      popupOpenedAt = performance.now();
       memoInput.addEventListener('keydown', (event) => {
         if (event.key === 'Enter' && event.ctrlKey) {
           event.preventDefault();
@@ -1382,6 +1386,12 @@
       });
       document.addEventListener('scroll', () => {
         hitTestCache = null;
+        // Edge-ended drag selections can emit a trailing browser auto-scroll event.
+        if (popup && performance.now() - popupOpenedAt < POPUP_SCROLL_GRACE_MS) {
+          scheduleTargetOutline();
+          clearHover({ immediate: true });
+          return;
+        }
         if (!hidePopup()) scheduleTargetOutline();
         clearHover({ immediate: true });
       }, true);

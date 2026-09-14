@@ -169,6 +169,7 @@
   const externalReferencesByElement = new WeakMap();
   let activeProvisionSelectionEl = null;
   let textHighlightPopup = null;
+  let textHighlightPopupOpenedAt = 0;
   let textHighlightTargetOutline = null;
   let textHighlightTargetOutlineRaf = 0;
   let textHighlightMemoTooltip = null;
@@ -204,6 +205,7 @@
   const TEXT_HIGHLIGHT_QUOTE_TAIL_LENGTH = 128;
   const TEXT_HIGHLIGHT_CONTEXT_LENGTH = 32;
   const TEXT_HIGHLIGHT_MEMO_MAX_LENGTH = 2000;
+  const TEXT_HIGHLIGHT_POPUP_SCROLL_GRACE_MS = 750;
   let textHighlightFeatureEnabled = true;
   const TEXT_HIGHLIGHT_TEXT_EXCLUDE_SELECTOR =
     '.egov-ext-reference-popup, .egov-ext-definition-tooltip, #egov-ext-text-highlight-popup, ' +
@@ -391,6 +393,7 @@
     textHighlightRangeAdjusting = false;
     textHighlightPopup?.remove();
     textHighlightPopup = null;
+    textHighlightPopupOpenedAt = 0;
     hideTextHighlightTargetOutline();
     pendingTextHighlightRange = null;
     pendingTextHighlightSource = null;
@@ -1538,6 +1541,7 @@
 
     document.body.appendChild(popup);
     textHighlightPopup = popup;
+    textHighlightPopupOpenedAt = performance.now();
     memoInput?.addEventListener('keydown', (event) => {
       if (event.key === 'Enter' && event.ctrlKey) {
         event.preventDefault();
@@ -1802,6 +1806,13 @@
     });
     document.addEventListener('scroll', () => {
       textHighlightHitTestCache = null;
+      // Edge-ended drag selections can emit a trailing browser auto-scroll event.
+      if (textHighlightPopup &&
+          performance.now() - textHighlightPopupOpenedAt < TEXT_HIGHLIGHT_POPUP_SCROLL_GRACE_MS) {
+        scheduleTextHighlightTargetOutline();
+        clearTextHighlightMemoHover({ immediate: true });
+        return;
+      }
       if (!hideTextHighlightPopup()) scheduleTextHighlightTargetOutline();
       clearTextHighlightMemoHover({ immediate: true });
     }, true);
