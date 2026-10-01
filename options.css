@@ -531,3 +531,17 @@ a:hover {
     width: 100%;
   }
 }
+.external-file-group {
+  margin: 20px 0 0;
+  padding: 16px;
+  border: 1px solid #ccd4df;
+  border-radius: 8px;
+  min-width: 0;
+}
+.external-file-group legend { font-weight: 600; padding: 0 6px; }
+.external-file-status { overflow-wrap: anywhere; }
+.external-file-error { color: #b42318; }
+.external-file-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
+.external-file-actions button { padding: 8px 12px; cursor: pointer; }
+.external-file-actions button:disabled { cursor: default; opacity: .5; }
+.external-file-group summary { cursor: pointer; margin-top: 12px; }

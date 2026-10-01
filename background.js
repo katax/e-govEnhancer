@@ -1,4 +1,4 @@
-importScripts('shared/egov-shared.js');
+importScripts('shared/egov-shared.js', 'shared/transfer-data.js', 'shared/external-files.js', 'shared/external-files-background.js');
 
 chrome.runtime.onStartup?.addListener(() => {
   chrome.storage.session.setAccessLevel({ accessLevel: 'TRUSTED_AND_UNTRUSTED_CONTEXTS' }).catch(() => {});
@@ -805,17 +805,26 @@ function getLiteLawRevisionStorageKey(lawId) {
   return `liteLawCurrentRevision:${lawId}`;
 }
 
+async function fetchLiteLawResponse(url, format, options = {}, timeoutMs = 15000) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const response = await fetch(url, { ...options, signal: controller.signal });
+    if (!response.ok) throw new Error(`Law fetch failed: HTTP ${response.status}`);
+    // 本文の受信完了までタイムアウトの対象にする。
+    return await response[format]();
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 async function fetchLiteLawRevisions(lawId) {
-  const response = await fetch(`${EGOV_API_V2_BASE}/law_revisions/${encodeURIComponent(lawId)}?response_format=json`);
-  if (!response.ok) throw new Error(`Revision fetch failed: HTTP ${response.status}`);
-  const data = await response.json();
+  const data = await fetchLiteLawResponse(`${EGOV_API_V2_BASE}/law_revisions/${encodeURIComponent(lawId)}?response_format=json`, 'json');
   return Array.isArray(data.revisions) ? data.revisions : [];
 }
 
 async function fetchLiteLawXml(target, asOf = '') {
-  const response = await fetch(getLiteLawDataUrl(target, asOf), { cache: 'no-store' });
-  if (!response.ok) throw new Error(`Law fetch failed: HTTP ${response.status}`);
-  const xmlText = await response.text();
+  const xmlText = await fetchLiteLawResponse(getLiteLawDataUrl(target, asOf), 'text', { cache: 'no-store' });
   if (!xmlText.trim()) throw new Error('Law fetch returned an empty response');
   return xmlText;
 }
@@ -828,23 +837,21 @@ async function loadAndCacheLiteLaw(lawId, revisionId = '') {
     const revisionStorageKey = getLiteLawRevisionStorageKey(lawId);
     const initialTarget = revisionId || lawId;
 
-    // 改正履歴と本文を同時に開始し、従来の直列待ちをなくす。
+    // 改正ID指定時だけ本文を並列取得する。現行版は履歴で対象を確定してから一度だけ取得する。
     const revisionsPromise = fetchLiteLawRevisions(lawId).catch(() => []);
-    // 法令IDだけの取得は未施行版になり得るため、改正ID未指定時は今日時点を明示する。
-    const initialXmlPromise = fetchLiteLawXml(initialTarget, revisionId ? '' : getJapanDateString())
-      .then((xmlText) => ({ xmlText, error: null }))
-      .catch((error) => ({ xmlText: '', error }));
-    const [revisions, initialResult] = await Promise.all([revisionsPromise, initialXmlPromise]);
+    const xmlPromise = revisionId ? fetchLiteLawXml(revisionId)
+      .then((xmlText) => ({ xmlText }))
+      .catch((error) => ({ error })) : null;
+    const revisions = await revisionsPromise;
     const currentRevisionId = findCurrentLawRevisionId(revisions);
     const resolvedTarget = revisionId || currentRevisionId || initialTarget;
 
-    let xmlText = initialResult.xmlText;
-    // 法令IDの取得結果は未施行版を含むことがあるため、現行改正IDが判明したら必ずそのIDで取得し直す。
-    if (resolvedTarget !== initialTarget) {
-      xmlText = await fetchLiteLawXml(resolvedTarget);
-    } else if (!xmlText) {
-      throw initialResult.error || new Error('Law XML could not be loaded');
-    }
+    const result = xmlPromise ? await xmlPromise : {
+      // 履歴取得失敗時も、日付を指定して未施行版の取得を避ける。
+      xmlText: await fetchLiteLawXml(resolvedTarget, currentRevisionId ? '' : getJapanDateString()),
+    };
+    if (result.error) throw result.error;
+    const xmlText = result.xmlText;
 
     const cacheTarget = resolvedTarget || initialTarget;
     await cacheLiteLawXml(cacheTarget, xmlText);

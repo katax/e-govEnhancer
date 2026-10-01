@@ -768,26 +768,45 @@
     return `https://laws.e-gov.go.jp/law/${encodeURIComponent(renderContextLawId)}#${hash}`;
   }
 
-  function getLiteRelativeReferenceHref(node, unit, offset, articles, paragraph = '', item = '') {
+  function createLiteRelativeReferenceIndex(articles) {
+    const scopes = new Map();
+    const positions = new Map();
+    for (const article of articles) {
+      const scope = article.dataset.referenceScope || '';
+      if (!scopes.has(scope)) scopes.set(scope, []);
+      const siblings = scopes.get(scope);
+      positions.set(article, { siblings, index: siblings.length });
+      siblings.push(article);
+    }
+    const indexedParents = new WeakSet();
+    return (source, parent, selector, parentSelector) => {
+      if (parent && !indexedParents.has(parent)) {
+        const siblings = Array.from(parent.querySelectorAll(selector))
+          .filter((element) => element.closest(parentSelector) === parent);
+        siblings.forEach((element, index) => positions.set(element, { siblings, index }));
+        indexedParents.add(parent);
+      }
+      return positions.get(source);
+    };
+  }
+
+  function getLiteRelativeReferenceHref(node, unit, offset, getPosition, paragraph = '', item = '') {
     if (!Number.isInteger(offset) || offset === 0) return '';
     const sourceElement = node.parentElement;
     const sourceArticle = sourceElement?.closest('.law-article[data-article-num]');
     if (!sourceArticle) return '';
     const scope = sourceArticle.dataset.referenceScope || '';
     if (unit === '条') {
-      const scopedArticles = articles.filter((article) => (article.dataset.referenceScope || '') === scope);
-      const sourceIndex = scopedArticles.indexOf(sourceArticle);
-      const target = scopedArticles[sourceIndex + offset];
+      const position = getPosition(sourceArticle);
+      const target = position?.siblings[position.index + offset];
       return buildLiteProvisionHref(target?.dataset?.articleNum || '', paragraph, item, scope);
     }
 
     const sourceParagraph = sourceElement.closest('.law-paragraph[data-paragraph-num]');
     if (!sourceParagraph) return '';
-    const paragraphs = Array.from(sourceArticle.querySelectorAll('.law-paragraph[data-paragraph-num]'))
-      .filter((paragraph) => paragraph.closest('.law-article') === sourceArticle);
     if (unit === '項') {
-      const sourceIndex = paragraphs.indexOf(sourceParagraph);
-      const target = paragraphs[sourceIndex + offset];
+      const position = getPosition(sourceParagraph, sourceArticle, '.law-paragraph[data-paragraph-num]', '.law-article');
+      const target = position?.siblings[position.index + offset];
       return buildLiteProvisionHref(
         sourceArticle.dataset.articleNum,
         target?.dataset?.paragraphNum || '',
@@ -798,10 +817,9 @@
 
     const sourceItem = sourceElement.closest('.law-item[data-item-num], .law-subitem[data-item-num]');
     if (!sourceItem) return '';
-    const items = Array.from(sourceParagraph.querySelectorAll('.law-item[data-item-num], .law-subitem[data-item-num]'))
-      .filter((item) => item.closest('.law-paragraph') === sourceParagraph);
-    const sourceIndex = items.indexOf(sourceItem);
-    const target = items[sourceIndex + offset];
+    const position = getPosition(sourceItem, sourceParagraph,
+      '.law-item[data-item-num], .law-subitem[data-item-num]', '.law-paragraph');
+    const target = position?.siblings[position.index + offset];
     return buildLiteProvisionHref(
       sourceArticle.dataset.articleNum,
       sourceParagraph.dataset.paragraphNum,
@@ -813,6 +831,7 @@
   function linkifyLiteRelativeReferences() {
     if (!lawId || !contentEl.querySelector('.law-article')) return;
     const articles = Array.from(contentEl.querySelectorAll('.law-article[data-article-num]'));
+    const getPosition = createLiteRelativeReferenceIndex(articles);
     const textNodes = [];
     const walker = document.createTreeWalker(contentEl, NodeFilter.SHOW_TEXT, {
       acceptNode(node) {
@@ -853,7 +872,7 @@
         const item = itemSource ? parseJapaneseReferenceNumber(itemSource) : 0;
         if ((paragraphSource && !Number.isInteger(paragraph)) ||
             (itemSource && !Number.isInteger(item))) continue;
-        const href = getLiteRelativeReferenceHref(textNode, unit, offset, articles, paragraph, item);
+        const href = getLiteRelativeReferenceHref(textNode, unit, offset, getPosition, paragraph, item);
         if (!href) continue;
         fragment.appendChild(document.createTextNode(text.slice(lastIndex, match.index)));
         const anchor = document.createElement('a');
@@ -1174,18 +1193,22 @@
     return extractSharedInlineAliasDefinition(text, matchIndex, cleanupPatterns, normalizeCopyText);
   }
 
-  function extractDefinitions() {
+  function* extractDefinitions() {
     const definitions = new Map();
     const articleElements = Array.from(contentEl.querySelectorAll('.law-article'));
     const { patternA, patternC, patternD } = cloneDefinitionPatterns();
 
     for (const article of articleElements) {
       const text = normalizeCopyText(article.textContent || '');
-      const articleCandidates = buildDefinitionSourceCandidates(article);
+      let articleCandidates;
+      const findSource = (matchText) => {
+        articleCandidates ??= buildDefinitionSourceCandidates(article);
+        return getDefinitionSourceElement(matchText, articleCandidates) || article;
+      };
       let match;
       patternA.lastIndex = 0;
       while ((match = patternA.exec(text))) {
-        const anchorEl = getDefinitionSourceElement(match[0], articleCandidates) || article;
+        const anchorEl = findSource(match[0]);
         addDefinition(definitions, {
           term: match[2],
           definition: `${match[2]}とは、${match[3]}をいう。`,
@@ -1197,7 +1220,7 @@
       patternD.lastIndex = 0;
       while ((match = patternD.exec(text))) {
         const term = extractTermBeforeParentheticalDefinition(text, match.index, [patternC, patternD]);
-        const anchorEl = getDefinitionSourceElement(match[0], articleCandidates) || article;
+        const anchorEl = findSource(match[0]);
         addDefinition(definitions, {
           term,
           definition: match[1].replace(/以下同じ。$/, ''),
@@ -1209,7 +1232,7 @@
       patternC.lastIndex = 0;
       while ((match = patternC.exec(text))) {
         const definition = extractInlineAliasDefinition(text, match.index, [patternC, patternD]);
-        const anchorEl = getDefinitionSourceElement(match[0], articleCandidates) || article;
+        const anchorEl = findSource(match[0]);
         addDefinition(definitions, {
           term: match[1],
           definition,
@@ -1230,6 +1253,7 @@
           });
         });
       }
+      yield;
     }
 
     if (params.get('debugDefs') === '1') {
@@ -1387,10 +1411,28 @@
     clearLiteDefinitionTooltips();
     if (!liteDefTooltipEnabled || !contentEl.querySelector('.law-article')) return;
     const startedAt = performance.now();
-    liteDefinitionMap = extractDefinitions();
-    liteDefinitionMatcher = createLiteDefinitionMatcher(liteDefinitionMap);
-    observeLiteDefinitionArticles();
-    console.debug(`[e-Gov Enhancer] Lite 定義用語ガイド: extract ${(performance.now() - startedAt).toFixed(1)}ms (${liteDefinitionMap.size} terms / lazy marking)`);
+    const generation = liteDefinitionGeneration;
+    const applyGeneration = liteDefinitionApplyGeneration;
+    const extraction = extractDefinitions();
+    const step = (deadline) => {
+      if (generation !== liteDefinitionGeneration || applyGeneration !== liteDefinitionApplyGeneration || !liteDefTooltipEnabled) return;
+      const sliceStartedAt = performance.now();
+      let count = 0;
+      do {
+        const result = extraction.next();
+        if (result.done) {
+          liteDefinitionMap = result.value;
+          liteDefinitionMatcher = createLiteDefinitionMatcher(liteDefinitionMap);
+          observeLiteDefinitionArticles();
+          console.debug(`[e-Gov Enhancer] Lite 定義用語ガイド: extract ${(performance.now() - startedAt).toFixed(1)}ms (${liteDefinitionMap.size} terms / lazy marking)`);
+          return;
+        }
+        count += 1;
+      } while (count < 20 && performance.now() - sliceStartedAt < 4 &&
+        (!deadline || deadline.timeRemaining() > 1));
+      runWhenIdle(step, 180);
+    };
+    runWhenIdle(step, 180);
   }
 
   function scheduleApplyLiteDefinitionTooltips() {
@@ -1402,6 +1444,7 @@
   }
 
   function renderLaw(law, doc) {
+    clearLiteDefinitionTooltips();
     const body = law.querySelector('LawBody') || law;
     lawTitleText = getNodeText(firstChildOfTag(body, 'LawTitle')) || fallbackLawName;
     lawNumText = getNodeText(law.querySelector('LawNum')) || getNodeText(doc.querySelector('law_info > law_num')) || '';
@@ -1545,7 +1588,7 @@
         await refreshFavoriteButton();
         return;
       }
-      // 先行取得と同じバックグラウンド処理に合流させ、改正履歴と本文を並列取得する。
+      // 先行取得と同じバックグラウンド処理に合流させる。
       const liveLoadPromise = chrome.runtime.sendMessage({
         type: 'egov-load-lite-law',
         lawId,
@@ -1579,12 +1622,12 @@
         revisions = Array.isArray(result.revisions) ? result.revisions : [];
         currentRevisionId = revisionIdParam || result.currentRevisionId || currentRevisionId;
         renderRevisionSelect();
-        if (!renderedTarget || renderedTarget !== result.cacheTarget) {
+        {
           const freshXml = await readCachedLiteLawXml(result.cacheTarget);
           if (!freshXml) throw new Error('Cached law XML could not be read');
           const freshLaw = parseLawXmlForRender(freshXml);
-          // The cache key can change from the law ID to its revision ID even when LawBody is identical.
-          // Avoid replacing the live DOM in that case so an open selection popup and its Range stay valid.
+          // 同じキーでも本文が訂正される場合があるため、更新後の内容を確認する。
+          // 内容が同じならDOMを維持し、選択範囲や開いているポップアップを保つ。
           if (!renderedTarget || freshLaw.signature !== renderedSignature) {
             renderedSignature = renderParsedLawXml(freshLaw);
             jumpToInitialHash();
@@ -3610,9 +3653,6 @@
 
   async function renderLiteArticleBookmarkGutters() {
     const renderVersion = ++articleBookmarkRenderVersion;
-    contentEl.querySelectorAll('.lite-bookmark-gutter').forEach((button) => button.remove());
-    contentEl.querySelectorAll('.lite-bookmark-number-host').forEach((host) => host.classList.remove('lite-bookmark-number-host'));
-    articleBookmarkGutterButtons.clear();
     if (!lawId || !articleElementsCache.length) return;
     const bookmarks = await getArticleBookmarks();
     if (renderVersion !== articleBookmarkRenderVersion) return;
@@ -3622,7 +3662,13 @@
     );
     for (const item of getLiteBookmarkProvisionItems()) {
       if (renderVersion !== articleBookmarkRenderVersion) return;
-      createLiteBookmarkGutter(item, markedKeys.has(item.targetKey));
+      const marked = markedKeys.has(item.targetKey);
+      const button = articleBookmarkGutterButtons.get(item.targetKey);
+      if (!(button instanceof HTMLButtonElement) || !button.isConnected) {
+        createLiteBookmarkGutter(item, marked);
+      } else if (button.classList.contains('is-bookmarked') !== marked) {
+        applyLiteBookmarkGutterState(button, item, marked);
+      }
     }
   }
 

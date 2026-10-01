@@ -121,6 +121,12 @@ document.addEventListener('DOMContentLoaded', () => {
     })
     .catch(() => {});
   chrome.storage.onChanged.addListener((changes, area) => {
+    if (area === 'local' && (changes.favorites || changes.favFolders || changes.folderCollapsed)) {
+      if (changes.favorites) favorites = changes.favorites.newValue || [];
+      if (changes.favFolders) favFolders = changes.favFolders.newValue || [];
+      if (changes.folderCollapsed) folderCollapsed = changes.folderCollapsed.newValue || {};
+      if (historyMode === 'favorites') renderFavoritesPanel();
+    }
     if (area === 'local' && changes.liteModeDefault) {
       liteModeDefault = changes.liteModeDefault.newValue === true;
       updateLiteModeTitleBadge();
