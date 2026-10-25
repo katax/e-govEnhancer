@@ -264,5 +264,53 @@
     };
   }
 
-  global.EgovTransferData = { isTextHighlightLawId, validateFavoritesImport, validateTextHighlightsImport, buildTextHighlightsSummary };
+  function mergeFavoritesImport(current, incoming) {
+    const local = validateFavoritesImport(current);
+    const imported = validateFavoritesImport(incoming);
+    const folders = local.favFolders.map(folder => ({ ...folder }));
+    const ids = new Set(folders.map(folder => folder.id));
+    const remap = new Map();
+    const collapsed = new Map(Object.entries(local.folderCollapsed));
+    for (const folder of imported.favFolders) {
+      const existing = folders.find(item => item.id === folder.id && item.name === folder.name)
+        || folders.find(item => item.name === folder.name);
+      if (existing) { remap.set(folder.id, existing.id); continue; }
+      let id = folder.id, suffix = 1;
+      while (ids.has(id)) id = `${folder.id}-import-${suffix++}`;
+      ids.add(id);
+      folders.push({ id, name: folder.name });
+      remap.set(folder.id, id);
+      if (Object.hasOwn(imported.folderCollapsed, folder.id)) collapsed.set(id, imported.folderCollapsed[folder.id]);
+    }
+    if (!collapsed.has('__uncat__') && Object.hasOwn(imported.folderCollapsed, '__uncat__')) {
+      collapsed.set('__uncat__', imported.folderCollapsed.__uncat__);
+    }
+    const favorites = new Map(local.favorites.map(favorite => [favorite.lawId, favorite]));
+    for (const favorite of imported.favorites) {
+      if (!favorites.has(favorite.lawId)) favorites.set(favorite.lawId, {
+        ...favorite, folderId: favorite.folderId ? remap.get(favorite.folderId) : null,
+      });
+    }
+    if (favorites.size > FAVORITES_MAX) throw new Error(`マージするとお気に入りが${favorites.size}件になります。上限は${FAVORITES_MAX}件です。現在のデータは変更していません。`);
+    return validateFavoritesImport({ ...local, favorites: [...favorites.values()], favFolders: folders,
+      folderCollapsed: Object.fromEntries(collapsed) });
+  }
+
+  function mergeTextHighlightsImport(current, incoming) {
+    const local = validateTextHighlightsImport(current);
+    const imported = validateTextHighlightsImport(incoming);
+    const laws = { ...local.laws };
+    for (const [lawId, records] of Object.entries(imported.laws)) {
+      const merged = new Map((laws[lawId] || []).map(record => [record.id, record]));
+      for (const record of records) {
+        const existing = merged.get(record.id);
+        if (!existing || record.t > existing.t) merged.set(record.id, record);
+      }
+      laws[lawId] = [...merged.values()].sort((a, b) => b.t - a.t);
+    }
+    return validateTextHighlightsImport({ ...local, laws });
+  }
+
+  global.EgovTransferData = { isTextHighlightLawId, validateFavoritesImport, validateTextHighlightsImport,
+    buildTextHighlightsSummary, mergeFavoritesImport, mergeTextHighlightsImport };
 })(globalThis);

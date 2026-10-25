@@ -1,0 +1,7 @@
+{
+  "available": false,
+  "browser": null,
+  "environment": "Fresh local test profile; no user data or existing extensions.",
+  "samples": [],
+  "error": "page.goto: net::ERR_BLOCKED_BY_CLIENT at chrome-extension://jphlncbjlkhgpkpaahcgednemdahocaf/test.html\nCall log:\n\u001b[2m  - navigating to \"chrome-extension://jphlncbjlkhgpkpaahcgednemdahocaf/test.html\", waiting until \"load\"\u001b[22m\n"
+}

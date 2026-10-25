@@ -22,7 +22,6 @@
     getJapanDateString,
     getLawReferencesData,
     getLiteLawDataUrl,
-    getNormalizedTextSignature,
     getReferenceDomParts,
     getReferenceTargetKeyFromEgovUrl,
     getReverseReferenceScopeFlags,
@@ -32,7 +31,7 @@
     parseJapaneseReferenceNumber,
     parseProvisionPathFromEgovUrl,
     rangeFromSearchOffsets,
-    readCachedLiteLawXml,
+    readCachedLiteLaw,
     sortReferenceSources,
     splitReferenceTargetKey,
     REVERSE_REFERENCE_SCOPE_KEY,
@@ -237,9 +236,9 @@
     lawRefModeButton.classList.toggle('is-active', effectiveScrollMode && !lawRefModeCtrlPressed);
     lawRefModeButton.classList.toggle('is-ctrl-temporary', lawRefModeCtrlPressed);
     lawRefModeButton.setAttribute('aria-pressed', String(effectiveScrollMode));
-    lawRefModeButton.title = lawRefModeCtrlPressed
-      ? `Ctrl一時切替中：${modeLabel}`
-      : `${modeLabel}（この法令だけの一時設定）`;
+    lawRefModeButton.title = effectiveScrollMode
+      ? '法令内リンクをスクロールで移動にする（Ctrlで一時的に切り替える）'
+      : '法令内リンクをポップアップで表示する（Ctrlで一時的に切り替える）';
     lawRefModeButton.setAttribute('aria-label', lawRefModeButton.title);
   }
 
@@ -250,18 +249,18 @@
 
   function syncViewerToggleButtons() {
     const parenHidden = document.body.dataset.parenMode === 'nested';
-    setViewerToggleButtonState(parenModeButton, parenHidden, parenHidden ? 'かっこ消しを解除' : 'かっこを薄くして本文を表示');
+    setViewerToggleButtonState(parenModeButton, parenHidden, `${parenHidden ? 'かっこ消しを解除' : 'かっこを薄くして本文を表示'}（SHIFT+G）`);
     setViewerToggleButtonState(
       externalReferencesButton,
       externalReferencesEnabled,
-      externalReferencesEnabled ? '逆参照リンクを無効化' : '逆参照リンクを有効化'
+      `${externalReferencesEnabled ? '逆参照リンクを無効化' : '逆参照リンクを有効化'}（E）`
     );
     externalReferencesButton.setAttribute('aria-busy', String(externalReferencesLoading));
     externalReferencesButton.disabled = externalReferencesLoading;
     setViewerToggleButtonState(
       definitionLinksButton,
       liteDefTooltipEnabled,
-      liteDefTooltipEnabled ? '定義語リンクを無効化' : '定義語リンクを有効化'
+      `${liteDefTooltipEnabled ? '定義参照を無効化' : '定義参照を有効化'}（ALT+D）`
     );
     updateLawRefModeButton();
   }
@@ -321,8 +320,8 @@
     highlightListButton.classList.toggle('is-active', textHighlightsEnabled);
     highlightListButton.setAttribute('aria-pressed', String(textHighlightsEnabled));
     highlightListButton.title = textHighlightsEnabled
-      ? 'ハイライト・メモを一時的に無効化（Alt+M）'
-      : 'ハイライト・メモを有効化（Alt+M）';
+      ? 'ハイライト・メモを一時的に無効化（ALT+M）'
+      : 'ハイライト・メモを有効化（ALT+M）';
     highlightListButton.setAttribute('aria-label', highlightListButton.title);
   }
 
@@ -348,6 +347,7 @@
   compareModeButton.addEventListener('click', () => toggleCompareMode());
   favoriteButton.addEventListener('click', () => toggleFavorite());
   shortcutButton.addEventListener('click', () => showShortcutDialog());
+  document.getElementById('options-button').addEventListener('click', () => chrome.runtime.openOptionsPage());
   revisionSelect.addEventListener('change', () => {
     const revisionId = revisionSelect.value;
     if (!revisionId || revisionId === currentRevisionId) return;
@@ -457,10 +457,6 @@
     const timer = setTimeout(() => controller.abort(), timeoutMs);
     return fetch(url, { ...options, signal: controller.signal })
       .finally(() => clearTimeout(timer));
-  }
-
-  function getLiteLawRevisionStorageKey(targetLawId = lawId) {
-    return `liteLawCurrentRevision:${targetLawId}`;
   }
 
   // href に安全なスキームのみ許可（javascript: 等を排除）。相対 URL・フラグメントは許可。
@@ -586,12 +582,19 @@
     return getAnchorId([scope, prefix, articleNum, childNum, itemNum].filter(Boolean).map(safeIdPart).join('-'));
   }
 
+  const liteProvisionScopes = new WeakMap();
   function getLiteProvisionScope(element) {
     const supplementary = element instanceof Element ? element.closest('SupplProvision') : null;
     if (!supplementary) return '';
-    const provisions = Array.from(supplementary.ownerDocument.querySelectorAll('SupplProvision'));
-    const index = provisions.indexOf(supplementary);
-    return index <= 0 ? 'Sp' : `Sp_${index + 1}`;
+    const doc = supplementary.ownerDocument;
+    if (!liteProvisionScopes.has(doc)) {
+      const scopes = new WeakMap();
+      doc.querySelectorAll('SupplProvision').forEach((node, index) => {
+        scopes.set(node, index === 0 ? 'Sp' : `Sp_${index + 1}`);
+      });
+      liteProvisionScopes.set(doc, scopes);
+    }
+    return liteProvisionScopes.get(doc).get(supplementary) || 'Sp';
   }
 
   function getLiteScopeDataAttribute(scope) {
@@ -1516,17 +1519,15 @@
     if (doc.querySelector('parsererror')) throw new Error('XML parse error');
     const law = parseLawFromResponse(doc);
     if (!law) throw new Error('Law XML was not found');
-    const body = law.querySelector('LawBody') || law;
     return {
       doc,
       law,
-      signature: getNormalizedTextSignature(new XMLSerializer().serializeToString(body)),
     };
   }
 
-  function renderParsedLawXml({ doc, law, signature }) {
+  function renderParsedLawXml({ doc, law }) {
     renderLaw(law, doc);
-    return signature;
+    return doc.querySelector('revision_info > law_revision_id')?.textContent.trim() || '';
   }
 
   function renderLawXml(xmlText) {
@@ -1535,19 +1536,20 @@
 
   async function loadLiteLawDirectly() {
     // バックグラウンドが旧版のままでも表示できるよう、従来の安全な取得順を残す。
+    const cached = forceLiteDownload ? null : await readCachedLiteLaw(revisionIdParam || lawId);
+    if (cached) return { ok: true, ...cached };
     await loadRevisions();
+    currentRevisionId = revisionIdParam || findCurrentLawRevisionId(revisions);
     const target = currentRevisionId || lawId;
     const asOf = currentRevisionId ? '' : getJapanDateString();
     const response = await fetchWithTimeout(getLiteLawDataUrl(target, asOf), { cache: 'no-store' });
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     const xmlText = await response.text();
     if (!xmlText.trim()) throw new Error('Law XML was empty');
-    await cacheLiteLawXml(target, xmlText);
-    if (!revisionIdParam && currentRevisionId) {
-      const revisionStorageKey = getLiteLawRevisionStorageKey();
-      await chrome.storage.local.set({ [revisionStorageKey]: currentRevisionId }).catch(() => {});
-    }
-    return { ok: true, cacheTarget: target, currentRevisionId, revisions };
+    const downloadedAt = Date.now();
+    await cacheLiteLawXml(revisionIdParam || lawId, xmlText, globalThis.caches,
+      { downloadedAt, currentRevisionId, revisions }).catch(() => {});
+    return { ok: true, cacheTarget: target, currentRevisionId, revisions, xmlText, downloadedAt };
   }
 
   async function finishLawLoad() {
@@ -1563,7 +1565,45 @@
     await refreshFavoriteButton();
   }
 
+  let forceLiteDownload = false;
+  try {
+    const forced = JSON.parse(sessionStorage.getItem('egov-lite-cache-force') || 'null');
+    forceLiteDownload = forced?.lawId === lawId && forced?.revisionId === revisionIdParam
+      && Date.now() - forced.time < 60000 && Date.now() >= forced.time;
+    sessionStorage.removeItem('egov-lite-cache-force');
+  } catch (_) {}
+  document.getElementById('lite-cache-date').hidden = !!localRule;
+  document.getElementById('lite-redownload-button').hidden = !!localRule;
+  document.getElementById('lite-redownload-button').addEventListener('click', () => {
+    try {
+      sessionStorage.setItem('egov-lite-cache-force', JSON.stringify({ lawId, revisionId: revisionIdParam, time: Date.now() }));
+      location.reload();
+    } catch (_) {
+      forceLiteDownload = true;
+      void loadLaw();
+    }
+  });
+
+  let lawLoadGeneration = 0;
+  function scheduleLiteLawUpdateCheck(displayedRevision, generation) {
+    const updates = globalThis.EgovLawUpdates;
+    if (localRule || !updates.isCurrentView(location.href, 'lite', lawId)
+        || !updates.isValidRevision(displayedRevision, 'lite', lawId)) return;
+    // Let the rendered document paint before starting the metadata request.
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      if (generation !== lawLoadGeneration) return;
+      chrome.runtime.sendMessage({ type: 'egov-check-law-update', mode: 'lite', lawId, displayedRevision })
+        .then(result => {
+          if (generation === lawLoadGeneration && result?.ok) {
+            updates.setButtonState(document.getElementById('lite-redownload-button'), result.updated);
+          }
+        }).catch(() => {});
+    }));
+  }
+
   async function loadLaw() {
+    const generation = ++lawLoadGeneration;
+    globalThis.EgovLawUpdates.setButtonState(document.getElementById('lite-redownload-button'), false);
     if (!lawId) {
       articleElementsCache = [];
       contentEl.innerHTML = '<p class="viewer-error">法令IDが指定されていません。</p>';
@@ -1572,12 +1612,12 @@
     articleElementsCache = [];
     contentEl.innerHTML = `<p class="viewer-status">${localRule ? '同梱された規則データ' : 'e-Gov APIから条文XML'}を読み込んでいます...</p>`;
     let renderedTarget = '';
-    let renderedSignature = '';
     try {
       if (localRule) {
         const response = await fetch(chrome.runtime.getURL(localRule.dataPath));
         if (!response.ok) throw new Error(`同梱データを読み込めません（HTTP ${response.status}）`);
         const xmlText = await response.text();
+        if (generation !== lawLoadGeneration) return;
         renderLawXml(xmlText);
         revisionSelect.innerHTML = `<option value="local">${escapeHtml(localRule.sourceLabel)}</option>`;
         revisionSelect.disabled = true;
@@ -1588,56 +1628,30 @@
         await refreshFavoriteButton();
         return;
       }
-      // 先行取得と同じバックグラウンド処理に合流させる。
-      const liveLoadPromise = chrome.runtime.sendMessage({
-        type: 'egov-load-lite-law',
-        lawId,
-        revisionId: revisionIdParam,
-      }).catch((error) => ({ ok: false, error: error?.message || String(error || '') }));
+      // Return XML directly so display also works when caching is disabled or full.
+      let result = await chrome.runtime.sendMessage({
+        type: 'egov-load-lite-law', lawId, revisionId: revisionIdParam, force: forceLiteDownload,
+      }).catch(error => ({ ok: false, error: error?.message || String(error || '') }));
+      if (generation !== lawLoadGeneration) return;
+      if (!result?.ok || !result.xmlText) result = await loadLiteLawDirectly();
+      if (generation !== lawLoadGeneration) return;
+      if (!result?.ok || !result.xmlText) throw new Error(result?.error || 'Law XML could not be loaded');
+      revisions = Array.isArray(result.revisions) ? result.revisions : [];
+      currentRevisionId = revisionIdParam || result.currentRevisionId || currentRevisionId;
+      renderRevisionSelect();
+      const displayedRevision = renderLawXml(result.xmlText) || currentRevisionId;
+      renderedTarget = result.cacheTarget || lawId;
+      jumpToInitialHash();
+      const date = new Date(result.downloadedAt);
+      document.getElementById('lite-cache-date').textContent = Number.isFinite(date.getTime())
+        ? '法令ファイル取得日時：' + date.toLocaleString('ja-JP', { hour12: false }) : '法令ファイル取得日時：不明';
 
-      // 保存済みXMLがあれば、ネットワーク確認を待たずに即座に表示する。
-      const revisionStorageKey = getLiteLawRevisionStorageKey();
-      const stored = await chrome.storage.local.get([revisionStorageKey]).catch(() => ({}));
-      const cachedTarget = revisionIdParam || stored[revisionStorageKey] || lawId;
-      const cachedXml = await readCachedLiteLawXml(cachedTarget);
-      if (cachedXml) {
-        renderedSignature = renderLawXml(cachedXml);
-        renderedTarget = cachedTarget;
-        jumpToInitialHash();
-      }
-
-      let result = await liveLoadPromise;
-      if (!result?.ok) {
-        try {
-          result = await loadLiteLawDirectly();
-        } catch (fallbackError) {
-          if (!renderedTarget) {
-            throw new Error(result?.error || fallbackError?.message || 'Law XML could not be loaded');
-          }
-        }
-      }
-      if (!result?.ok) {
-        if (!renderedTarget) throw new Error(result?.error || 'Law XML could not be loaded');
-      } else {
-        revisions = Array.isArray(result.revisions) ? result.revisions : [];
-        currentRevisionId = revisionIdParam || result.currentRevisionId || currentRevisionId;
-        renderRevisionSelect();
-        {
-          const freshXml = await readCachedLiteLawXml(result.cacheTarget);
-          if (!freshXml) throw new Error('Cached law XML could not be read');
-          const freshLaw = parseLawXmlForRender(freshXml);
-          // 同じキーでも本文が訂正される場合があるため、更新後の内容を確認する。
-          // 内容が同じならDOMを維持し、選択範囲や開いているポップアップを保つ。
-          if (!renderedTarget || freshLaw.signature !== renderedSignature) {
-            renderedSignature = renderParsedLawXml(freshLaw);
-            jumpToInitialHash();
-          }
-          renderedTarget = result.cacheTarget;
-        }
-      }
+      scheduleLiteLawUpdateCheck(displayedRevision, generation);
 
       await finishLawLoad();
     } catch (error) {
+      if (generation !== lawLoadGeneration) return;
+      document.getElementById('lite-cache-date').textContent = '法令ファイルの取得に失敗しました';
       if (!renderedTarget) {
         articleElementsCache = [];
         contentEl.innerHTML = `<p class="viewer-error">条文の読み込みに失敗しました。${escapeHtml(error.message || '')}</p>`;
@@ -1723,7 +1737,9 @@
     return chrome.runtime.getURL(`viewer.html?${urlParams.toString()}`);
   }
 
+  const compareLawSearch = shared.createLawSearch();
   function renderCompareSearch() {
+    compareLawSearch.cancel();
     const initQuery = cleanLawNameForSearch(lawTitleText);
     rightPaneEl.innerHTML = `
       <div class="compare-search">
@@ -1740,6 +1756,8 @@
     const run = () => runCompareSearch(input.value.trim());
     button.addEventListener('click', run);
     input.addEventListener('input', () => {
+      compareLawSearch.cancel();
+      rightPaneEl.querySelector('#compare-status').textContent = '検索ボタンまたはEnterで検索';
       if (compareFocusedIndex >= 0) compareResultButtons[compareFocusedIndex]?.classList.remove('is-focused');
       compareFocusedIndex = -1;
     });
@@ -1770,6 +1788,7 @@
     const status = rightPaneEl.querySelector('#compare-status');
     const resultsEl = rightPaneEl.querySelector('#compare-results');
     if (!query) {
+      compareLawSearch.cancel();
       status.textContent = '検索語を入力してください';
       resultsEl.innerHTML = '';
       compareResults = [];
@@ -1777,16 +1796,16 @@
       compareFocusedIndex = -1;
       return;
     }
+    const request = compareLawSearch.start(query);
     status.textContent = '検索中...';
     resultsEl.innerHTML = '';
     compareResults = [];
     compareResultButtons = [];
     compareFocusedIndex = -1;
     try {
-      const url = `${API_V2_BASE}/laws?law_title=${encodeURIComponent(query)}&limit=31&response_format=json`;
-      const response = await fetchWithTimeout(url);
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      compareResults = extractLaws(await response.json()).map(getLawFields).filter((law) => law.lawId);
+      const laws = await request.promise;
+      if (!request.isCurrent() || !status.isConnected) return;
+      compareResults = laws.map(getLawFields).filter((law) => law.lawId);
       status.textContent = compareResults.length ? `${compareResults.length}件` : '一致なし';
       resultsEl.innerHTML = compareResults.map((law, index) => `
         <button class="compare-result" type="button" data-index="${index}">
@@ -1797,6 +1816,7 @@
       compareResultButtons = Array.from(resultsEl.querySelectorAll('.compare-result'));
       if (compareResults.length) focusCompareResult(0);
     } catch (error) {
+      if (!request.isCurrent() || !status.isConnected) return;
       status.textContent = `検索に失敗しました: ${error.message || ''}`;
     }
   }
@@ -1816,6 +1836,7 @@
   function openCompareResult(index) {
     const law = compareResults[index];
     if (!law?.lawId) return;
+    compareLawSearch.cancel();
     rightPaneEl.innerHTML = `<iframe class="compare-frame" title="${escapeHtml(law.lawName || law.lawId)}" src="${escapeHtml(buildViewerUrlForLaw(law.lawId, law.lawName))}"></iframe>`;
     setFocusedPane('right');
   }
@@ -1829,6 +1850,7 @@
       renderCompareSearch();
       setFocusedPane('right');
     } else {
+      compareLawSearch.cancel();
       rightPaneEl.innerHTML = '';
       setFocusedPane('left');
     }
@@ -4320,6 +4342,7 @@
         <div><kbd>Alt+s</kbd><span>並べて表示の切替</span></div>
         <div><kbd>Alt+O</kbd><span>設定画面を開く</span></div>
         <div><kbd>Alt+M</kbd><span>ハイライト・メモの有効 / 無効を切替</span></div>
+        <div><kbd>Alt+D</kbd><span>定義参照の有効 / 無効を切替</span></div>
         <div><kbd>s</kbd><span>ページ内検索</span></div>
         <div><kbd>0-9</kbd><span>条文ジャンプダイアログ</span></div>
         <div><kbd>h / l</kbd><span>条文ジャンプ履歴を前後移動</span></div>
@@ -4553,7 +4576,15 @@
 
   document.addEventListener('keydown', (event) => {
     if (event.defaultPrevented) return;
+    if (event.target.closest?.('.viewer-footer-actions button')
+        && !event.ctrlKey && !event.altKey && !event.metaKey
+        && (event.key === 'Enter' || event.key === ' ')) return;
     const lower = event.key.toLowerCase();
+    if (event.altKey && !event.ctrlKey && !event.metaKey && (lower === 'd' || event.code === 'KeyD')) {
+      event.preventDefault();
+      if (!event.repeat) toggleDefinitionLinks();
+      return;
+    }
     if (event.altKey && !event.ctrlKey && !event.metaKey && (lower === 'm' || event.code === 'KeyM')) {
       event.preventDefault();
       toggleTextHighlights();

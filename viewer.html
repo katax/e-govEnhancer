@@ -39,13 +39,10 @@
       </label>
       <button id="paren-mode-button" class="viewer-toggle-button" type="button" aria-pressed="false">かっこ</button>
       <button id="external-references-button" class="viewer-toggle-button" type="button" aria-pressed="false">逆リンク</button>
-      <button id="definition-links-button" class="viewer-toggle-button" type="button" aria-pressed="true">定義</button>
+      <button id="definition-links-button" class="viewer-toggle-button" type="button" aria-pressed="true">定義参照</button>
       <button id="law-ref-mode-button" class="viewer-toggle-button" type="button" aria-pressed="true">スクロール</button>
       <button id="highlight-list-button" class="viewer-toggle-button" type="button" aria-pressed="true">メモ</button>
-      <button id="normal-mode-button" type="button">通常モード</button>
-      <button id="compare-mode-button" type="button">&#x4E26;&#x3079;&#x3066;&#x8868;&#x793A;</button>
       <button id="favorite-button" type="button" aria-label="お気に入り">☆</button>
-      <button id="shortcut-button" type="button" aria-label="ショートカット">?</button>
     </div>
   </header>
   <main class="viewer-shell">
@@ -54,7 +51,18 @@
     </section>
     <aside id="right-pane" class="lite-pane lite-pane-right" tabindex="-1" aria-label="&#x4E26;&#x3079;&#x3066;&#x8868;&#x793A;"></aside>
   </main>
+  <footer id="lite-cache-status" class="viewer-cache-status">
+    <span id="lite-cache-date" role="status">法令ファイル取得日時：読み込み中</span>
+    <div class="viewer-footer-actions">
+      <button id="lite-redownload-button" type="button" title="法令ファイルの再取得">法令ファイルの再取得</button>
+      <button id="compare-mode-button" type="button" title="並べて表示（ALT+S）">並べて表示</button>
+      <button id="normal-mode-button" type="button" title="通常モード（ALT+L）">通常モード</button>
+      <button id="options-button" type="button" title="オプション（ALT+O）">オプション</button>
+      <button id="shortcut-button" type="button" title="ヘルプ（?）">ヘルプ</button>
+    </div>
+  </footer>
   <script src="shared/egov-shared.js"></script>
+  <script src="shared/law-update-check.js"></script>
   <script src="shared/egov-app.js"></script>
   <script src="shared/text-highlights.js"></script>
   <script src="shared/court-rule-catalog.js"></script>

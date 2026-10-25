@@ -1,0 +1,165 @@
+{
+  "measuredAt": "2026-10-25T13:08:56.055Z",
+  "node": "v24.22.1",
+  "records": [
+    {
+      "lawId": "322AC0000000054",
+      "name": "独占禁止法",
+      "date": "2026-10-25",
+      "params": {
+        "law_data_id": 610982,
+        "subRevision": "4"
+      },
+      "ids": 1628,
+      "uniqueIds": 1628,
+      "history": {
+        "endpoint": "SelectLawRevisionData",
+        "headersMs": 567.0763,
+        "totalMs": 568.8805,
+        "decodedBytes": 14318,
+        "contentLength": "1497",
+        "contentEncoding": "gzip"
+      },
+      "toc": {
+        "endpoint": "SelectLawTocData",
+        "headersMs": 152.70280000000002,
+        "totalMs": 156.30790000000002,
+        "decodedBytes": 331410,
+        "contentLength": "19493",
+        "contentEncoding": "gzip"
+      },
+      "samples": [
+        {
+          "endpoint": "SelectInyoLawData",
+          "headersMs": 763.0272,
+          "totalMs": 764.587,
+          "decodedBytes": 169024,
+          "contentLength": "11164",
+          "contentEncoding": "gzip"
+        },
+        {
+          "endpoint": "SelectInyoLawData",
+          "headersMs": 791.9677000000001,
+          "totalMs": 792.9002,
+          "decodedBytes": 169024,
+          "contentLength": "11164",
+          "contentEncoding": "gzip"
+        },
+        {
+          "endpoint": "SelectInyoLawData",
+          "headersMs": 814.6148999999996,
+          "totalMs": 827.2584999999999,
+          "decodedBytes": 169024,
+          "contentLength": "11164",
+          "contentEncoding": "gzip"
+        }
+      ]
+    },
+    {
+      "lawId": "129AC0000000089",
+      "name": "民法",
+      "date": "2026-10-25",
+      "params": {
+        "law_data_id": 637374,
+        "subRevision": "1"
+      },
+      "ids": 4287,
+      "uniqueIds": 4287,
+      "history": {
+        "endpoint": "SelectLawRevisionData",
+        "headersMs": 391.07440000000133,
+        "totalMs": 391.52420000000166,
+        "decodedBytes": 21639,
+        "contentLength": "1728",
+        "contentEncoding": "gzip"
+      },
+      "toc": {
+        "endpoint": "SelectLawTocData",
+        "headersMs": 173.00500000000102,
+        "totalMs": 181.16420000000107,
+        "decodedBytes": 1060535,
+        "contentLength": "68107",
+        "contentEncoding": "gzip"
+      },
+      "samples": [
+        {
+          "endpoint": "SelectInyoLawData",
+          "headersMs": 4368.195100000001,
+          "totalMs": 4376.968000000001,
+          "decodedBytes": 946629,
+          "contentLength": "63146",
+          "contentEncoding": "gzip"
+        },
+        {
+          "endpoint": "SelectInyoLawData",
+          "headersMs": 4610.3591,
+          "totalMs": 4619.3214000000025,
+          "decodedBytes": 946629,
+          "contentLength": "63146",
+          "contentEncoding": "gzip"
+        },
+        {
+          "endpoint": "SelectInyoLawData",
+          "headersMs": 4309.784800000001,
+          "totalMs": 4319.722300000001,
+          "decodedBytes": 946629,
+          "contentLength": "63146",
+          "contentEncoding": "gzip"
+        }
+      ]
+    },
+    {
+      "lawId": "321CONSTITUTION",
+      "name": "日本国憲法",
+      "date": "2026-10-25",
+      "params": {
+        "law_data_id": 563402,
+        "subRevision": "1"
+      },
+      "ids": 293,
+      "uniqueIds": 293,
+      "history": {
+        "endpoint": "SelectLawRevisionData",
+        "headersMs": 270.77330000000075,
+        "totalMs": 272.5650000000023,
+        "decodedBytes": 384,
+        "contentLength": "243",
+        "contentEncoding": "gzip"
+      },
+      "toc": {
+        "endpoint": "SelectLawTocData",
+        "headersMs": 131.84100000000035,
+        "totalMs": 132.60570000000007,
+        "decodedBytes": 54295,
+        "contentLength": "3480",
+        "contentEncoding": "gzip"
+      },
+      "samples": [
+        {
+          "endpoint": "SelectInyoLawData",
+          "headersMs": 479.36079999999856,
+          "totalMs": 479.7011999999995,
+          "decodedBytes": 30277,
+          "contentLength": "2962",
+          "contentEncoding": "gzip"
+        },
+        {
+          "endpoint": "SelectInyoLawData",
+          "headersMs": 467.14830000000075,
+          "totalMs": 467.6261000000013,
+          "decodedBytes": 30277,
+          "contentLength": "2962",
+          "contentEncoding": "gzip"
+        },
+        {
+          "endpoint": "SelectInyoLawData",
+          "headersMs": 503.87820000000283,
+          "totalMs": 504.4249999999993,
+          "decodedBytes": 30277,
+          "contentLength": "2962",
+          "contentEncoding": "gzip"
+        }
+      ]
+    }
+  ]
+}

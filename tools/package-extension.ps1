@@ -6,6 +6,24 @@ $repoRoot = Split-Path -Parent $PSScriptRoot
 $manifestPath = Join-Path $repoRoot 'manifest.json'
 $manifest = Get-Content -LiteralPath $manifestPath -Raw -Encoding UTF8 | ConvertFrom-Json
 
+# Refuse stale runtime shards after the source reference data is updated.
+$shardRoot = Join-Path $repoRoot 'data\reference-shards'
+$shardManifestPath = Join-Path $shardRoot 'manifest.json'
+if (-not (Test-Path -LiteralPath $shardManifestPath)) {
+  throw '参照データを分割してください: node tools/build-reference-shards.mjs'
+}
+$shardManifest = Get-Content -LiteralPath $shardManifestPath -Raw -Encoding UTF8 | ConvertFrom-Json
+$sourceHash = (Get-FileHash -LiteralPath (Join-Path $repoRoot 'data\references.json') -Algorithm SHA256).Hash
+if ($sourceHash -ne $shardManifest.sourceSha256 -or @($shardManifest.shards.PSObject.Properties).Count -ne 256) {
+  throw '参照データの分割を更新してください: node tools/build-reference-shards.mjs'
+}
+foreach ($shard in $shardManifest.shards.PSObject.Properties) {
+  $shardPath = Join-Path $shardRoot "$($shard.Name).json"
+  if (-not (Test-Path -LiteralPath $shardPath) -or (Get-FileHash -LiteralPath $shardPath -Algorithm SHA256).Hash -ne $shard.Value) {
+    throw "参照データの分割ファイルが不正です: $shardPath"
+  }
+}
+
 if (-not $OutputPath) {
   $OutputPath = Join-Path $repoRoot "release\egov-extension-v$($manifest.version).zip"
 } elseif (-not [IO.Path]::IsPathRooted($OutputPath)) {
@@ -74,7 +92,22 @@ try {
     if (-not (Test-Path -LiteralPath $source)) {
       throw "パッケージ必須ディレクトリがありません: $directory"
     }
-    Copy-Item -LiteralPath $source -Destination (Join-Path $stagingRoot $directory) -Recurse -ErrorAction Stop
+    if ($directory -eq 'docs') {
+      $destination = Join-Path $stagingRoot $directory
+      New-Item -ItemType Directory -Path $destination -Force -ErrorAction Stop | Out-Null
+      Get-ChildItem -LiteralPath $source | Where-Object { $_.Name -ne 'research' } | ForEach-Object {
+        Copy-Item -LiteralPath $_.FullName -Destination $destination -Recurse -ErrorAction Stop
+      }
+    } elseif ($directory -eq 'data') {
+      $destination = Join-Path $stagingRoot $directory
+      New-Item -ItemType Directory -Path $destination -Force -ErrorAction Stop | Out-Null
+      # The original JSON is an authoring input; runtime and export use shards.
+      Get-ChildItem -LiteralPath $source | Where-Object { $_.Name -ne 'references.json' } | ForEach-Object {
+        Copy-Item -LiteralPath $_.FullName -Destination $destination -Recurse -ErrorAction Stop
+      }
+    } else {
+      Copy-Item -LiteralPath $source -Destination (Join-Path $stagingRoot $directory) -Recurse -ErrorAction Stop
+    }
   }
 
   $outputDirectory = Split-Path -Parent $OutputPath

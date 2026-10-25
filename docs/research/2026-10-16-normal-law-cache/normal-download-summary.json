@@ -1,0 +1,210 @@
+{
+  "dateJapan": "2026-10-16",
+  "note": "First article DOM availability, not first paint or Enhancer completion. Three measured navigations per routed mode and law. Controlled static application assets, live external law endpoints when not replayed. Decoded body sizes are not on-wire compressed bytes. MAIN-world XHR is a test prototype with a file-backed bridge, not an installed MV3 extension.",
+  "checks": [
+    {
+      "name": "route: all 28 navigations preserved body HTML, text, article IDs and revision",
+      "passed": true
+    },
+    {
+      "name": "xhr: all 8 navigations preserved body HTML, text, article IDs and revision",
+      "passed": true
+    },
+    {
+      "name": "changed law_id cannot hit recorded request key",
+      "passed": true
+    },
+    {
+      "name": "changed law_data_id cannot hit recorded request key",
+      "passed": true
+    },
+    {
+      "name": "changed subRevision cannot hit recorded request key",
+      "passed": true
+    },
+    {
+      "name": "changed occasion cannot hit recorded request key",
+      "passed": true
+    },
+    {
+      "name": "changed selTextList cannot hit recorded request key",
+      "passed": true
+    },
+    {
+      "name": "changed HTTP method cannot hit recorded request key",
+      "passed": true
+    },
+    {
+      "name": "corrupt cached bytes fail content digest validation",
+      "passed": true
+    }
+  ],
+  "summary": [
+    {
+      "lawId": "405AC0000000088",
+      "lawName": "行政手続法",
+      "articleElements": 48,
+      "decodedLawBytes": 337212,
+      "nativeWarmBodyDiskCache": [],
+      "responseHeaders": [
+        {
+          "endpoint": "SelectLawRevisionData.json",
+          "method": "POST",
+          "resourceType": "xhr",
+          "decodedBytes": 6787,
+          "cacheControl": "max-age=0, no-cache, no-store"
+        },
+        {
+          "endpoint": "SelectLawTocData.json",
+          "method": "POST",
+          "resourceType": "xhr",
+          "decodedBytes": 73017,
+          "cacheControl": "max-age=0, no-cache, no-store"
+        },
+        {
+          "endpoint": "SelectLawData.json",
+          "method": "POST",
+          "resourceType": "xhr",
+          "decodedBytes": 1451,
+          "cacheControl": "max-age=0, no-cache, no-store"
+        },
+        {
+          "endpoint": "SelectLawTextData.json",
+          "method": "POST",
+          "resourceType": "xhr",
+          "decodedBytes": 255957,
+          "cacheControl": "max-age=0, no-cache, no-store"
+        }
+      ],
+      "modes": [
+        {
+          "mode": "data-live",
+          "n": 3,
+          "medianFirstArticleMs": 1126.4,
+          "minMs": 914.3,
+          "maxMs": 1162.7,
+          "liveLawRequests": 4,
+          "locallySuppliedBytes": 0
+        },
+        {
+          "mode": "body-cache",
+          "n": 3,
+          "medianFirstArticleMs": 930.8,
+          "minMs": 899.8,
+          "maxMs": 1018,
+          "liveLawRequests": 3,
+          "locallySuppliedBytes": 255957
+        },
+        {
+          "mode": "live-revision-cache",
+          "n": 3,
+          "medianFirstArticleMs": 637,
+          "minMs": 628.6,
+          "maxMs": 640.8,
+          "liveLawRequests": 1,
+          "locallySuppliedBytes": 330425
+        },
+        {
+          "mode": "all-data-cache",
+          "n": 3,
+          "medianFirstArticleMs": 315.9,
+          "minMs": 311.2,
+          "maxMs": 317.8,
+          "liveLawRequests": 0,
+          "locallySuppliedBytes": 337212
+        }
+      ],
+      "mainWorldXhr": {
+        "n": 3,
+        "medianFirstArticleMs": 308.5,
+        "liveLawRequests": 0,
+        "tocJumpPassed": true
+      }
+    },
+    {
+      "lawId": "129AC0000000089",
+      "lawName": "民法",
+      "articleElements": 1165,
+      "decodedLawBytes": 2655219,
+      "nativeWarmBodyDiskCache": [
+        "https://laws.e-gov.go.jp/data/Act/129AC0000000089/637374_1/129AC0000000089_20260624_508AC0000000045_law.html"
+      ],
+      "responseHeaders": [
+        {
+          "endpoint": "SelectLawRevisionData.json",
+          "method": "POST",
+          "resourceType": "xhr",
+          "decodedBytes": 21639,
+          "cacheControl": "max-age=0, no-cache, no-store"
+        },
+        {
+          "endpoint": "SelectLawTocData.json",
+          "method": "POST",
+          "resourceType": "xhr",
+          "decodedBytes": 1060535,
+          "cacheControl": "max-age=0, no-cache, no-store"
+        },
+        {
+          "endpoint": "SelectLawData.json",
+          "method": "POST",
+          "resourceType": "xhr",
+          "decodedBytes": 1447,
+          "cacheControl": "max-age=0, no-cache, no-store"
+        },
+        {
+          "endpoint": "129AC0000000089_20260624_508AC0000000045_law.html",
+          "method": "GET",
+          "resourceType": "xhr",
+          "decodedBytes": 1571598,
+          "cacheControl": "max-age=20",
+          "etag": "\"ac48acff45dadecf3866bbf74d75fbe4\"",
+          "lastModified": "Wed, 24 Jun 2026 02:07:12 GMT"
+        }
+      ],
+      "modes": [
+        {
+          "mode": "data-live",
+          "n": 3,
+          "medianFirstArticleMs": 2983.8,
+          "minMs": 2911.7,
+          "maxMs": 3099.6,
+          "liveLawRequests": 4,
+          "locallySuppliedBytes": 0
+        },
+        {
+          "mode": "body-cache",
+          "n": 3,
+          "medianFirstArticleMs": 2450.8,
+          "minMs": 2410,
+          "maxMs": 2544.9,
+          "liveLawRequests": 3,
+          "locallySuppliedBytes": 1571598
+        },
+        {
+          "mode": "live-revision-cache",
+          "n": 3,
+          "medianFirstArticleMs": 1681.2,
+          "minMs": 1677.4,
+          "maxMs": 1766.7,
+          "liveLawRequests": 1,
+          "locallySuppliedBytes": 2633580
+        },
+        {
+          "mode": "all-data-cache",
+          "n": 3,
+          "medianFirstArticleMs": 1354.7,
+          "minMs": 701.6,
+          "maxMs": 1410.4,
+          "liveLawRequests": 0,
+          "locallySuppliedBytes": 2655219
+        }
+      ],
+      "mainWorldXhr": {
+        "n": 3,
+        "medianFirstArticleMs": 755.8,
+        "liveLawRequests": 0,
+        "tocJumpPassed": true
+      }
+    }
+  ]
+}

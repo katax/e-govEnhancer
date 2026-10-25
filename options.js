@@ -9,6 +9,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   const smoothToggle = document.getElementById('smoothScrollToggle');
   const liteModeDefaultToggle = document.getElementById('liteModeDefaultToggle');
   const hideLawSidebarDefaultToggle = document.getElementById('hideLawSidebarDefaultToggle');
+  const cacheCapacityInput = document.getElementById('normalResponseCacheCapacity');
+  const cacheCapacityStatus = document.getElementById('normalResponseCacheCapacityStatus');
+  const cacheFrequencySelect = document.getElementById('normalResponseCacheFrequency');
+  const cacheFrequencyStatus = document.getElementById('normalResponseCacheFrequencyStatus');
   const textHighlightsEnabledToggle = document.getElementById('textHighlightsEnabledToggle');
   const lawRefClickToggle = document.getElementById('lawRefClickToggle');
   const lawRefHoverPopupToggle = document.getElementById('lawRefHoverPopupToggle');
@@ -62,6 +66,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   const { persistLocal: persistSharedLocal } = globalThis.EgovApp;
   const persistLocal = (items) => persistSharedLocal(items, { errorLabel: '設定の保存' });
   const {
+    NORMAL_RESPONSE_CACHE_LIMITS,
+    NORMAL_RESPONSE_CACHE_FREQUENCY_KEY,
+    normalizeNormalResponseCacheFrequency,
+    normalizeNormalResponseCacheCapacity,
     REFERENCES_CURRENT_META_KEY,
     REFERENCES_LAWS_STORE,
     REFERENCES_META_STORE,
@@ -85,11 +93,40 @@ document.addEventListener('DOMContentLoaded', async () => {
   defTooltipClickOnlyToggle.checked = true;
   externalReferencesAutoEnableToggle.checked = false;
   reverseReferenceScopeSelect.value = 'both';
+  cacheCapacityInput.value = NORMAL_RESPONSE_CACHE_LIMITS.defaultMiB;
+  cacheFrequencySelect.addEventListener('change', async () => {
+    const value = normalizeNormalResponseCacheFrequency(cacheFrequencySelect.value);
+    cacheFrequencySelect.disabled = true;
+    try {
+      const saved = await persistLocal({ [NORMAL_RESPONSE_CACHE_FREQUENCY_KEY]: value });
+      cacheFrequencyStatus.textContent = saved ? '保存しました。次に法令を開くときから適用します。' : '保存できませんでした。もう一度選択してください。';
+    } finally { cacheFrequencySelect.disabled = false; }
+  });
+  cacheCapacityInput.addEventListener('input', () => {
+    cacheCapacityInput.setCustomValidity('');
+    cacheCapacityStatus.textContent = '';
+  });
+  cacheCapacityInput.addEventListener('change', async () => {
+    const value = cacheCapacityInput.valueAsNumber;
+    if (!cacheCapacityInput.checkValidity() || !Number.isInteger(value)) {
+      cacheCapacityInput.setCustomValidity('1〜4096の整数を入力してください。');
+      cacheCapacityInput.reportValidity();
+      cacheCapacityStatus.textContent = '1〜4096MiBの整数を入力してください。';
+      return;
+    }
+    cacheCapacityInput.disabled = true;
+    try {
+      const saved = await persistLocal({ [NORMAL_RESPONSE_CACHE_LIMITS.storageKey]: value });
+      cacheCapacityStatus.textContent = saved ? '保存しました。次のデータ保存時から適用します。' : '保存できませんでした。もう一度変更してください。';
+    } finally { cacheCapacityInput.disabled = false; }
+  });
 
   chrome.storage.local.get([
     'scrollBehavior',
     'liteModeDefault',
     'hideLawSidebarDefault',
+    NORMAL_RESPONSE_CACHE_LIMITS.storageKey,
+    NORMAL_RESPONSE_CACHE_FREQUENCY_KEY,
     'textHighlightsEnabled',
     'lawRefClickEnabled',
     'lawRefHoverPopup',
@@ -103,6 +140,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     scrollBehavior,
     liteModeDefault,
     hideLawSidebarDefault,
+    normalResponseCacheCapacityMiB,
+    normalResponseCacheFrequency,
     textHighlightsEnabled,
     lawRefClickEnabled,
     lawRefHoverPopup,
@@ -121,6 +160,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     smoothToggle.checked = (scrollBehavior === 'smooth');
     liteModeDefaultToggle.checked = (typeof liteModeDefault === 'boolean') ? liteModeDefault : false;
     hideLawSidebarDefaultToggle.checked = (typeof hideLawSidebarDefault === 'boolean') ? hideLawSidebarDefault : false;
+    cacheCapacityInput.value = normalizeNormalResponseCacheCapacity(normalResponseCacheCapacityMiB);
+    cacheFrequencySelect.value = normalizeNormalResponseCacheFrequency(normalResponseCacheFrequency);
     textHighlightsEnabledToggle.checked = textHighlightsEnabled !== false;
     lawRefClickToggle.checked = (typeof lawRefClickEnabled === 'boolean') ? lawRefClickEnabled : true;
     lawRefHoverPopupToggle.checked = (typeof lawRefHoverPopup === 'boolean') ? lawRefHoverPopup : false;
@@ -443,7 +484,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     ].join(' / ');
   }
 
-  const { isTextHighlightLawId, validateFavoritesImport, validateTextHighlightsImport, buildTextHighlightsSummary } = globalThis.EgovTransferData;
+  const { isTextHighlightLawId, validateFavoritesImport, validateTextHighlightsImport, buildTextHighlightsSummary,
+    mergeFavoritesImport, mergeTextHighlightsImport } = globalThis.EgovTransferData;
 
   async function reloadLawTabsIfConfirmed() {
     const ok = window.confirm('設定を反映するため、開いている e-Gov 法令ページをリロードしますか？');
@@ -510,20 +552,24 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     const summary = buildExportSummary(validated);
-    const ok = window.confirm(`お気に入りデータを置き換えますか？\n\n${summary}`);
+    const merge = document.getElementById('favoritesImportMode').value === 'merge';
+    const ok = window.confirm(`${merge ? '現在のお気に入りを残して、ファイルの内容をマージしますか？重複する法令は現在の登録内容を優先します。' : 'お気に入りデータを置き換えますか？'}\n\n読み込みファイル：${summary}`);
     if (!ok) {
       setTransferStatus('インポートをキャンセルしました。', 'info');
       return;
     }
 
+    const current = merge ? await chrome.storage.local.get(['favorites', 'favFolders', 'folderCollapsed']) : {};
+    const result = merge ? mergeFavoritesImport({ type: FAVORITES_EXPORT_TYPE, version: FAVORITES_EXPORT_VERSION,
+      favorites: current.favorites || [], favFolders: current.favFolders || [], folderCollapsed: current.folderCollapsed || {} }, validated) : validated;
     await chrome.storage.local.set({
-      favorites: validated.favorites,
-      favFolders: validated.favFolders,
-      folderCollapsed: validated.folderCollapsed,
+      favorites: result.favorites,
+      favFolders: result.favFolders,
+      folderCollapsed: result.folderCollapsed,
     });
 
-    setTransferStatus('お気に入りをインポートしました。', 'success');
-    setTransferSummary(summary);
+    setTransferStatus(merge ? 'お気に入りをマージしました。' : 'お気に入りを置き換えました。', 'success');
+    setTransferSummary(buildExportSummary(result));
   }
 
   async function exportTextHighlights() {
@@ -585,7 +631,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     const summary = buildTextHighlightsSummary(validated.summary);
-    const ok = window.confirm(`現在のメモとハイライトを、読み込んだ内容に置き換えますか？\n\n${summary}`);
+    const merge = document.getElementById('textHighlightsImportMode').value === 'merge';
+    const ok = window.confirm(`${merge ? '現在のメモとハイライトを残してマージしますか？同じIDは更新日時の新しい内容を採用します（同時刻は現在の内容）。' : '現在のメモとハイライトを、読み込んだ内容に置き換えますか？'}\n\n読み込みファイル：${summary}`);
     if (!ok) {
       setTextHighlightsTransferStatus('読み込みをキャンセルしました。', 'info');
       return;
@@ -593,17 +640,35 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const current = await chrome.storage.local.get(null);
     const currentKeys = Object.keys(current).filter((key) => key.startsWith(TEXT_HIGHLIGHTS_STORAGE_PREFIX));
+    const result = merge ? mergeTextHighlightsImport({ type: TEXT_HIGHLIGHTS_EXPORT_TYPE, version: TEXT_HIGHLIGHTS_EXPORT_VERSION,
+      laws: Object.fromEntries(currentKeys.map(key => [key.slice(TEXT_HIGHLIGHTS_STORAGE_PREFIX.length), current[key]])) }, validated) : validated;
     const importedItems = {};
-    for (const [lawId, records] of Object.entries(validated.laws)) {
+    for (const [lawId, records] of Object.entries(result.laws)) {
+      if (merge && !Object.hasOwn(validated.laws, lawId)) continue;
       importedItems[`${TEXT_HIGHLIGHTS_STORAGE_PREFIX}${lawId}`] = records;
     }
     const importedKeys = new Set(Object.keys(importedItems));
     if (importedKeys.size) await chrome.storage.local.set(importedItems);
     const obsoleteKeys = currentKeys.filter((key) => !importedKeys.has(key));
-    if (obsoleteKeys.length) await chrome.storage.local.remove(obsoleteKeys);
+    if (!merge && obsoleteKeys.length) await chrome.storage.local.remove(obsoleteKeys);
 
-    setTextHighlightsTransferStatus('メモとハイライトを読み込みました。', 'success');
-    setTextHighlightsTransferSummary(summary);
+    setTextHighlightsTransferStatus(merge ? 'メモとハイライトをマージしました。' : 'メモとハイライトを置き換えました。', 'success');
+    setTextHighlightsTransferSummary(buildTextHighlightsSummary(result.summary));
+  }
+
+  async function readBundledReferencesForExport() {
+    const payload = {};
+    // Export needs the complete data, but normal viewing reads just one shard.
+    for (let start = 0; start < 256; start += 8) {
+      const shards = await Promise.all(Array.from({ length: 8 }, async (_, offset) => {
+        const name = (start + offset).toString(16).padStart(2, '0');
+        const response = await fetch(chrome.runtime.getURL(`data/reference-shards/${name}.json`), { cache: 'force-cache' });
+        if (!response.ok) throw new Error(`同梱データを読み込めませんでした: HTTP ${response.status}`);
+        return response.json();
+      }));
+      for (const shard of shards) Object.assign(payload, shard);
+    }
+    return payload;
   }
 
   async function exportReferences() {
@@ -624,9 +689,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       };
       sourceLabel = '読み込み済みデータ';
     } else {
-      const response = await fetch(chrome.runtime.getURL('data/references.json'), { cache: 'force-cache' });
-      if (!response.ok) throw new Error(`同梱データを読み込めませんでした: HTTP ${response.status}`);
-      payload = await response.json();
+      payload = await readBundledReferencesForExport();
       summary = countReferencesSummary(payload);
       sourceLabel = '同梱データ';
     }

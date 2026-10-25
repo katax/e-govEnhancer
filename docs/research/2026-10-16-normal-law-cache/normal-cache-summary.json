@@ -1,0 +1,901 @@
+{
+  "note": "Synthetic fixed DOM, native browser algorithms and DOM operations. No native storage or real-site total-load timing. Read-latency budgets and hit-rate estimates are exploratory, not shipping criteria.",
+  "rows": [
+    {
+      "guard": "recapture",
+      "articles": 26,
+      "modern": false,
+      "definitions": 5,
+      "kind": "definitions",
+      "metric": "analysis+definition DOM mutation",
+      "modes": {
+        "off": {
+          "analysisMedianMs": 0.55,
+          "medianMs": 2.2,
+          "p95Ms": 5.6
+        },
+        "miss": {
+          "analysisMedianMs": 1.05,
+          "medianMs": 2.6,
+          "p95Ms": 3.4
+        },
+        "hit": {
+          "analysisMedianMs": 0.55,
+          "medianMs": 2.1,
+          "p95Ms": 3.5
+        }
+      },
+      "readLatencyBudgetMs": 0.1,
+      "minimumHitFractionWithoutNativeIO": 0.8,
+      "recordBytes": 1149
+    },
+    {
+      "guard": "recapture",
+      "articles": 26,
+      "modern": false,
+      "definitions": 5,
+      "kind": "internalReferences",
+      "metric": "reference analysis only",
+      "modes": {
+        "off": {
+          "analysisMedianMs": 0.7,
+          "medianMs": 0.7,
+          "p95Ms": 5
+        },
+        "miss": {
+          "analysisMedianMs": 1.2,
+          "medianMs": 1.2,
+          "p95Ms": 1.7
+        },
+        "hit": {
+          "analysisMedianMs": 0.6,
+          "medianMs": 0.6,
+          "p95Ms": 0.8
+        }
+      },
+      "readLatencyBudgetMs": 0.1,
+      "minimumHitFractionWithoutNativeIO": 0.83,
+      "recordBytes": 10365
+    },
+    {
+      "guard": "recapture",
+      "articles": 26,
+      "modern": true,
+      "definitions": 5,
+      "kind": "definitions",
+      "metric": "analysis+definition DOM mutation",
+      "modes": {
+        "off": {
+          "analysisMedianMs": 0.4,
+          "medianMs": 1.55,
+          "p95Ms": 3.1
+        },
+        "miss": {
+          "analysisMedianMs": 0.9,
+          "medianMs": 2.1,
+          "p95Ms": 4.4
+        },
+        "hit": {
+          "analysisMedianMs": 0.4,
+          "medianMs": 1.6,
+          "p95Ms": 3.8
+        }
+      },
+      "readLatencyBudgetMs": -0.05,
+      "minimumHitFractionWithoutNativeIO": null,
+      "recordBytes": 1149
+    },
+    {
+      "guard": "recapture",
+      "articles": 26,
+      "modern": true,
+      "definitions": 5,
+      "kind": "internalReferences",
+      "metric": "reference analysis only",
+      "modes": {
+        "off": {
+          "analysisMedianMs": 0.65,
+          "medianMs": 0.65,
+          "p95Ms": 1.2
+        },
+        "miss": {
+          "analysisMedianMs": 1.15,
+          "medianMs": 1.15,
+          "p95Ms": 2.2
+        },
+        "hit": {
+          "analysisMedianMs": 0.5,
+          "medianMs": 0.5,
+          "p95Ms": 0.8
+        }
+      },
+      "readLatencyBudgetMs": 0.15,
+      "minimumHitFractionWithoutNativeIO": 0.77,
+      "recordBytes": 10365
+    },
+    {
+      "guard": "recapture",
+      "articles": 242,
+      "modern": false,
+      "definitions": 5,
+      "kind": "definitions",
+      "metric": "analysis+definition DOM mutation",
+      "modes": {
+        "off": {
+          "analysisMedianMs": 3.3,
+          "medianMs": 17,
+          "p95Ms": 19.5
+        },
+        "miss": {
+          "analysisMedianMs": 8.1,
+          "medianMs": 22.4,
+          "p95Ms": 41
+        },
+        "hit": {
+          "analysisMedianMs": 5,
+          "medianMs": 19.45,
+          "p95Ms": 27.1
+        }
+      },
+      "readLatencyBudgetMs": -2.45,
+      "minimumHitFractionWithoutNativeIO": null,
+      "recordBytes": 1149
+    },
+    {
+      "guard": "recapture",
+      "articles": 242,
+      "modern": false,
+      "definitions": 5,
+      "kind": "internalReferences",
+      "metric": "reference analysis only",
+      "modes": {
+        "off": {
+          "analysisMedianMs": 5.55,
+          "medianMs": 5.55,
+          "p95Ms": 12.5
+        },
+        "miss": {
+          "analysisMedianMs": 11.6,
+          "medianMs": 11.6,
+          "p95Ms": 17.1
+        },
+        "hit": {
+          "analysisMedianMs": 5.2,
+          "medianMs": 5.2,
+          "p95Ms": 6.9
+        }
+      },
+      "readLatencyBudgetMs": 0.35,
+      "minimumHitFractionWithoutNativeIO": 0.95,
+      "recordBytes": 95319
+    },
+    {
+      "guard": "recapture",
+      "articles": 242,
+      "modern": true,
+      "definitions": 5,
+      "kind": "definitions",
+      "metric": "analysis+definition DOM mutation",
+      "modes": {
+        "off": {
+          "analysisMedianMs": 2.8,
+          "medianMs": 15.3,
+          "p95Ms": 21.1
+        },
+        "miss": {
+          "analysisMedianMs": 6.85,
+          "medianMs": 19.8,
+          "p95Ms": 22.8
+        },
+        "hit": {
+          "analysisMedianMs": 4.7,
+          "medianMs": 19.2,
+          "p95Ms": 26.1
+        }
+      },
+      "readLatencyBudgetMs": -3.9,
+      "minimumHitFractionWithoutNativeIO": null,
+      "recordBytes": 1149
+    },
+    {
+      "guard": "recapture",
+      "articles": 242,
+      "modern": true,
+      "definitions": 5,
+      "kind": "internalReferences",
+      "metric": "reference analysis only",
+      "modes": {
+        "off": {
+          "analysisMedianMs": 5.4,
+          "medianMs": 5.4,
+          "p95Ms": 10.5
+        },
+        "miss": {
+          "analysisMedianMs": 10.15,
+          "medianMs": 10.15,
+          "p95Ms": 13.8
+        },
+        "hit": {
+          "analysisMedianMs": 4.65,
+          "medianMs": 4.65,
+          "p95Ms": 8.8
+        }
+      },
+      "readLatencyBudgetMs": 0.75,
+      "minimumHitFractionWithoutNativeIO": 0.86,
+      "recordBytes": 95319
+    },
+    {
+      "guard": "recapture",
+      "articles": 802,
+      "modern": false,
+      "definitions": 5,
+      "kind": "definitions",
+      "metric": "analysis+definition DOM mutation",
+      "modes": {
+        "off": {
+          "analysisMedianMs": 11.5,
+          "medianMs": 60.5,
+          "p95Ms": 79.2
+        },
+        "miss": {
+          "analysisMedianMs": 26.45,
+          "medianMs": 76.7,
+          "p95Ms": 80.6
+        },
+        "hit": {
+          "analysisMedianMs": 16.7,
+          "medianMs": 65.7,
+          "p95Ms": 75.3
+        }
+      },
+      "readLatencyBudgetMs": -5.2,
+      "minimumHitFractionWithoutNativeIO": null,
+      "recordBytes": 1149
+    },
+    {
+      "guard": "recapture",
+      "articles": 802,
+      "modern": false,
+      "definitions": 5,
+      "kind": "internalReferences",
+      "metric": "reference analysis only",
+      "modes": {
+        "off": {
+          "analysisMedianMs": 19.1,
+          "medianMs": 19.1,
+          "p95Ms": 20.8
+        },
+        "miss": {
+          "analysisMedianMs": 38,
+          "medianMs": 38,
+          "p95Ms": 46.6
+        },
+        "hit": {
+          "analysisMedianMs": 17.15,
+          "medianMs": 17.15,
+          "p95Ms": 19.9
+        }
+      },
+      "readLatencyBudgetMs": 1.95,
+      "minimumHitFractionWithoutNativeIO": 0.91,
+      "recordBytes": 315959
+    },
+    {
+      "guard": "recapture",
+      "articles": 802,
+      "modern": true,
+      "definitions": 5,
+      "kind": "definitions",
+      "metric": "analysis+definition DOM mutation",
+      "modes": {
+        "off": {
+          "analysisMedianMs": 9.2,
+          "medianMs": 55,
+          "p95Ms": 60.2
+        },
+        "miss": {
+          "analysisMedianMs": 24,
+          "medianMs": 69.15,
+          "p95Ms": 90.9
+        },
+        "hit": {
+          "analysisMedianMs": 15.25,
+          "medianMs": 61.1,
+          "p95Ms": 67.1
+        }
+      },
+      "readLatencyBudgetMs": -6.1,
+      "minimumHitFractionWithoutNativeIO": null,
+      "recordBytes": 1149
+    },
+    {
+      "guard": "recapture",
+      "articles": 802,
+      "modern": true,
+      "definitions": 5,
+      "kind": "internalReferences",
+      "metric": "reference analysis only",
+      "modes": {
+        "off": {
+          "analysisMedianMs": 18.7,
+          "medianMs": 18.7,
+          "p95Ms": 20.9
+        },
+        "miss": {
+          "analysisMedianMs": 34.6,
+          "medianMs": 34.6,
+          "p95Ms": 58.3
+        },
+        "hit": {
+          "analysisMedianMs": 16.95,
+          "medianMs": 16.95,
+          "p95Ms": 17.9
+        }
+      },
+      "readLatencyBudgetMs": 1.75,
+      "minimumHitFractionWithoutNativeIO": 0.9,
+      "recordBytes": 315959
+    },
+    {
+      "guard": "recapture",
+      "articles": 242,
+      "modern": false,
+      "definitions": 241,
+      "kind": "definitions",
+      "metric": "analysis+definition DOM mutation",
+      "modes": {
+        "off": {
+          "analysisMedianMs": 4.8,
+          "medianMs": 10.95,
+          "p95Ms": 12.1
+        },
+        "miss": {
+          "analysisMedianMs": 9.9,
+          "medianMs": 15.9,
+          "p95Ms": 16.8
+        },
+        "hit": {
+          "analysisMedianMs": 4.95,
+          "medianMs": 12,
+          "p95Ms": 19.5
+        }
+      },
+      "readLatencyBudgetMs": -1.05,
+      "minimumHitFractionWithoutNativeIO": null,
+      "recordBytes": 58197
+    },
+    {
+      "guard": "recapture",
+      "articles": 242,
+      "modern": false,
+      "definitions": 241,
+      "kind": "internalReferences",
+      "metric": "reference analysis only",
+      "modes": {
+        "off": {
+          "analysisMedianMs": 5.55,
+          "medianMs": 5.55,
+          "p95Ms": 5.9
+        },
+        "miss": {
+          "analysisMedianMs": 10.5,
+          "medianMs": 10.5,
+          "p95Ms": 12.1
+        },
+        "hit": {
+          "analysisMedianMs": 4.85,
+          "medianMs": 4.85,
+          "p95Ms": 14.2
+        }
+      },
+      "readLatencyBudgetMs": 0.7,
+      "minimumHitFractionWithoutNativeIO": 0.88,
+      "recordBytes": 100643
+    },
+    {
+      "guard": "recapture",
+      "articles": 802,
+      "modern": false,
+      "definitions": 801,
+      "kind": "definitions",
+      "metric": "analysis+definition DOM mutation",
+      "modes": {
+        "off": {
+          "analysisMedianMs": 16.7,
+          "medianMs": 38.5,
+          "p95Ms": 40.6
+        },
+        "miss": {
+          "analysisMedianMs": 34.6,
+          "medianMs": 56.5,
+          "p95Ms": 59.2
+        },
+        "hit": {
+          "analysisMedianMs": 17.8,
+          "medianMs": 40.2,
+          "p95Ms": 46.6
+        }
+      },
+      "readLatencyBudgetMs": -1.7,
+      "minimumHitFractionWithoutNativeIO": null,
+      "recordBytes": 194277
+    },
+    {
+      "guard": "recapture",
+      "articles": 802,
+      "modern": false,
+      "definitions": 801,
+      "kind": "internalReferences",
+      "metric": "reference analysis only",
+      "modes": {
+        "off": {
+          "analysisMedianMs": 19.75,
+          "medianMs": 19.75,
+          "p95Ms": 35.6
+        },
+        "miss": {
+          "analysisMedianMs": 38.25,
+          "medianMs": 38.25,
+          "p95Ms": 42.4
+        },
+        "hit": {
+          "analysisMedianMs": 19.1,
+          "medianMs": 19.1,
+          "p95Ms": 33.1
+        }
+      },
+      "readLatencyBudgetMs": 0.65,
+      "minimumHitFractionWithoutNativeIO": 0.97,
+      "recordBytes": 333603
+    },
+    {
+      "guard": "observer",
+      "articles": 26,
+      "modern": false,
+      "definitions": 5,
+      "kind": "definitions",
+      "metric": "analysis+definition DOM mutation",
+      "modes": {
+        "off": {
+          "analysisMedianMs": 0.5,
+          "medianMs": 1.9,
+          "p95Ms": 2.3
+        },
+        "miss": {
+          "analysisMedianMs": 0.8,
+          "medianMs": 2.5,
+          "p95Ms": 3
+        },
+        "hit": {
+          "analysisMedianMs": 0.3,
+          "medianMs": 1.75,
+          "p95Ms": 3.3
+        }
+      },
+      "readLatencyBudgetMs": 0.15,
+      "minimumHitFractionWithoutNativeIO": 0.8,
+      "recordBytes": 1149
+    },
+    {
+      "guard": "observer",
+      "articles": 26,
+      "modern": false,
+      "definitions": 5,
+      "kind": "internalReferences",
+      "metric": "reference analysis only",
+      "modes": {
+        "off": {
+          "analysisMedianMs": 0.6,
+          "medianMs": 0.6,
+          "p95Ms": 1.2
+        },
+        "miss": {
+          "analysisMedianMs": 1.05,
+          "medianMs": 1.05,
+          "p95Ms": 1.4
+        },
+        "hit": {
+          "analysisMedianMs": 0.4,
+          "medianMs": 0.4,
+          "p95Ms": 0.9
+        }
+      },
+      "readLatencyBudgetMs": 0.2,
+      "minimumHitFractionWithoutNativeIO": 0.69,
+      "recordBytes": 10365
+    },
+    {
+      "guard": "observer",
+      "articles": 26,
+      "modern": true,
+      "definitions": 5,
+      "kind": "definitions",
+      "metric": "analysis+definition DOM mutation",
+      "modes": {
+        "off": {
+          "analysisMedianMs": 0.4,
+          "medianMs": 1.7,
+          "p95Ms": 3.1
+        },
+        "miss": {
+          "analysisMedianMs": 0.8,
+          "medianMs": 2.15,
+          "p95Ms": 3.2
+        },
+        "hit": {
+          "analysisMedianMs": 0.4,
+          "medianMs": 1.6,
+          "p95Ms": 2.5
+        }
+      },
+      "readLatencyBudgetMs": 0.1,
+      "minimumHitFractionWithoutNativeIO": 0.82,
+      "recordBytes": 1149
+    },
+    {
+      "guard": "observer",
+      "articles": 26,
+      "modern": true,
+      "definitions": 5,
+      "kind": "internalReferences",
+      "metric": "reference analysis only",
+      "modes": {
+        "off": {
+          "analysisMedianMs": 0.65,
+          "medianMs": 0.65,
+          "p95Ms": 1.3
+        },
+        "miss": {
+          "analysisMedianMs": 0.95,
+          "medianMs": 0.95,
+          "p95Ms": 2.3
+        },
+        "hit": {
+          "analysisMedianMs": 0.35,
+          "medianMs": 0.35,
+          "p95Ms": 0.6
+        }
+      },
+      "readLatencyBudgetMs": 0.3,
+      "minimumHitFractionWithoutNativeIO": 0.5,
+      "recordBytes": 10365
+    },
+    {
+      "guard": "observer",
+      "articles": 242,
+      "modern": false,
+      "definitions": 5,
+      "kind": "definitions",
+      "metric": "analysis+definition DOM mutation",
+      "modes": {
+        "off": {
+          "analysisMedianMs": 3.4,
+          "medianMs": 17.65,
+          "p95Ms": 20.9
+        },
+        "miss": {
+          "analysisMedianMs": 6.4,
+          "medianMs": 20.95,
+          "p95Ms": 24.6
+        },
+        "hit": {
+          "analysisMedianMs": 3.1,
+          "medianMs": 16.8,
+          "p95Ms": 18.2
+        }
+      },
+      "readLatencyBudgetMs": 0.85,
+      "minimumHitFractionWithoutNativeIO": 0.8,
+      "recordBytes": 1149
+    },
+    {
+      "guard": "observer",
+      "articles": 242,
+      "modern": false,
+      "definitions": 5,
+      "kind": "internalReferences",
+      "metric": "reference analysis only",
+      "modes": {
+        "off": {
+          "analysisMedianMs": 5.8,
+          "medianMs": 5.8,
+          "p95Ms": 8.1
+        },
+        "miss": {
+          "analysisMedianMs": 9.45,
+          "medianMs": 9.45,
+          "p95Ms": 14.3
+        },
+        "hit": {
+          "analysisMedianMs": 3.65,
+          "medianMs": 3.65,
+          "p95Ms": 7.4
+        }
+      },
+      "readLatencyBudgetMs": 2.15,
+      "minimumHitFractionWithoutNativeIO": 0.63,
+      "recordBytes": 95319
+    },
+    {
+      "guard": "observer",
+      "articles": 242,
+      "modern": true,
+      "definitions": 5,
+      "kind": "definitions",
+      "metric": "analysis+definition DOM mutation",
+      "modes": {
+        "off": {
+          "analysisMedianMs": 2.55,
+          "medianMs": 15.65,
+          "p95Ms": 17.1
+        },
+        "miss": {
+          "analysisMedianMs": 5.1,
+          "medianMs": 17.9,
+          "p95Ms": 19.2
+        },
+        "hit": {
+          "analysisMedianMs": 3.15,
+          "medianMs": 17,
+          "p95Ms": 17.8
+        }
+      },
+      "readLatencyBudgetMs": -1.35,
+      "minimumHitFractionWithoutNativeIO": null,
+      "recordBytes": 1149
+    },
+    {
+      "guard": "observer",
+      "articles": 242,
+      "modern": true,
+      "definitions": 5,
+      "kind": "internalReferences",
+      "metric": "reference analysis only",
+      "modes": {
+        "off": {
+          "analysisMedianMs": 5.65,
+          "medianMs": 5.65,
+          "p95Ms": 15.5
+        },
+        "miss": {
+          "analysisMedianMs": 8.8,
+          "medianMs": 8.8,
+          "p95Ms": 15.6
+        },
+        "hit": {
+          "analysisMedianMs": 3.3,
+          "medianMs": 3.3,
+          "p95Ms": 5.6
+        }
+      },
+      "readLatencyBudgetMs": 2.35,
+      "minimumHitFractionWithoutNativeIO": 0.57,
+      "recordBytes": 95319
+    },
+    {
+      "guard": "observer",
+      "articles": 802,
+      "modern": false,
+      "definitions": 5,
+      "kind": "definitions",
+      "metric": "analysis+definition DOM mutation",
+      "modes": {
+        "off": {
+          "analysisMedianMs": 11.3,
+          "medianMs": 59.5,
+          "p95Ms": 83.6
+        },
+        "miss": {
+          "analysisMedianMs": 22.05,
+          "medianMs": 70.4,
+          "p95Ms": 78.2
+        },
+        "hit": {
+          "analysisMedianMs": 10.6,
+          "medianMs": 58.9,
+          "p95Ms": 61
+        }
+      },
+      "readLatencyBudgetMs": 0.6,
+      "minimumHitFractionWithoutNativeIO": 0.95,
+      "recordBytes": 1149
+    },
+    {
+      "guard": "observer",
+      "articles": 802,
+      "modern": false,
+      "definitions": 5,
+      "kind": "internalReferences",
+      "metric": "reference analysis only",
+      "modes": {
+        "off": {
+          "analysisMedianMs": 19.85,
+          "medianMs": 19.85,
+          "p95Ms": 22
+        },
+        "miss": {
+          "analysisMedianMs": 31.7,
+          "medianMs": 31.7,
+          "p95Ms": 37.4
+        },
+        "hit": {
+          "analysisMedianMs": 11.3,
+          "medianMs": 11.3,
+          "p95Ms": 13.2
+        }
+      },
+      "readLatencyBudgetMs": 8.55,
+      "minimumHitFractionWithoutNativeIO": 0.58,
+      "recordBytes": 315959
+    },
+    {
+      "guard": "observer",
+      "articles": 802,
+      "modern": true,
+      "definitions": 5,
+      "kind": "definitions",
+      "metric": "analysis+definition DOM mutation",
+      "modes": {
+        "off": {
+          "analysisMedianMs": 10.35,
+          "medianMs": 56.05,
+          "p95Ms": 68.4
+        },
+        "miss": {
+          "analysisMedianMs": 18.95,
+          "medianMs": 66.25,
+          "p95Ms": 87.5
+        },
+        "hit": {
+          "analysisMedianMs": 10.55,
+          "medianMs": 56.85,
+          "p95Ms": 96.1
+        }
+      },
+      "readLatencyBudgetMs": -0.8,
+      "minimumHitFractionWithoutNativeIO": null,
+      "recordBytes": 1149
+    },
+    {
+      "guard": "observer",
+      "articles": 802,
+      "modern": true,
+      "definitions": 5,
+      "kind": "internalReferences",
+      "metric": "reference analysis only",
+      "modes": {
+        "off": {
+          "analysisMedianMs": 18.8,
+          "medianMs": 18.8,
+          "p95Ms": 20.2
+        },
+        "miss": {
+          "analysisMedianMs": 29.05,
+          "medianMs": 29.05,
+          "p95Ms": 47.7
+        },
+        "hit": {
+          "analysisMedianMs": 11.4,
+          "medianMs": 11.4,
+          "p95Ms": 12.4
+        }
+      },
+      "readLatencyBudgetMs": 7.4,
+      "minimumHitFractionWithoutNativeIO": 0.58,
+      "recordBytes": 315959
+    },
+    {
+      "guard": "observer",
+      "articles": 242,
+      "modern": false,
+      "definitions": 241,
+      "kind": "definitions",
+      "metric": "analysis+definition DOM mutation",
+      "modes": {
+        "off": {
+          "analysisMedianMs": 4.9,
+          "medianMs": 11,
+          "p95Ms": 13
+        },
+        "miss": {
+          "analysisMedianMs": 7.3,
+          "medianMs": 13.25,
+          "p95Ms": 14.6
+        },
+        "hit": {
+          "analysisMedianMs": 3.2,
+          "medianMs": 9.35,
+          "p95Ms": 11.4
+        }
+      },
+      "readLatencyBudgetMs": 1.65,
+      "minimumHitFractionWithoutNativeIO": 0.58,
+      "recordBytes": 58197
+    },
+    {
+      "guard": "observer",
+      "articles": 242,
+      "modern": false,
+      "definitions": 241,
+      "kind": "internalReferences",
+      "metric": "reference analysis only",
+      "modes": {
+        "off": {
+          "analysisMedianMs": 5.4,
+          "medianMs": 5.4,
+          "p95Ms": 5.8
+        },
+        "miss": {
+          "analysisMedianMs": 8.8,
+          "medianMs": 8.8,
+          "p95Ms": 13.1
+        },
+        "hit": {
+          "analysisMedianMs": 3.1,
+          "medianMs": 3.1,
+          "p95Ms": 5.1
+        }
+      },
+      "readLatencyBudgetMs": 2.3,
+      "minimumHitFractionWithoutNativeIO": 0.6,
+      "recordBytes": 100643
+    },
+    {
+      "guard": "observer",
+      "articles": 802,
+      "modern": false,
+      "definitions": 801,
+      "kind": "definitions",
+      "metric": "analysis+definition DOM mutation",
+      "modes": {
+        "off": {
+          "analysisMedianMs": 17.3,
+          "medianMs": 39.1,
+          "p95Ms": 42
+        },
+        "miss": {
+          "analysisMedianMs": 27.9,
+          "medianMs": 51.25,
+          "p95Ms": 61.9
+        },
+        "hit": {
+          "analysisMedianMs": 11.25,
+          "medianMs": 32.25,
+          "p95Ms": 34.7
+        }
+      },
+      "readLatencyBudgetMs": 6.85,
+      "minimumHitFractionWithoutNativeIO": 0.64,
+      "recordBytes": 194277
+    },
+    {
+      "guard": "observer",
+      "articles": 802,
+      "modern": false,
+      "definitions": 801,
+      "kind": "internalReferences",
+      "metric": "reference analysis only",
+      "modes": {
+        "off": {
+          "analysisMedianMs": 20.05,
+          "medianMs": 20.05,
+          "p95Ms": 32.1
+        },
+        "miss": {
+          "analysisMedianMs": 31.65,
+          "medianMs": 31.65,
+          "p95Ms": 48.3
+        },
+        "hit": {
+          "analysisMedianMs": 12.1,
+          "medianMs": 12.1,
+          "p95Ms": 20.3
+        }
+      },
+      "readLatencyBudgetMs": 7.95,
+      "minimumHitFractionWithoutNativeIO": 0.59,
+      "recordBytes": 333603
+    }
+  ]
+}

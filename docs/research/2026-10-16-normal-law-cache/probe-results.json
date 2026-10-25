@@ -1,0 +1,78 @@
+{
+  "note": "Isolated source probes with minimal stubs; no browser DOM or timing claims.",
+  "checks": [
+    {
+      "name": "definition keys lose supplementary scope",
+      "passed": true,
+      "evidence": {
+        "main": "2.1.3_2",
+        "supplement": "2.1.3_2",
+        "sharedParserScope": "Sp_1"
+      }
+    },
+    {
+      "name": "definition candidates combine equal article numbers across scopes",
+      "passed": true,
+      "evidence": {
+        "groups": 1,
+        "idsInGroup": [
+          "Mp-At_2-Pr_1",
+          "law-Sp_1-At_2-Pr_1"
+        ]
+      }
+    },
+    {
+      "name": "definition signature does not identify changed text or href",
+      "passed": true,
+      "evidence": {
+        "before": "2:Mp-At_1:Mp-At_2",
+        "after": "2:Mp-At_1:Mp-At_2"
+      }
+    },
+    {
+      "name": "article observer covers childList but not attributes or characterData",
+      "passed": true,
+      "evidence": {
+        "options": {
+          "childList": true,
+          "subtree": true
+        },
+        "nestedTextOrHrefTriggersPredicate": false
+      }
+    },
+    {
+      "name": "empty article list remains cached until explicit invalidation",
+      "passed": true,
+      "evidence": {
+        "afterDomAppears": 0,
+        "afterInvalidation": 1,
+        "limitation": "Integration has a separate invalidation observer; this probe isolates the getter."
+      }
+    },
+    {
+      "name": "restored bound attribute skips event registration",
+      "passed": true,
+      "evidence": {
+        "registrations": 0,
+        "sourceMapRestored": true
+      }
+    },
+    {
+      "name": "internal source URLs omit selected revision context",
+      "passed": true,
+      "evidence": {
+        "url": "https://laws.e-gov.go.jp/law/405AC0000000088#Mp-Ch_1-At_2-Pr_1",
+        "selectedRevisionIncluded": false
+      }
+    },
+    {
+      "name": "disabling definitions during article wait does not cancel resumed work",
+      "passed": true,
+      "evidence": {
+        "enabledAfterWait": false,
+        "extractions": 1,
+        "marks": 1
+      }
+    }
+  ]
+}

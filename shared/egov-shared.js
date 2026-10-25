@@ -10,10 +10,128 @@
   const REFERENCES_CURRENT_META_KEY = 'current';
   const REVERSE_REFERENCE_SCOPE_KEY = 'reverseReferenceScope';
   const REVERSE_REFERENCE_SCOPES = new Set(['internal', 'external', 'both']);
-  const LITE_LAW_LEGACY_CACHE_NAMES = ['egov-lite-law-xml-v1', 'egov-lite-law-xml-v2'];
+  const LITE_LAW_LEGACY_CACHE_NAMES = ['egov-lite-law-xml-v1', 'egov-lite-law-xml-v2', 'egov-lite-law-xml-v3'];
   // 旧キャッシュには法令IDの取得結果が現行改正IDとして保存されている可能性があるため、再利用しない。
-  const LITE_LAW_CACHE_NAME = 'egov-lite-law-xml-v3';
-  const LITE_LAW_CACHE_MAX_ENTRIES = 100;
+  const LITE_LAW_CACHE_NAME = 'egov-lite-law-xml-v4';
+  const NORMAL_LAW_CACHE_NAME = 'egov-normal-responses-v1';
+  let lawCacheWrites = Promise.resolve();
+  const LAW_CACHE_EPOCH_KEY = 'lawCacheMetadataEpoch';
+  const LAW_CACHE_TOUCH_INTERVAL = 60000;
+  let lawCacheIndexes = new WeakMap();
+  let lawCacheEpoch;
+  let lawCacheMutationStarted = false;
+  function withLawCache(task) {
+    const run = async () => {
+      const storage = global.chrome?.storage?.local;
+      if (storage?.get && storage?.set) {
+        try {
+          const epoch = (await storage.get(LAW_CACHE_EPOCH_KEY))[LAW_CACHE_EPOCH_KEY];
+          if (epoch !== lawCacheEpoch) lawCacheIndexes = new WeakMap();
+          lawCacheEpoch = epoch;
+        } catch (_) { lawCacheIndexes = new WeakMap(); }
+      }
+      lawCacheMutationStarted = false;
+      return task();
+    };
+    // The fallback viewer and service worker share storage, but not JS memory.
+    const locked = () => global.navigator?.locks?.request
+      ? global.navigator.locks.request('egov-law-cache', run) : run();
+    const result = lawCacheWrites.then(locked, locked);
+    lawCacheWrites = result.catch(() => {});
+    return result;
+  }
+  async function beginLawCacheMutation() {
+    if (lawCacheMutationStarted) return;
+    lawCacheMutationStarted = true;
+    const storage = global.chrome?.storage?.local;
+    if (!storage?.set) return;
+    // Publish before writing: another context must rebuild even after a crash.
+    lawCacheEpoch = global.crypto.randomUUID();
+    try { await storage.set({ [LAW_CACHE_EPOCH_KEY]: lawCacheEpoch }); }
+    catch (error) { lawCacheIndexes = new WeakMap(); throw error; }
+  }
+  function lawCacheIndex(cachesApi, cacheName) {
+    let stores = lawCacheIndexes.get(cachesApi);
+    if (!stores) lawCacheIndexes.set(cachesApi, stores = new Map());
+    if (!stores.has(cacheName)) stores.set(cacheName, new Map());
+    return stores.get(cacheName);
+  }
+  function rememberLawCacheEntry(cacheName, key, headers, cachesApi = global.caches) {
+    lawCacheIndex(cachesApi, cacheName).set(typeof key === 'string' ? key : key.url, {
+      bytes: Number(headers.get('x-bytes')) || 0,
+      saved: Number(headers.get('x-saved')) || 0,
+      accessed: Number(headers.get('x-accessed')) || Number(headers.get('x-saved')) || 0,
+    });
+  }
+  async function putLawCacheEntry(cache, cacheName, key, response, cachesApi = global.caches) {
+    await beginLawCacheMutation();
+    await cache.put(key, response);
+    rememberLawCacheEntry(cacheName, key, response.headers, cachesApi);
+  }
+  async function deleteLawCacheEntry(cache, cacheName, key, cachesApi = global.caches) {
+    await beginLawCacheMutation();
+    await cache.delete(key);
+    lawCacheIndex(cachesApi, cacheName).delete(typeof key === 'string' ? key : key.url);
+  }
+  async function touchLawCacheEntry(cache, cacheName, key, response, body, cachesApi = global.caches) {
+    const headers = new Headers(response.headers);
+    const now = Date.now();
+    const persisted = Number(headers.get('x-accessed'));
+    headers.set('x-accessed', String(now));
+    // Exact LRU within this context; persist at most once a minute per entry.
+    // After a restart or another context's write, order is approximate within that minute.
+    if (!persisted || now - persisted >= LAW_CACHE_TOUCH_INTERVAL) {
+      await putLawCacheEntry(cache, cacheName, key, new Response(body, { headers }), cachesApi).catch(() => {});
+    }
+    rememberLawCacheEntry(cacheName, key, headers, cachesApi);
+  }
+  async function lawCacheDigest(text) {
+    return Array.from(new Uint8Array(await global.crypto.subtle.digest('SHA-256',
+      new TextEncoder().encode(text))), byte => byte.toString(16).padStart(2, '0')).join('');
+  }
+  async function trimLawCaches(cache, cacheName, limit, incomingBytes, replacementKey, cachesApi = global.caches) {
+    const names = typeof cachesApi.keys === 'function' ? await cachesApi.keys() : [];
+    const stores = [{ cache, name: cacheName }];
+    for (const name of [NORMAL_LAW_CACHE_NAME, LITE_LAW_CACHE_NAME]) {
+      if (name !== cacheName && names.includes(name)) stores.push({ name, cache: await cachesApi.open(name) });
+    }
+    const entries = [];
+    for (const store of stores) {
+      const index = lawCacheIndex(cachesApi, store.name);
+      const keys = await store.cache.keys();
+      const present = new Set(keys.map(key => key.url));
+      for (const key of index.keys()) if (!present.has(key)) index.delete(key);
+      for (const key of keys) {
+        if (store.name === cacheName && key.url === replacementKey) continue;
+        if (!index.has(key.url)) {
+          const response = await store.cache.match(key);
+          if (!response) continue;
+          rememberLawCacheEntry(store.name, key, response.headers, cachesApi);
+        }
+        const metadata = index.get(key.url);
+        entries.push({ ...metadata, bytes: metadata.bytes || limit, cache: store.cache, name: store.name, key });
+      }
+    }
+    let bytes = incomingBytes + entries.reduce((sum, entry) => sum + entry.bytes, 0);
+    if (bytes <= limit) return;
+    entries.sort((a, b) => a.accessed - b.accessed || a.saved - b.saved);
+    for (const entry of entries) {
+      if (bytes <= limit) break;
+      await deleteLawCacheEntry(entry.cache, entry.name, entry.key, cachesApi);
+      bytes -= entry.bytes;
+    }
+  }
+  const NORMAL_RESPONSE_CACHE_LIMITS = Object.freeze({
+    storageKey: 'normalResponseCacheCapacityMiB', defaultMiB: 256, minMiB: 1, maxMiB: 4096,
+  });
+  const NORMAL_RESPONSE_CACHE_FREQUENCY_KEY = 'normalResponseCacheFrequency';
+  function normalizeNormalResponseCacheFrequency(value) {
+    return ['always', 'daily', 'weekly', 'monthly', 'manual'].includes(value) ? value : 'daily';
+  }
+  function normalizeNormalResponseCacheCapacity(value) {
+    return Number.isInteger(value) && value >= NORMAL_RESPONSE_CACHE_LIMITS.minMiB
+      && value <= NORMAL_RESPONSE_CACHE_LIMITS.maxMiB ? value : NORMAL_RESPONSE_CACHE_LIMITS.defaultMiB;
+  }
   const JAPANESE_REFERENCE_NUMBER_PATTERN = '[0-9０-９〇○零一二三四五六七八九十百千万]+';
   const PRIOR_REFERENCE_PATTERN = new RegExp(`前(${JAPANESE_REFERENCE_NUMBER_PATTERN})(条|項|号)`);
   const ITEM_RANGE_END_PATTERN = new RegExp(`から第?(${JAPANESE_REFERENCE_NUMBER_PATTERN})号まで`);
@@ -955,14 +1073,36 @@
     };
   }
 
-  async function searchLawsByTitle(query, { limit = 31 } = {}) {
+  async function searchLawsByTitle(query, { limit = 31, signal } = {}) {
     const url =
       `${LAW_BASE_URL}/api/2/laws?law_title=${encodeURIComponent(query)}` +
       `&limit=${encodeURIComponent(limit)}&response_format=json`;
-    const response = await fetch(url);
+    const response = await fetch(url, { signal });
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     const data = await response.json();
     return extractLaws(data);
+  }
+
+  function createLawSearch() {
+    let active = null;
+    function cancel() {
+      if (!active) return;
+      active.controller.abort();
+      clearTimeout(active.timer);
+      active = null;
+    }
+    function start(query) {
+      if (active?.query === query && !active.settled) return active;
+      cancel();
+      const request = { query, controller: new AbortController(), settled: false };
+      active = request;
+      request.isCurrent = () => active === request;
+      request.timer = setTimeout(() => request.controller.abort(), 20000);
+      request.promise = searchLawsByTitle(query, { signal: request.controller.signal })
+        .finally(() => { request.settled = true; clearTimeout(request.timer); });
+      return request;
+    }
+    return Object.freeze({ start, cancel });
   }
 
   function collectSearchTextSegments(searchRoot, { excludeSelector = '' } = {}) {
@@ -1130,6 +1270,83 @@
     return `${normalized.length.toString(36)}-${(hash >>> 0).toString(36)}`;
   }
 
+  function textHighlightQuoteMatches(text, record) {
+    return !!text && !!record.q && text.length === record.l
+      && (record.z ? text.startsWith(record.q) && text.endsWith(record.z) : text === record.q)
+      && (!record.w || getNormalizedTextSignature(text) === record.w);
+  }
+
+  // Recover shifted offsets only inside the original provision anchors. A second
+  // distinct match is ambiguous; never silently choose a different occurrence.
+  function recoverTextHighlightQuoteRange(startAnchors, endAnchors, record, options = {}) {
+    if (!record.q || !Number.isInteger(record.l) || record.l <= 0 || (record.z && !record.w)) return null;
+    let match = null;
+    const views = new Map();
+    for (const startAnchor of startAnchors) {
+      for (const endAnchor of endAnchors) {
+        let root = startAnchor;
+        while (root && !root.contains(endAnchor)) root = root.parentElement;
+        if (!root) continue;
+        if (!views.has(root)) {
+          const { text, segments } = collectSearchTextSegments(root, options);
+          if (text.length > 500000) { views.set(root, null); continue; }
+          const characters = [];
+          let normalized = '';
+          for (const { node, text: part } of segments) {
+            for (let offset = 0; offset < part.length; offset++) {
+              if (/\s/.test(part[offset])) continue;
+              normalized += part[offset];
+              characters.push({ node, offset });
+            }
+          }
+          views.set(root, { normalized, characters });
+        }
+        const view = views.get(root);
+        if (!view) continue;
+        let from = 0, probes = 0;
+        while (from < view.normalized.length) {
+          const index = view.normalized.indexOf(record.q, from);
+          if (index < 0) break;
+          if (++probes > 512) return null;
+          from = index + 1;
+          const first = view.characters[index], last = view.characters[index + record.l - 1];
+          if (!first || !last || !startAnchor.contains(first.node) || !endAnchor.contains(last.node)
+              || !textHighlightQuoteMatches(view.normalized.slice(index, index + record.l), record)) continue;
+          const range = document.createRange();
+          range.setStart(first.node, first.offset);
+          range.setEnd(last.node, last.offset + 1);
+          if (match && (match.compareBoundaryPoints(0, range) || match.compareBoundaryPoints(2, range))) return null;
+          match = range;
+        }
+      }
+    }
+    return match;
+  }
+
+  async function readTextHighlightStorage(storage, key) {
+    for (let attempt = 0; ; attempt++) {
+      try { return await storage.get([key]); }
+      catch (error) {
+        if (attempt >= 2) throw error;
+        await new Promise(resolve => setTimeout(resolve, [150, 400][attempt]));
+      }
+    }
+  }
+
+  function showTextHighlightLoadFailure() {
+    let notice = document.getElementById('egov-ext-text-highlight-restore-notice');
+    if (!notice) {
+      notice = document.createElement('div');
+      notice.id = 'egov-ext-text-highlight-restore-notice';
+      notice.setAttribute('role', 'status');
+      document.body.append(notice);
+    }
+    notice.dataset.loadFailure = 'true';
+    const message = document.createElement('span');
+    message.textContent = 'メモ・ハイライトを読み込めませんでした。ページを再読み込みしてください。';
+    notice.replaceChildren(message);
+  }
+
   function getJapanDateString(date = new Date()) {
     const parts = new Intl.DateTimeFormat('en-CA', {
       timeZone: 'Asia/Tokyo',
@@ -1169,45 +1386,72 @@
     return `${LAW_BASE_URL}/api/2/law_data/${encodeURIComponent(target)}?response_format=xml&law_full_text_format=xml${asOfParam}`;
   }
 
-  async function readCachedLiteLawXml(target, cachesApi = global.caches) {
-    if (!target || !cachesApi) return '';
+  async function readLiteLawCacheSettings() {
+    const stored = await global.chrome.storage.local.get([
+      NORMAL_RESPONSE_CACHE_LIMITS.storageKey, NORMAL_RESPONSE_CACHE_FREQUENCY_KEY,
+    ]);
+    return {
+      frequency: normalizeNormalResponseCacheFrequency(stored[NORMAL_RESPONSE_CACHE_FREQUENCY_KEY]),
+      capacity: normalizeNormalResponseCacheCapacity(stored[NORMAL_RESPONSE_CACHE_LIMITS.storageKey]) * 1024 * 1024,
+    };
+  }
+
+  async function readCachedLiteLaw(target, cachesApi = global.caches) {
+    if (!target || !cachesApi) return null;
     try {
-      const cache = await cachesApi.open(LITE_LAW_CACHE_NAME);
-      const response = await cache.match(getLiteLawDataUrl(target));
-      return response ? response.text() : '';
+      const { frequency } = await readLiteLawCacheSettings();
+      if (frequency === 'always') return null;
+      return await withLawCache(async () => {
+        const cache = await cachesApi.open(LITE_LAW_CACHE_NAME);
+        const key = getLiteLawDataUrl(target);
+        const response = await cache.match(key);
+        if (!response) return null;
+        const downloadedAt = Number(response.headers.get('x-saved'));
+        const days = { daily: 1, weekly: 7, monthly: 30 }[frequency];
+        if (!Number.isFinite(downloadedAt) || downloadedAt <= 0 || downloadedAt > Date.now()
+            || (days && Date.now() - downloadedAt >= days * 86400000)) return null;
+        const body = await response.text();
+        if (await lawCacheDigest(body) !== response.headers.get('x-sha256')) {
+          await deleteLawCacheEntry(cache, LITE_LAW_CACHE_NAME, key, cachesApi);
+          return null;
+        }
+        const record = JSON.parse(body);
+        if (typeof record.xmlText !== 'string' || !record.xmlText.trim()) return null;
+        await touchLawCacheEntry(cache, LITE_LAW_CACHE_NAME, key, response, body, cachesApi);
+        return { ...record, downloadedAt };
+      });
     } catch (_) {
-      return '';
+      return null;
     }
   }
 
-  async function trimLiteLawCache(cache) {
-    const requests = await cache.keys();
-    if (requests.length <= LITE_LAW_CACHE_MAX_ENTRIES) return;
-    const entries = await Promise.all(requests.map(async (request) => {
-      const response = await cache.match(request);
-      return {
-        request,
-        cachedAt: Number(response?.headers.get('X-Egov-Cached-At')) || 0,
-      };
-    }));
-    entries.sort((a, b) => a.cachedAt - b.cachedAt);
-    const deleteCount = entries.length - LITE_LAW_CACHE_MAX_ENTRIES;
-    await Promise.all(entries.slice(0, deleteCount).map(({ request }) => cache.delete(request)));
+  async function readCachedLiteLawXml(target, cachesApi = global.caches) {
+    return (await readCachedLiteLaw(target, cachesApi))?.xmlText || '';
   }
 
-  async function cacheLiteLawXml(target, xmlText, cachesApi = global.caches) {
+  async function cacheLiteLawXml(target, xmlText, cachesApi = global.caches, metadata = {}) {
     if (!target || !xmlText || !cachesApi) return;
-    const cache = await cachesApi.open(LITE_LAW_CACHE_NAME);
-    await cache.put(getLiteLawDataUrl(target), new Response(xmlText, {
-      headers: {
-        'Content-Type': 'application/xml; charset=utf-8',
-        'X-Egov-Cached-At': String(Date.now()),
-      },
-    }));
-    await trimLiteLawCache(cache);
-    if (typeof cachesApi.delete === 'function') {
-      await Promise.all(LITE_LAW_LEGACY_CACHE_NAMES.map((name) => cachesApi.delete(name).catch(() => false)));
-    }
+    const settings = await readLiteLawCacheSettings();
+    if (settings.frequency === 'always') return;
+    await withLawCache(async () => {
+      const cache = await cachesApi.open(LITE_LAW_CACHE_NAME);
+      const body = JSON.stringify({ ...metadata, xmlText });
+      const bytes = new TextEncoder().encode(body).length;
+      const limit = settings.capacity;
+      const key = getLiteLawDataUrl(target);
+      if (bytes > Math.min(limit, 8 * 1024 * 1024)) {
+        await trimLawCaches(cache, LITE_LAW_CACHE_NAME, limit, 0, '', cachesApi);
+        return;
+      }
+      await trimLawCaches(cache, LITE_LAW_CACHE_NAME, limit, bytes, key, cachesApi);
+      await putLawCacheEntry(cache, LITE_LAW_CACHE_NAME, key, new Response(body, { headers: {
+        'content-type': 'application/json', 'x-saved': String(metadata.downloadedAt || Date.now()),
+        'x-accessed': String(Date.now()), 'x-bytes': String(bytes), 'x-sha256': await lawCacheDigest(body),
+      } }), cachesApi);
+      if (typeof cachesApi.delete === 'function') {
+        await Promise.all(LITE_LAW_LEGACY_CACHE_NAMES.map(name => cachesApi.delete(name).catch(() => false)));
+      }
+    });
   }
 
   function openReferencesDb({ openErrorMessage = 'IndexedDB open failed' } = {}) {
@@ -1266,6 +1510,14 @@
   }
 
   global.EgovShared = Object.freeze({
+    textHighlightQuoteMatches,
+    recoverTextHighlightQuoteRange,
+    readTextHighlightStorage,
+    showTextHighlightLoadFailure,
+    NORMAL_RESPONSE_CACHE_FREQUENCY_KEY,
+    normalizeNormalResponseCacheFrequency,
+    NORMAL_RESPONSE_CACHE_LIMITS,
+    normalizeNormalResponseCacheCapacity,
     LAW_BASE_URL,
     REFERENCES_BUNDLED_CACHE_STORE,
     REFERENCES_CURRENT_META_KEY,
@@ -1278,6 +1530,12 @@
     buildLawUrl,
     buildProvisionCopyPayload,
     cacheLiteLawXml,
+    readCachedLiteLaw,
+    withLawCache,
+    trimLawCaches,
+    putLawCacheEntry,
+    deleteLawCacheEntry,
+    touchLawCacheEntry,
     canonicalizeReferenceTargetKey,
     cleanLawNameForSearch,
     cloneDefinitionPatterns,
@@ -1321,6 +1579,7 @@
     rangeFromTextAnchorOffsets,
     readCachedLiteLawXml,
     searchLawsByTitle,
+    createLawSearch,
     sortReferenceSources,
     splitReferenceTargetKey,
     mergeLawReferences,

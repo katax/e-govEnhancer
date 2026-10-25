@@ -9,6 +9,7 @@ function loader(fetch) {
   const cached = [], stored = [];
   const context = vm.createContext({
     fetch, AbortController, setTimeout, clearTimeout,
+    readCachedLiteLaw: async () => null,
     EGOV_API_V2_BASE: 'https://example.test', liteLawLoadPromises: new Map(),
     getLiteLawDataUrl: (target, date = '') => `xml/${target}?asof=${date}`,
     getJapanDateString: () => '2026-09-27',
@@ -17,7 +18,7 @@ function loader(fetch) {
     chrome: { storage: { local: { set: async value => stored.push(value) } } },
   });
   const source = read('background.js');
-  vm.runInContext(source.slice(source.indexOf('function getLiteLawRevisionStorageKey('),
+  vm.runInContext(source.slice(source.indexOf('async function fetchLiteLawResponse('),
     source.indexOf('async function clearReferencesCache(')), context);
   return { context, cached, stored };
 }
@@ -56,6 +57,7 @@ test('explicit revision starts fetching before revision history completes', asyn
     return response('<Law/>');
   });
   const pending = context.loadAndCacheLiteLaw('law', 'old');
+  await new Promise(resolve => setImmediate(resolve));
   assert.equal(urls[1], 'xml/old?asof=');
   release();
   assert.equal((await pending).cacheTarget, 'old');
@@ -81,33 +83,56 @@ test('failed loads are released so a later request can retry', async () => {
   assert.equal((await context.loadAndCacheLiteLaw('law')).cacheTarget, 'law');
 });
 
-async function loadViewer(fresh, cacheTarget = 'rev') {
-  let reads = 0, renders = 0, finishes = 0;
+
+async function loadViewer(xmlText, force = false) {
+  let renders = 0, finishes = 0, message;
+  const label = {};
   const context = vm.createContext({
     lawId: 'law', localRule: null, articleElementsCache: [], contentEl: {}, revisionIdParam: '',
-    revisions: [], currentRevisionId: '',
-    chrome: { runtime: { sendMessage: async () => ({ ok: true, cacheTarget, currentRevisionId: 'rev', revisions: [] }) },
-      storage: { local: { get: async () => ({ revision: 'rev' }) } } },
-    getLiteLawRevisionStorageKey: () => 'revision',
-    readCachedLiteLawXml: async () => ++reads === 1 ? 'original' : fresh,
-    renderLawXml: text => { renders++; return text; },
-    parseLawXmlForRender: text => ({ signature: text }),
-    renderParsedLawXml: data => { renders++; return data.signature; },
+    revisions: [], currentRevisionId: '', forceLiteDownload: force,
+    lawLoadGeneration: 0, EgovLawUpdates: { setButtonState() {} }, scheduleLiteLawUpdateCheck() {},
+    document: { getElementById: () => label },
+    chrome: { runtime: { sendMessage: async value => {
+      message = value;
+      return { ok: true, cacheTarget: 'law', currentRevisionId: 'rev', revisions: [], xmlText, downloadedAt: 1792857600000 };
+    } } },
+    renderLawXml: text => { renders++; assert.equal(text, xmlText); return text; },
     jumpToInitialHash() {}, renderRevisionSelect() {},
     finishLawLoad: async () => { finishes++; },
   });
   const source = read('viewer.js');
   vm.runInContext(source.slice(source.indexOf('  async function loadLaw()'), source.indexOf('  function isInputActive()')), context);
   await context.loadLaw();
-  return { reads, renders, finishes };
+  return { renders, finishes, message, label };
 }
 
-test('same cache key with changed content refreshes the visible law', async () => {
-  assert.deepEqual(await loadViewer('corrected'), { reads: 2, renders: 2, finishes: 1 });
+test('Lite renders returned XML without requiring a saved cache entry', async () => {
+  const result = await loadViewer('<Law/>');
+  assert.equal(result.renders, 1);
+  assert.equal(result.finishes, 1);
+  assert.match(result.label.textContent, /法令ファイル取得日時：/);
+  assert.equal(result.message.force, false);
 });
 
-test('unchanged content keeps existing DOM, even when the key changes', async () => {
-  for (const key of ['rev', 'new-rev']) {
-    assert.deepEqual(await loadViewer('original', key), { reads: 2, renders: 1, finishes: 1 });
-  }
+test('Lite manual download explicitly bypasses cached content', async () => {
+  const result = await loadViewer('<Law/>', true);
+  assert.equal(result.renders, 1);
+  assert.equal(result.message.force, true);
+});
+
+test('direct manual reacquisition resolves the latest revision even when the viewer previously displayed an old one', async () => {
+  let requestedUrl;
+  const context = vm.createContext({
+    forceLiteDownload: true, revisionIdParam: '', lawId: 'law', currentRevisionId: 'old', revisions: [],
+    findCurrentLawRevisionId: entries => entries.find(entry => entry.current_revision_status === 'CurrentEnforced')?.law_revision_id || '',
+    getJapanDateString: () => '2026-10-25', getLiteLawDataUrl: target => `https://test/${target}`,
+    fetchWithTimeout: async url => { requestedUrl = url; return new Response('<Law/>'); },
+    cacheLiteLawXml: async () => {},
+    loadRevisions: async () => { context.revisions = [{ law_revision_id: 'latest', current_revision_status: 'CurrentEnforced' }]; },
+  });
+  const source = read('viewer.js');
+  vm.runInContext(source.slice(source.indexOf('  async function loadLiteLawDirectly()'), source.indexOf('  async function finishLawLoad()')), context);
+  const result = await context.loadLiteLawDirectly();
+  assert.equal(result.currentRevisionId, 'latest');
+  assert.equal(requestedUrl, 'https://test/latest');
 });

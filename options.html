@@ -57,6 +57,32 @@
           </div>
 
           <div class="setting-row">
+            <label class="setting-label" for="normalResponseCacheFrequency">
+              <span class="setting-title">法令の自動再ダウンロード（通常・Lite共通）</span>
+              <span class="setting-desc">初期値は「毎日」。法令を開くとき、前回のダウンロードから1日・7日・30日が経過していれば取り直します。「なし」では保存データを使い、法令画面のボタンで更新します。保存されていない法令は取得します。</span>
+              <span class="setting-desc" id="normalResponseCacheFrequencyStatus" role="status" aria-live="polite"></span>
+            </label>
+            <select class="setting-select" id="normalResponseCacheFrequency">
+              <option value="always">毎回（キャッシュを利用しない）</option>
+              <option value="daily" selected>毎日</option>
+              <option value="weekly">毎週</option>
+              <option value="monthly">毎月</option>
+              <option value="manual">なし（手動のみ）</option>
+            </select>
+          </div>
+          <div class="setting-row">
+            <label class="setting-label" for="normalResponseCacheCapacity">
+              <span class="setting-title">法令のローカル保存容量（通常・Lite共通）</span>
+              <span class="setting-desc" id="normalResponseCacheCapacityHelp">初期値は256MiB。新しいデータを保存するとき、容量を超える分を最終アクセスが古い順に削除します。容量を減らした場合も次の保存時に適用します。通常モードとLiteモードの合計容量です。</span>
+              <span class="setting-desc" id="normalResponseCacheCapacityStatus" role="status" aria-live="polite"></span>
+            </label>
+            <div class="cache-capacity-control">
+              <input class="setting-select cache-capacity-input" type="number" id="normalResponseCacheCapacity" min="1" max="4096" step="1" value="256" aria-describedby="normalResponseCacheCapacityHelp normalResponseCacheCapacityStatus">
+              <span>MiB</span>
+            </div>
+          </div>
+
+          <div class="setting-row">
             <label class="setting-label" for="lawRefClickToggle">
               <span class="setting-title">法令リンクのポップアップ抑止</span>
               <span class="setting-desc">本文中の法令リンクをクリックした時に、ポップアップ表示をせずにスクロール移動します。Ctrl+クリックで一時的に逆の動作をさせることが可能です。</span>
@@ -242,6 +268,13 @@
         <div class="card-body">
           <p>お気に入りの保存と読み込みを行えます。</p>
 
+          <label class="import-mode-label" for="favoritesImportMode">読み込み方法
+            <select class="setting-select" id="favoritesImportMode">
+              <option value="merge">マージ（現在のデータに追加）</option>
+              <option value="replace">置き換え（ファイルの内容を採用）</option>
+            </select>
+          </label>
+
           <div class="backup-actions">
             <button type="button" class="action-btn action-btn-primary" id="exportFavoritesBtn">保存</button>
             <button type="button" class="action-btn" id="importFavoritesBtn">読み込み</button>
@@ -252,9 +285,8 @@
           <div class="backup-summary" id="favoritesTransferSummary"></div>
 
           <div class="info-box">
-            <p>インポートすると、現在の「お気に入り」「フォルダ」「フォルダ開閉状態」はまとめて置き換わります。</p>
+            <p>マージでは現在のお気に入りとフォルダーを残して追加します。同じ法令は現在の登録内容を優先します。置き換えでは、ファイルにない現在のデータは削除されます。</p>
           </div>
-          <div id="favoritesExternalFileSettings"></div>
         </div>
       </section>
 
@@ -266,6 +298,13 @@
         <div class="card-body">
           <p>すべての法令のメモとハイライトを、まとめて保存・読み込みできます。</p>
 
+          <label class="import-mode-label" for="textHighlightsImportMode">読み込み方法
+            <select class="setting-select" id="textHighlightsImportMode">
+              <option value="merge">マージ（現在のデータに追加）</option>
+              <option value="replace">置き換え（ファイルの内容を採用）</option>
+            </select>
+          </label>
+
           <div class="backup-actions">
             <button type="button" class="action-btn action-btn-primary" id="exportTextHighlightsBtn">保存</button>
             <button type="button" class="action-btn" id="importTextHighlightsBtn">読み込み</button>
@@ -276,9 +315,8 @@
           <div class="backup-summary" id="textHighlightsTransferSummary"></div>
 
           <div class="info-box">
-            <p>読み込むと、現在保存されているすべてのメモとハイライトが、ファイルの内容に置き換わります。</p>
+            <p>マージでは現在のメモとハイライトを残して追加します。同じIDは更新日時の新しい内容を採用し、同時刻なら現在の内容を残します。置き換えでは、ファイルにない現在のデータは削除されます。</p>
           </div>
-          <div id="memosExternalFileSettings"></div>
         </div>
       </section>
 
@@ -357,7 +395,7 @@
             <a href="https://laws.e-gov.go.jp/" target="_blank" rel="noopener">e-Gov 法令検索</a>
             をより便利に使うための補助ツールです。
           </p>
-          <p class="version-info">バージョン 2.6.2</p>
+          <p class="version-info">バージョン 2.6.3</p>
         </div>
       </section>
     </main>
@@ -365,8 +403,6 @@
   <script src="shared/egov-shared.js"></script>
   <script src="shared/egov-app.js"></script>
   <script src="shared/transfer-data.js"></script>
-  <script src="shared/external-files.js"></script>
-  <script src="shared/external-files-options.js"></script>
   <script src="options.js"></script>
 </body>
 </html>

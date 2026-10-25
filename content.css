@@ -1053,49 +1053,29 @@ mark.egov-ext-mark-current {
 }
 
 /* =============================================
-   ショートカットガイドボタン（右下固定）
+   フッタ内のヘルプ
    ============================================= */
 
 #egov-ext-guide {
-  position: fixed !important;
-  bottom: 24px !important;
-  right: 24px !important;
-  z-index: 2147483646 !important;
+  position: static !important;
   display: flex !important;
-  flex-direction: column !important;
-  align-items: flex-end !important;
+  align-items: center !important;
+  gap: 8px !important;
+  flex-shrink: 0 !important;
 }
 
 .egov-ext-guide-btn {
-  width: 40px !important;
-  height: 40px !important;
-  border-radius: 50% !important;
-  background: #1976D2 !important;
-  border: none !important;
-  cursor: pointer !important;
-  font-size: 18px !important;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.25) !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  transition: background 0.2s, transform 0.15s !important;
-  padding: 0 !important;
-  line-height: 1 !important;
+  font: inherit !important;
 }
 
-.egov-ext-guide-btn:hover {
-  background: #1565C0 !important;
-  transform: scale(1.08) !important;
-}
-
-/* ツールチップ（ホバーで表示） */
+/* クリックで開くヘルプ */
 .egov-ext-guide-tooltip {
   display: none !important;
   position: absolute !important;
-  bottom: 48px !important;
+  bottom: calc(100% + 12px) !important;
   right: 0 !important;
   box-sizing: border-box !important;
-  max-height: calc(100vh - 96px) !important;
+  max-height: calc(100vh - 150px) !important;
   overflow-y: auto !important;
   overscroll-behavior: contain !important;
   background: #fff !important;
@@ -1103,18 +1083,12 @@ mark.egov-ext-mark-current {
   box-shadow: 0 8px 30px rgba(0,0,0,0.2) !important;
   padding: 14px 16px !important;
   min-width: 240px !important;
+  width: min(540px, calc(100vw - 24px)) !important;
+  max-width: calc(100vw - 24px) !important;
   font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Sans', 'Yu Gothic UI', sans-serif !important;
   font-size: 13px !important;
   color: #333 !important;
-  white-space: nowrap !important;
-}
-
-#egov-ext-guide:hover .egov-ext-guide-tooltip {
-  display: block !important;
-}
-
-#egov-ext-guide.egov-ext-guide-hover .egov-ext-guide-tooltip {
-  display: block !important;
+  white-space: normal !important;
 }
 
 #egov-ext-guide.egov-ext-guide-open .egov-ext-guide-tooltip {
@@ -1135,22 +1109,6 @@ mark.egov-ext-mark-current {
   font-weight: 700 !important;
   font-size: 13px !important;
   color: #1565C0 !important;
-}
-
-.egov-ext-guide-manual-button {
-  appearance: none !important;
-  border: 1px solid #1565c0 !important;
-  border-radius: 6px !important;
-  background: #fff !important;
-  color: #1565c0 !important;
-  cursor: pointer !important;
-  font: 600 12px/1 -apple-system, BlinkMacSystemFont, 'Hiragino Sans', 'Yu Gothic UI', sans-serif !important;
-  padding: 6px 10px !important;
-}
-
-.egov-ext-guide-manual-button:hover,
-.egov-ext-guide-manual-button:focus-visible {
-  background: #eaf3fb !important;
 }
 
 .egov-ext-guide-table {
@@ -1440,14 +1398,6 @@ body[data-egov-paren-mode] .egov-ext-muted-paren.egov-ext-muted-paren-link.egov-
 
 .egov-ext-law-result-fav.active {
   color: #F9A825 !important;
-}
-
-/* ショートカット無効時: ガイドボタンをグレーに */
-#egov-ext-guide.egov-ext-disabled .egov-ext-guide-btn {
-  background: #9e9e9e !important;
-}
-#egov-ext-guide.egov-ext-disabled .egov-ext-guide-btn:hover {
-  background: #757575 !important;
 }
 
 #egov-ext-lawref-shield {
@@ -1880,4 +1830,67 @@ body[data-egov-paren-mode] .egov-ext-muted-paren.egov-ext-muted-paren-link.egov-
 
 #egov-ext-text-highlight-memo-tooltip:hover {
   filter: brightness(0.995) !important;
+}
+/* Controls live inside e-Gov's existing footer, alongside its native buttons. */
+html.egov-ext-law-expanded footer.toolbar-main {
+  width: 100% !important;
+}
+footer.toolbar-main.egov-ext-footer-host {
+  box-sizing: border-box;
+  flex-wrap: wrap !important; gap: 8px !important; overflow: visible !important;
+  z-index: 2147483643 !important;
+}
+/* Comparison controls keep their native layout on a separate row. */
+footer.toolbar-main.toolbar-split.egov-ext-footer-host > .egov-normal-cache-status {
+  flex-basis: 100%;
+}
+.egov-normal-cache-status {
+  box-sizing: border-box;
+  position: relative; flex: 1 1 480px; min-width: 0;
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px;
+  color: #334155; font: 12px/1.5 sans-serif;
+}
+.egov-normal-cache-date { text-align: left; }
+.egov-normal-cache-status.is-acquisition-hidden {
+  justify-content: flex-end !important;
+}
+.egov-normal-cache-status.is-acquisition-hidden > .egov-normal-cache-actions {
+  flex: 1 1 auto;
+  justify-content: flex-end !important;
+  margin-left: auto !important;
+}
+.egov-normal-cache-actions {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end;
+  gap: 8px; max-width: 100%; margin-left: auto;
+}
+.egov-normal-cache-help-actions { display: flex; align-items: center; gap: 8px; }
+.egov-normal-cache-status[hidden] { display: none !important; }
+.egov-normal-cache-date[hidden], #egov-normal-redownload-button[hidden] { display: none !important; }
+footer.toolbar-main.egov-ext-footer-host :is(.egov-normal-cache-status button, button.toolbarbutton) {
+  box-sizing: border-box !important;
+  min-height: 28px !important; height: auto !important; padding: 4px 10px !important;
+  border: 1px solid #94a3b8 !important; border-radius: 5px !important;
+  background: #f8fafc !important; color: #1f2937 !important;
+  font: 500 12px/1.4 sans-serif !important;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.12) !important;
+  cursor: pointer !important; white-space: nowrap !important;
+}
+footer.toolbar-main.egov-ext-footer-host :is(.egov-normal-cache-status button, button.toolbarbutton):hover {
+  border-color: #64748b !important; background: #e2e8f0 !important;
+}
+footer.toolbar-main.egov-ext-footer-host :is(.egov-normal-cache-status button, button.toolbarbutton):active {
+  background: #cbd5e1 !important; box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.18) !important;
+}
+footer.toolbar-main.egov-ext-footer-host :is(.egov-normal-cache-status button, button.toolbarbutton):focus-visible {
+  outline: 2px solid #1976d2 !important; outline-offset: 2px !important;
+}
+footer.toolbar-main.egov-ext-footer-host :is(.egov-normal-cache-status button, button.toolbarbutton):disabled {
+  opacity: 0.55 !important; cursor: not-allowed !important;
+}
+footer.toolbar-main.egov-ext-footer-host :is(.egov-normal-cache-status button, button.toolbarbutton).has-law-update {
+  background: #b45309 !important; border-color: #92400e !important;
+  color: #fff !important; font-weight: 700 !important;
+}
+footer.toolbar-main.egov-ext-footer-host :is(.egov-normal-cache-status button, button.toolbarbutton).has-law-update:hover {
+  background: #92400e !important;
 }

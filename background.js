@@ -1,4 +1,8 @@
-importScripts('shared/egov-shared.js', 'shared/transfer-data.js', 'shared/external-files.js', 'shared/external-files-background.js');
+importScripts('shared/egov-shared.js', 'shared/normal-response-cache-background.js',
+  'shared/law-update-check.js', 'shared/law-update-check-background.js');
+
+// Retire the previous external-file poller without touching local records/files.
+chrome.alarms.clear('egov-external-files-poll').catch(() => {});
 
 chrome.runtime.onStartup?.addListener(() => {
   chrome.storage.session.setAccessLevel({ accessLevel: 'TRUSTED_AND_UNTRUSTED_CONTEXTS' }).catch(() => {});
@@ -28,6 +32,7 @@ const {
   REFERENCES_LAWS_STORE,
   REFERENCES_META_STORE,
   cacheLiteLawXml,
+  readCachedLiteLaw,
   findCurrentLawRevisionId,
   getJapanDateString,
   getLiteLawDataUrl,
@@ -36,10 +41,13 @@ const {
   openReferencesDb,
   waitForTransaction,
 } = globalThis.EgovShared;
-let bundledReferencesParsePromise = null;
-let bundledReferencesReaderCount = 0;
+const bundledReferenceShardPromises = new Map();
 const EGOV_API_V2_BASE = 'https://laws.e-gov.go.jp/api/2';
 const liteLawLoadPromises = new Map();
+// Old Lite entries lack download metadata and cannot obey the new policy.
+for (const name of ['egov-lite-law-xml-v1', 'egov-lite-law-xml-v2', 'egov-lite-law-xml-v3']) {
+  caches.delete(name).catch(() => {});
+}
 // Chromeウェブストア一般公開版では、Google Drive同期に必要な identity / alarms 権限の
 // 利用目的説明と外部API運用が必要になるため、同期機能を停止して権限も要求しない。
 // 将来再公開する場合は、manifestの権限・OAuth設定・Google APIホスト権限も併せて戻すこと。
@@ -801,10 +809,6 @@ async function disableGoogleDriveFavoritesSync() {
   return { ok: true };
 }
 
-function getLiteLawRevisionStorageKey(lawId) {
-  return `liteLawCurrentRevision:${lawId}`;
-}
-
 async function fetchLiteLawResponse(url, format, options = {}, timeoutMs = 15000) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
@@ -829,18 +833,23 @@ async function fetchLiteLawXml(target, asOf = '') {
   return xmlText;
 }
 
-async function loadAndCacheLiteLaw(lawId, revisionId = '') {
-  const promiseKey = `${lawId}:${revisionId || 'current'}`;
+async function loadAndCacheLiteLaw(lawId, revisionId = '', force = false) {
+  const promiseKey = `${lawId}:${revisionId || 'current'}:${force}`;
   if (liteLawLoadPromises.has(promiseKey)) return liteLawLoadPromises.get(promiseKey);
 
   const loadPromise = (async () => {
-    const revisionStorageKey = getLiteLawRevisionStorageKey(lawId);
+    // A manual refresh finishes after any prefetch already in progress.
+    if (force) await liteLawLoadPromises.get(`${lawId}:${revisionId || 'current'}:false`)?.catch(() => {});
     const initialTarget = revisionId || lawId;
+    if (!force) {
+      const cached = await readCachedLiteLaw(initialTarget);
+      if (cached) return { ...cached, cacheTarget: initialTarget, fromCache: true };
+    }
 
     // 改正ID指定時だけ本文を並列取得する。現行版は履歴で対象を確定してから一度だけ取得する。
     const revisionsPromise = fetchLiteLawRevisions(lawId).catch(() => []);
     const xmlPromise = revisionId ? fetchLiteLawXml(revisionId)
-      .then((xmlText) => ({ xmlText }))
+      .then((xmlText) => ({ xmlText, downloadedAt: Date.now() }))
       .catch((error) => ({ error })) : null;
     const revisions = await revisionsPromise;
     const currentRevisionId = findCurrentLawRevisionId(revisions);
@@ -853,12 +862,11 @@ async function loadAndCacheLiteLaw(lawId, revisionId = '') {
     if (result.error) throw result.error;
     const xmlText = result.xmlText;
 
-    const cacheTarget = resolvedTarget || initialTarget;
-    await cacheLiteLawXml(cacheTarget, xmlText);
-    if (!revisionId && currentRevisionId) {
-      await chrome.storage.local.set({ [revisionStorageKey]: currentRevisionId }).catch(() => {});
-    }
-    return { cacheTarget, currentRevisionId, revisions };
+    const cacheTarget = initialTarget;
+    const downloadedAt = result.downloadedAt || Date.now();
+    await cacheLiteLawXml(cacheTarget, xmlText, globalThis.caches,
+      { downloadedAt, currentRevisionId, revisions }).catch(() => {});
+    return { cacheTarget, currentRevisionId, revisions, xmlText, downloadedAt, fromCache: false };
   })().finally(() => {
     liteLawLoadPromises.delete(promiseKey);
   });
@@ -886,9 +894,8 @@ async function getImportedLawReferences(lawId) {
     console.warn('[e-Gov Enhancer] 参照キャッシュの読み込みに失敗しました', error);
   }
 
-  bundledReferencesReaderCount += 1;
-  try {
-    const referencesData = await getBundledReferencesData();
+  {
+    const referencesData = await getBundledReferencesData(lawId);
     const references = isPlainObject(referencesData?.[lawId]) ? referencesData[lawId] : {};
     // 要求された法令は参照ゼロ（空オブジェクト）でも保存し、次回以降の再パースを防ぐ
     try {
@@ -897,9 +904,6 @@ async function getImportedLawReferences(lawId) {
       console.warn('[e-Gov Enhancer] 参照キャッシュの保存に失敗しました', error);
     }
     return references;
-  } finally {
-    bundledReferencesReaderCount -= 1;
-    if (bundledReferencesReaderCount === 0) bundledReferencesParsePromise = null;
   }
 }
 
@@ -936,15 +940,19 @@ async function readCachedLawReferences(lawId) {
   }
 }
 
-function getBundledReferencesData() {
-  if (!bundledReferencesParsePromise) {
-    bundledReferencesParsePromise = (async () => {
-      const response = await fetch(chrome.runtime.getURL('data/references.json'));
+function getBundledReferencesData(lawId) {
+  let hash = 2166136261;
+  for (let i = 0; i < lawId.length; i++) hash = Math.imul(hash ^ lawId.charCodeAt(i), 16777619);
+  const shard = ((hash >>> 0) & 255).toString(16).padStart(2, '0');
+  if (!bundledReferenceShardPromises.has(shard)) {
+    const promise = (async () => {
+      const response = await fetch(chrome.runtime.getURL(`data/reference-shards/${shard}.json`));
       if (!response.ok) throw new Error(`References fetch failed: HTTP ${response.status}`);
       return response.json();
-    })();
+    })().finally(() => bundledReferenceShardPromises.delete(shard));
+    bundledReferenceShardPromises.set(shard, promise);
   }
-  return bundledReferencesParsePromise;
+  return bundledReferenceShardPromises.get(shard);
 }
 
 async function openActionPopup(mode = '') {
@@ -1061,7 +1069,7 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     return true;
   }
   if ((message?.type === 'egov-prefetch-lite-law' || message?.type === 'egov-load-lite-law') && message.lawId) {
-    loadAndCacheLiteLaw(message.lawId, message.revisionId || '')
+    loadAndCacheLiteLaw(message.lawId, message.revisionId || '', message.force === true)
       .then((result) => sendResponse({ ok: true, ...result }))
       .catch((error) => sendResponse({ ok: false, error: error?.message || String(error || '') }));
     return true;

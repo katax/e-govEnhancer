@@ -18,7 +18,6 @@ document.addEventListener('DOMContentLoaded', () => {
     escapeHtml,
     formatLawNameHtml,
     getLawFields,
-    searchLawsByTitle,
   } = shared;
   const {
     FAVORITES_MAX,
@@ -40,7 +39,9 @@ document.addEventListener('DOMContentLoaded', () => {
   const modeRightLabel = document.getElementById('modeRightLabel');
 
   let debounceTimer      = null;
+  const lawSearch = shared.createLawSearch();
   let isComposing        = false;
+  let committedCompositionQuery = null;
   let currentResults     = [];
   let currentSearchQuery = '';
   let currentSearchHasMore = false;
@@ -403,6 +404,10 @@ document.addEventListener('DOMContentLoaded', () => {
   // IME変換確定後に検索
   // ================================================
   searchInput.addEventListener('compositionstart', () => {
+    lawSearch.cancel();
+    clearTimeout(debounceTimer);
+    showLoading(false);
+    committedCompositionQuery = null;
     isComposing = true;
     if (historyMode !== null) hideHistoryPanel();
   });
@@ -410,20 +415,28 @@ document.addEventListener('DOMContentLoaded', () => {
     isComposing = false;
     clearTimeout(debounceTimer);
     const query = searchInput.value.trim();
-    if (query.length >= 1) doSearch(query);
+    committedCompositionQuery = query;
+    if (query.length >= 1) debounceTimer = setTimeout(() => {
+      committedCompositionQuery = null;
+      doSearch(query);
+    }, 400);
   });
 
   // ================================================
   // 通常入力（IME非使用時・400msデバウンス）
   // ================================================
   searchInput.addEventListener('input', () => {
+    lawSearch.cancel();
+    showLoading(false);
     if (historyMode !== null && searchInput.value.length > 0) {
       hideHistoryPanel();
     }
     if (isComposing) return;
     clearTimeout(debounceTimer);
     const query = searchInput.value.trim();
-    if (query.length >= 2) {
+    const justCommitted = committedCompositionQuery === query;
+    committedCompositionQuery = null;
+    if (query.length >= 2 || (justCommitted && query.length >= 1)) {
       isEmptyState = false;
       debounceTimer = setTimeout(() => doSearch(query), 400);
     } else if (query.length === 0) {
@@ -620,6 +633,9 @@ document.addEventListener('DOMContentLoaded', () => {
   // 履歴パネル 表示・切替
   // ================================================
   function showHistoryPanel(mode) {
+    lawSearch.cancel();
+    clearTimeout(debounceTimer);
+    showLoading(false);
     hideTooltip();
     historyMode = mode;
     histFocusedIdx = -1;
@@ -1471,7 +1487,10 @@ document.addEventListener('DOMContentLoaded', () => {
   // API検索
   // ================================================
   async function doSearch(query) {
+    clearTimeout(debounceTimer);
+    committedCompositionQuery = null;
     if (historyMode !== null) hideHistoryPanel();
+    const request = lawSearch.start(query);
     isEmptyState       = false;
     focusedResultIndex = -1;
     showLoading(true);
@@ -1483,10 +1502,11 @@ document.addEventListener('DOMContentLoaded', () => {
       let laws = [];
       let remoteError = null;
       try {
-        laws = await searchLawsByTitle(query, { limit: 31 });
+        laws = await request.promise;
       } catch (error) {
         remoteError = error;
       }
+      if (!request.isCurrent()) return;
       if (remoteError && localLaws.length === 0) throw remoteError;
       const hasMore = laws.length > 30;
       const remoteDisplay = hasMore ? laws.slice(0, 30) : laws;
@@ -1496,9 +1516,10 @@ document.addEventListener('DOMContentLoaded', () => {
       showResults(display, query, hasMore);
       if (display.length > 0) pushQueryHistory(query);
     } catch (err) {
+      if (!request.isCurrent()) return;
       showError(`エラー: ${err.message}`);
     } finally {
-      showLoading(false);
+      if (request.isCurrent()) showLoading(false);
     }
   }
 

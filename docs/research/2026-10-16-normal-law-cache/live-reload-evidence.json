@@ -1,0 +1,13 @@
+{
+  "dateJapan": "2026-10-16",
+  "method": "Codex in-app browser. Full #provisionview.outerHTML strings were held in the browser-tool session and compared with strict equality before and after one reload. The last main article was visible before both captures.",
+  "url": "https://laws.e-gov.go.jp/law/405AC0000000088",
+  "displayedRevisionId": "405AC0000000088_20260724_508AC0000000066",
+  "firstHtmlCharacters": 87830,
+  "secondHtmlCharacters": 87830,
+  "sameHtml": true,
+  "sameUrl": true,
+  "sameRevision": true,
+  "allArticleClassElements": 50,
+  "limitation": "One law, one reload, no Enhancer installed. This is not a measured cache hit rate under enabled feature combinations. HTML was not used as an executable restoration payload."
+}

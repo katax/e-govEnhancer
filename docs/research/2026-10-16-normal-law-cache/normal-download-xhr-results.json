@@ -1,0 +1,2018 @@
+{
+  "dateJapan": "2026-10-16",
+  "browser": "155.0.8059.80",
+  "note": "Stock modes use native HTTP cache. Routed modes disable it and supply the captured application document/static assets from local files in every routed condition; data/*_law.html is treated as law-body data, NOT a shared static asset. Only law-data replay policy changes. No Enhancer installed. Local response replay is a feasibility prototype, not an installed-extension benchmark.",
+  "rows": [
+    {
+      "lawId": "405AC0000000088",
+      "lawName": "行政手続法",
+      "mode": "xhr-cache",
+      "iteration": 0,
+      "firstArticleMs": 362.3999999985099,
+      "bodyLastMutationMs": 362.6000000014901,
+      "revisionFirstMs": 205.19999999552965,
+      "wallObservationMs": 691.8848,
+      "articleCount": 48,
+      "htmlCharacters": 87778,
+      "textCharacters": 18357,
+      "htmlHash": "d174678c168534a5390f28b175bfb858973b18f3cc01cc75841a1d09b5256b42",
+      "textHash": "9e8ec4fc7c0a27b198a6ceb8ce10d213a05c2923469ffaf4f572415b55dcee4b",
+      "revision": "Law RevisionID:405AC0000000088_20260724_508AC0000000066",
+      "sameHtml": true,
+      "sameText": true,
+      "sameArticleIds": true,
+      "sameRevision": true,
+      "apiResponses": [],
+      "liveLawApiRequests": [],
+      "cacheEvents": [
+        {
+          "endpoint": "405AC0000000088",
+          "action": "local",
+          "bytes": 800,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "common-egov.css",
+          "action": "local",
+          "bytes": 1280,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "index-47878493.js",
+          "action": "local",
+          "bytes": 182292,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "index-be73647f.css",
+          "action": "local",
+          "bytes": 3095,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "vendor-c7dcf3ca.js",
+          "action": "local",
+          "bytes": 221362,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "common.css",
+          "action": "local",
+          "bytes": 40420,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "law-print.css",
+          "action": "local",
+          "bytes": 867,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "GlobalLoadingThrobber-d29c5ad8.js",
+          "action": "local",
+          "bytes": 14955,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "law-dc3f9bc8.js",
+          "action": "local",
+          "bytes": 141170,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "GlobalLoadingThrobber-4824d845.css",
+          "action": "local",
+          "bytes": 141,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "questionmark-circle-e05eff24.js",
+          "action": "local",
+          "bytes": 58,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "law-68189bfb.css",
+          "action": "local",
+          "bytes": 798,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "SelectLawRevisionData.json",
+          "action": "main-world-xhr-local",
+          "bytes": 6787,
+          "lawApi": true,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "circle-question.svg",
+          "action": "local",
+          "bytes": 1175,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "xmark-square.svg",
+          "action": "local",
+          "bytes": 1084,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "logo.svg",
+          "action": "local",
+          "bytes": 1014,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "arrow-up-forward.svg",
+          "action": "local",
+          "bytes": 1054,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "star-fill.svg",
+          "action": "local",
+          "bytes": 728,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "banner_hourei.png",
+          "action": "local",
+          "bytes": 57696,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "SelectLawData.json",
+          "action": "main-world-xhr-local",
+          "bytes": 1451,
+          "lawApi": true,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "SelectLawTocData.json",
+          "action": "main-world-xhr-local",
+          "bytes": 73017,
+          "lawApi": true,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "law.css",
+          "action": "local",
+          "bytes": 24058,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "lawtoc.css",
+          "action": "local",
+          "bytes": 2767,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "law-print.css",
+          "action": "local",
+          "bytes": 867,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "provisiontext.css",
+          "action": "local",
+          "bytes": 10171,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "SelectLawTextData.json",
+          "action": "main-world-xhr-local",
+          "bytes": 255957,
+          "lawApi": true,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "doc-text.svg",
+          "action": "local",
+          "bytes": 629,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "chevron-down.svg",
+          "action": "local",
+          "bytes": 239,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "doc.svg",
+          "action": "local",
+          "bytes": 473,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "eye-fill-translucent.svg",
+          "action": "local",
+          "bytes": 731,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "eye-fill.svg",
+          "action": "local",
+          "bytes": 650,
+          "lawApi": false,
+          "bodyHtml": false
+        }
+      ],
+      "nativeBodyResponses": [],
+      "errors": [],
+      "nativeTocInteraction": true,
+      "navigation": {
+        "responseEnd": 23.69999999552965,
+        "domContentLoaded": 92.69999999552965,
+        "load": 114.79999999701977
+      }
+    },
+    {
+      "lawId": "405AC0000000088",
+      "lawName": "行政手続法",
+      "mode": "xhr-cache",
+      "iteration": 1,
+      "firstArticleMs": 295.80000000447035,
+      "bodyLastMutationMs": 295.90000000596046,
+      "revisionFirstMs": 167.30000000447035,
+      "wallObservationMs": 636.0939000000001,
+      "articleCount": 48,
+      "htmlCharacters": 87778,
+      "textCharacters": 18357,
+      "htmlHash": "d174678c168534a5390f28b175bfb858973b18f3cc01cc75841a1d09b5256b42",
+      "textHash": "9e8ec4fc7c0a27b198a6ceb8ce10d213a05c2923469ffaf4f572415b55dcee4b",
+      "revision": "Law RevisionID:405AC0000000088_20260724_508AC0000000066",
+      "sameHtml": true,
+      "sameText": true,
+      "sameArticleIds": true,
+      "sameRevision": true,
+      "apiResponses": [],
+      "liveLawApiRequests": [],
+      "cacheEvents": [
+        {
+          "endpoint": "405AC0000000088",
+          "action": "local",
+          "bytes": 800,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "common-egov.css",
+          "action": "local",
+          "bytes": 1280,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "index-be73647f.css",
+          "action": "local",
+          "bytes": 3095,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "vendor-c7dcf3ca.js",
+          "action": "local",
+          "bytes": 221362,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "index-47878493.js",
+          "action": "local",
+          "bytes": 182292,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "common.css",
+          "action": "local",
+          "bytes": 40420,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "law-print.css",
+          "action": "local",
+          "bytes": 867,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "GlobalLoadingThrobber-4824d845.css",
+          "action": "local",
+          "bytes": 141,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "law-dc3f9bc8.js",
+          "action": "local",
+          "bytes": 141170,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "GlobalLoadingThrobber-d29c5ad8.js",
+          "action": "local",
+          "bytes": 14955,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "questionmark-circle-e05eff24.js",
+          "action": "local",
+          "bytes": 58,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "law-68189bfb.css",
+          "action": "local",
+          "bytes": 798,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "SelectLawRevisionData.json",
+          "action": "main-world-xhr-local",
+          "bytes": 6787,
+          "lawApi": true,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "logo.svg",
+          "action": "local",
+          "bytes": 1014,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "circle-question.svg",
+          "action": "local",
+          "bytes": 1175,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "xmark-square.svg",
+          "action": "local",
+          "bytes": 1084,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "arrow-up-forward.svg",
+          "action": "local",
+          "bytes": 1054,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "star-fill.svg",
+          "action": "local",
+          "bytes": 728,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "banner_hourei.png",
+          "action": "local",
+          "bytes": 57696,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "SelectLawTocData.json",
+          "action": "main-world-xhr-local",
+          "bytes": 73017,
+          "lawApi": true,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "SelectLawData.json",
+          "action": "main-world-xhr-local",
+          "bytes": 1451,
+          "lawApi": true,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "law.css",
+          "action": "local",
+          "bytes": 24058,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "lawtoc.css",
+          "action": "local",
+          "bytes": 2767,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "provisiontext.css",
+          "action": "local",
+          "bytes": 10171,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "law-print.css",
+          "action": "local",
+          "bytes": 867,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "SelectLawTextData.json",
+          "action": "main-world-xhr-local",
+          "bytes": 255957,
+          "lawApi": true,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "doc-text.svg",
+          "action": "local",
+          "bytes": 629,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "doc.svg",
+          "action": "local",
+          "bytes": 473,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "eye-fill.svg",
+          "action": "local",
+          "bytes": 650,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "chevron-down.svg",
+          "action": "local",
+          "bytes": 239,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "eye-fill-translucent.svg",
+          "action": "local",
+          "bytes": 731,
+          "lawApi": false,
+          "bodyHtml": false
+        }
+      ],
+      "nativeBodyResponses": [],
+      "errors": [],
+      "nativeTocInteraction": true,
+      "navigation": {
+        "responseEnd": 3.7000000029802322,
+        "domContentLoaded": 66.80000000447035,
+        "load": 79.90000000596046
+      }
+    },
+    {
+      "lawId": "405AC0000000088",
+      "lawName": "行政手続法",
+      "mode": "xhr-cache",
+      "iteration": 2,
+      "firstArticleMs": 308.5,
+      "bodyLastMutationMs": 308.70000000298023,
+      "revisionFirstMs": 170.39999999850988,
+      "wallObservationMs": 662.835,
+      "articleCount": 48,
+      "htmlCharacters": 87778,
+      "textCharacters": 18357,
+      "htmlHash": "d174678c168534a5390f28b175bfb858973b18f3cc01cc75841a1d09b5256b42",
+      "textHash": "9e8ec4fc7c0a27b198a6ceb8ce10d213a05c2923469ffaf4f572415b55dcee4b",
+      "revision": "Law RevisionID:405AC0000000088_20260724_508AC0000000066",
+      "sameHtml": true,
+      "sameText": true,
+      "sameArticleIds": true,
+      "sameRevision": true,
+      "apiResponses": [],
+      "liveLawApiRequests": [],
+      "cacheEvents": [
+        {
+          "endpoint": "405AC0000000088",
+          "action": "local",
+          "bytes": 800,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "common-egov.css",
+          "action": "local",
+          "bytes": 1280,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "index-be73647f.css",
+          "action": "local",
+          "bytes": 3095,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "vendor-c7dcf3ca.js",
+          "action": "local",
+          "bytes": 221362,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "index-47878493.js",
+          "action": "local",
+          "bytes": 182292,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "common.css",
+          "action": "local",
+          "bytes": 40420,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "law-print.css",
+          "action": "local",
+          "bytes": 867,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "GlobalLoadingThrobber-d29c5ad8.js",
+          "action": "local",
+          "bytes": 14955,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "law-dc3f9bc8.js",
+          "action": "local",
+          "bytes": 141170,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "questionmark-circle-e05eff24.js",
+          "action": "local",
+          "bytes": 58,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "GlobalLoadingThrobber-4824d845.css",
+          "action": "local",
+          "bytes": 141,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "law-68189bfb.css",
+          "action": "local",
+          "bytes": 798,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "SelectLawRevisionData.json",
+          "action": "main-world-xhr-local",
+          "bytes": 6787,
+          "lawApi": true,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "logo.svg",
+          "action": "local",
+          "bytes": 1014,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "circle-question.svg",
+          "action": "local",
+          "bytes": 1175,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "xmark-square.svg",
+          "action": "local",
+          "bytes": 1084,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "arrow-up-forward.svg",
+          "action": "local",
+          "bytes": 1054,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "star-fill.svg",
+          "action": "local",
+          "bytes": 728,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "SelectLawTocData.json",
+          "action": "main-world-xhr-local",
+          "bytes": 73017,
+          "lawApi": true,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "banner_hourei.png",
+          "action": "local",
+          "bytes": 57696,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "SelectLawData.json",
+          "action": "main-world-xhr-local",
+          "bytes": 1451,
+          "lawApi": true,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "law.css",
+          "action": "local",
+          "bytes": 24058,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "lawtoc.css",
+          "action": "local",
+          "bytes": 2767,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "law-print.css",
+          "action": "local",
+          "bytes": 867,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "provisiontext.css",
+          "action": "local",
+          "bytes": 10171,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "SelectLawTextData.json",
+          "action": "main-world-xhr-local",
+          "bytes": 255957,
+          "lawApi": true,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "doc-text.svg",
+          "action": "local",
+          "bytes": 629,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "eye-fill-translucent.svg",
+          "action": "local",
+          "bytes": 731,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "eye-fill.svg",
+          "action": "local",
+          "bytes": 650,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "chevron-down.svg",
+          "action": "local",
+          "bytes": 239,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "doc.svg",
+          "action": "local",
+          "bytes": 473,
+          "lawApi": false,
+          "bodyHtml": false
+        }
+      ],
+      "nativeBodyResponses": [],
+      "errors": [],
+      "nativeTocInteraction": true,
+      "navigation": {
+        "responseEnd": 2.7999999970197678,
+        "domContentLoaded": 67,
+        "load": 79.89999999850988
+      }
+    },
+    {
+      "lawId": "405AC0000000088",
+      "lawName": "行政手続法",
+      "mode": "xhr-body-miss",
+      "iteration": 0,
+      "firstArticleMs": 468.40000000596046,
+      "bodyLastMutationMs": 468.6000000014901,
+      "revisionFirstMs": 168.20000000298023,
+      "wallObservationMs": 746.4597999999996,
+      "articleCount": 48,
+      "htmlCharacters": 87778,
+      "textCharacters": 18357,
+      "htmlHash": "d174678c168534a5390f28b175bfb858973b18f3cc01cc75841a1d09b5256b42",
+      "textHash": "9e8ec4fc7c0a27b198a6ceb8ce10d213a05c2923469ffaf4f572415b55dcee4b",
+      "revision": "Law RevisionID:405AC0000000088_20260724_508AC0000000066",
+      "sameHtml": true,
+      "sameText": true,
+      "sameArticleIds": true,
+      "sameRevision": true,
+      "apiResponses": [],
+      "liveLawApiRequests": [
+        {
+          "endpoint": "SelectLawTextData.json",
+          "url": "https://laws.e-gov.go.jp/internal-api/SelectLawTextData.json",
+          "resourceType": "xhr",
+          "method": "POST",
+          "postData": "{\"law_id\":\"405AC0000000088\",\"law_data_id\":641200,\"subRevision\":\"1\",\"selTextList\":[\"#TOC\",\"#Mp-Ch_1\",\"#Mp-Ch_1-At_1\",\"#Mp-Ch_1-At_2\",\"#Mp-Ch_1-At_3\",\"#Mp-Ch_1-At_4\",\"#Mp-Ch_2\",\"#Mp-Ch_2-At_5\",\"#Mp-Ch_2-At_6\",\"#Mp-Ch_2-At_7\",\"#Mp-Ch_2-At_8\",\"#Mp-Ch_2-At_9\",\"#Mp-Ch_2-At_10\",\"#Mp-Ch_2-At_11\",\"#Mp-Ch_3\",\"#Mp-Ch_3-Se_1\",\"#Mp-Ch_3-Se_1-At_12\",\"#Mp-Ch_3-Se_1-At_13\",\"#Mp-Ch_3-Se_1-At_14\",\"#Mp-Ch_3-Se_2\",\"#Mp-Ch_3-Se_2-At_15\",\"#Mp-Ch_3-Se_2-At_16\",\"#Mp-Ch_3-Se_2-At_17\",\"#Mp-Ch_3-Se_2-At_18\",\"#Mp-Ch_3-Se_2-At_19\",\"#Mp-Ch_3-Se_2-At_20\",\"#Mp-Ch_3-Se_2-At_21\",\"#Mp-Ch_3-Se_2-At_22\",\"#Mp-Ch_3-Se_2-At_23\",\"#Mp-Ch_3-Se_2-At_24\",\"#Mp-Ch_3-Se_2-At_25\",\"#Mp-Ch_3-Se_2-At_26\",\"#Mp-Ch_3-Se_2-At_27\",\"#Mp-Ch_3-Se_2-At_28\",\"#Mp-Ch_3-Se_3\",\"#Mp-Ch_3-Se_3-At_29\",\"#Mp-Ch_3-Se_3-At_30\",\"#Mp-Ch_3-Se_3-At_31\",\"#Mp-Ch_4\",\"#Mp-Ch_4-At_32\",\"#Mp-Ch_4-At_33\",\"#Mp-Ch_4-At_34\",\"#Mp-Ch_4-At_35\",\"#Mp-Ch_4-At_36\",\"#Mp-Ch_4-At_36_2\",\"#Mp-Ch_4_2\",\"#Mp-Ch_4_2-At_36_3\",\"#Mp-Ch_5\",\"#Mp-Ch_5-At_37\",\"#Mp-Ch_6\",\"#Mp-Ch_6-At_38\",\"#Mp-Ch_6-At_39\",\"#Mp-Ch_6-At_40\",\"#Mp-Ch_6-At_41\",\"#Mp-Ch_6-At_42\",\"#Mp-Ch_6-At_43\",\"#Mp-Ch_6-At_44\",\"#Mp-Ch_6-At_45\",\"#Mp-Ch_7\",\"#Mp-Ch_7-At_46\",\"#405AC0000000088-Sp\",\"#411AC0000000151-Sp\",\"#411AC0000000160-Sp\",\"#414AC0000000152-Sp\",\"#415AC0000000119-Sp\",\"#417AC0000000073-Sp\",\"#418AC0000000058-Sp\",\"#418AC0000000066-Sp\",\"#426AC0000000069-Sp\",\"#426AC0000000070-Sp\",\"#429AC0000000004-Sp\",\"#504AC0100000052-Sp\",\"#505AC0000000056-Sp\",\"#505AC0000000063-Sp\",\"#506AC0000000065-Sp\",\"#508AC0000000046-Sp\",\"#508AC0000000066-Sp\"],\"occasion\":\"2026/10/16\"}"
+        }
+      ],
+      "cacheEvents": [
+        {
+          "endpoint": "405AC0000000088",
+          "action": "local",
+          "bytes": 800,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "common-egov.css",
+          "action": "local",
+          "bytes": 1280,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "vendor-c7dcf3ca.js",
+          "action": "local",
+          "bytes": 221362,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "index-be73647f.css",
+          "action": "local",
+          "bytes": 3095,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "index-47878493.js",
+          "action": "local",
+          "bytes": 182292,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "common.css",
+          "action": "local",
+          "bytes": 40420,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "law-print.css",
+          "action": "local",
+          "bytes": 867,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "law-dc3f9bc8.js",
+          "action": "local",
+          "bytes": 141170,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "law-68189bfb.css",
+          "action": "local",
+          "bytes": 798,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "GlobalLoadingThrobber-4824d845.css",
+          "action": "local",
+          "bytes": 141,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "questionmark-circle-e05eff24.js",
+          "action": "local",
+          "bytes": 58,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "GlobalLoadingThrobber-d29c5ad8.js",
+          "action": "local",
+          "bytes": 14955,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "SelectLawRevisionData.json",
+          "action": "main-world-xhr-local",
+          "bytes": 6787,
+          "lawApi": true,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "xmark-square.svg",
+          "action": "local",
+          "bytes": 1084,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "logo.svg",
+          "action": "local",
+          "bytes": 1014,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "circle-question.svg",
+          "action": "local",
+          "bytes": 1175,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "arrow-up-forward.svg",
+          "action": "local",
+          "bytes": 1054,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "star-fill.svg",
+          "action": "local",
+          "bytes": 728,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "SelectLawTocData.json",
+          "action": "main-world-xhr-local",
+          "bytes": 73017,
+          "lawApi": true,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "banner_hourei.png",
+          "action": "local",
+          "bytes": 57696,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "SelectLawData.json",
+          "action": "main-world-xhr-local",
+          "bytes": 1451,
+          "lawApi": true,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "law.css",
+          "action": "local",
+          "bytes": 24058,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "provisiontext.css",
+          "action": "local",
+          "bytes": 10171,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "lawtoc.css",
+          "action": "local",
+          "bytes": 2767,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "law-print.css",
+          "action": "local",
+          "bytes": 867,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "doc-text.svg",
+          "action": "local",
+          "bytes": 629,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "doc.svg",
+          "action": "local",
+          "bytes": 473,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "eye-fill.svg",
+          "action": "local",
+          "bytes": 650,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "chevron-down.svg",
+          "action": "local",
+          "bytes": 239,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "eye-fill-translucent.svg",
+          "action": "local",
+          "bytes": 731,
+          "lawApi": false,
+          "bodyHtml": false
+        }
+      ],
+      "nativeBodyResponses": [
+        {
+          "url": "https://laws.e-gov.go.jp/internal-api/SelectLawTextData.json",
+          "status": 200,
+          "fromDiskCache": false,
+          "fromServiceWorker": false,
+          "protocol": "h2"
+        }
+      ],
+      "errors": [],
+      "nativeTocInteraction": null,
+      "navigation": {
+        "responseEnd": 4.600000001490116,
+        "domContentLoaded": 66.70000000298023,
+        "load": 83.5
+      }
+    },
+    {
+      "lawId": "129AC0000000089",
+      "lawName": "民法",
+      "mode": "xhr-cache",
+      "iteration": 0,
+      "firstArticleMs": 1380.1000000014901,
+      "bodyLastMutationMs": 1380.2999999970198,
+      "revisionFirstMs": 224.60000000149012,
+      "wallObservationMs": 2952.9424000000004,
+      "articleCount": 1165,
+      "htmlCharacters": 1137643,
+      "textCharacters": 239286,
+      "htmlHash": "c1ccc52d271e3e471082b9d568b9652a2c97783bf10b363c4f74c26c90daf8cb",
+      "textHash": "6be425c7cf07a154d71d1f9680855732027969ba799fff03fe21d97c21f8f24f",
+      "revision": "Law RevisionID:129AC0000000089_20260624_508AC0000000045",
+      "sameHtml": true,
+      "sameText": true,
+      "sameArticleIds": true,
+      "sameRevision": true,
+      "apiResponses": [],
+      "liveLawApiRequests": [],
+      "cacheEvents": [
+        {
+          "endpoint": "129AC0000000089",
+          "action": "local",
+          "bytes": 800,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "common-egov.css",
+          "action": "local",
+          "bytes": 1280,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "vendor-c7dcf3ca.js",
+          "action": "local",
+          "bytes": 221362,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "index-47878493.js",
+          "action": "local",
+          "bytes": 182292,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "index-be73647f.css",
+          "action": "local",
+          "bytes": 3095,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "common.css",
+          "action": "local",
+          "bytes": 40420,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "law-print.css",
+          "action": "local",
+          "bytes": 867,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "law-dc3f9bc8.js",
+          "action": "local",
+          "bytes": 141170,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "GlobalLoadingThrobber-4824d845.css",
+          "action": "local",
+          "bytes": 141,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "GlobalLoadingThrobber-d29c5ad8.js",
+          "action": "local",
+          "bytes": 14955,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "law-68189bfb.css",
+          "action": "local",
+          "bytes": 798,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "questionmark-circle-e05eff24.js",
+          "action": "local",
+          "bytes": 58,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "SelectLawRevisionData.json",
+          "action": "main-world-xhr-local",
+          "bytes": 21639,
+          "lawApi": true,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "circle-question.svg",
+          "action": "local",
+          "bytes": 1175,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "logo.svg",
+          "action": "local",
+          "bytes": 1014,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "arrow-up-forward.svg",
+          "action": "local",
+          "bytes": 1054,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "xmark-square.svg",
+          "action": "local",
+          "bytes": 1084,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "star-fill.svg",
+          "action": "local",
+          "bytes": 728,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "banner_hourei.png",
+          "action": "local",
+          "bytes": 57696,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "SelectLawData.json",
+          "action": "main-world-xhr-local",
+          "bytes": 1447,
+          "lawApi": true,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "SelectLawTocData.json",
+          "action": "main-world-xhr-local",
+          "bytes": 1060535,
+          "lawApi": true,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "law.css",
+          "action": "local",
+          "bytes": 24058,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "lawtoc.css",
+          "action": "local",
+          "bytes": 2767,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "provisiontext.css",
+          "action": "local",
+          "bytes": 10171,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "law-print.css",
+          "action": "local",
+          "bytes": 867,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "doc-text.svg",
+          "action": "local",
+          "bytes": 629,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "doc.svg",
+          "action": "local",
+          "bytes": 473,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "129AC0000000089_20260624_508AC0000000045_law.html",
+          "action": "main-world-xhr-local",
+          "bytes": 1571598,
+          "lawApi": false,
+          "bodyHtml": true
+        },
+        {
+          "endpoint": "eye-fill-translucent.svg",
+          "action": "local",
+          "bytes": 731,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "eye-fill.svg",
+          "action": "local",
+          "bytes": 650,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "chevron-down.svg",
+          "action": "local",
+          "bytes": 239,
+          "lawApi": false,
+          "bodyHtml": false
+        }
+      ],
+      "nativeBodyResponses": [],
+      "errors": [],
+      "nativeTocInteraction": true,
+      "navigation": {
+        "responseEnd": 3.100000001490116,
+        "domContentLoaded": 62,
+        "load": 80.29999999701977
+      }
+    },
+    {
+      "lawId": "129AC0000000089",
+      "lawName": "民法",
+      "mode": "xhr-cache",
+      "iteration": 1,
+      "firstArticleMs": 746.6000000014901,
+      "bodyLastMutationMs": 746.8999999985099,
+      "revisionFirstMs": 212.5,
+      "wallObservationMs": 2921.0111000000006,
+      "articleCount": 1165,
+      "htmlCharacters": 1137643,
+      "textCharacters": 239286,
+      "htmlHash": "c1ccc52d271e3e471082b9d568b9652a2c97783bf10b363c4f74c26c90daf8cb",
+      "textHash": "6be425c7cf07a154d71d1f9680855732027969ba799fff03fe21d97c21f8f24f",
+      "revision": "Law RevisionID:129AC0000000089_20260624_508AC0000000045",
+      "sameHtml": true,
+      "sameText": true,
+      "sameArticleIds": true,
+      "sameRevision": true,
+      "apiResponses": [],
+      "liveLawApiRequests": [],
+      "cacheEvents": [
+        {
+          "endpoint": "129AC0000000089",
+          "action": "local",
+          "bytes": 800,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "common-egov.css",
+          "action": "local",
+          "bytes": 1280,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "index-be73647f.css",
+          "action": "local",
+          "bytes": 3095,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "vendor-c7dcf3ca.js",
+          "action": "local",
+          "bytes": 221362,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "index-47878493.js",
+          "action": "local",
+          "bytes": 182292,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "common.css",
+          "action": "local",
+          "bytes": 40420,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "law-print.css",
+          "action": "local",
+          "bytes": 867,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "GlobalLoadingThrobber-d29c5ad8.js",
+          "action": "local",
+          "bytes": 14955,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "law-dc3f9bc8.js",
+          "action": "local",
+          "bytes": 141170,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "GlobalLoadingThrobber-4824d845.css",
+          "action": "local",
+          "bytes": 141,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "questionmark-circle-e05eff24.js",
+          "action": "local",
+          "bytes": 58,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "law-68189bfb.css",
+          "action": "local",
+          "bytes": 798,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "SelectLawRevisionData.json",
+          "action": "main-world-xhr-local",
+          "bytes": 21639,
+          "lawApi": true,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "logo.svg",
+          "action": "local",
+          "bytes": 1014,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "circle-question.svg",
+          "action": "local",
+          "bytes": 1175,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "arrow-up-forward.svg",
+          "action": "local",
+          "bytes": 1054,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "xmark-square.svg",
+          "action": "local",
+          "bytes": 1084,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "law.css",
+          "action": "local",
+          "bytes": 24058,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "star-fill.svg",
+          "action": "local",
+          "bytes": 728,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "banner_hourei.png",
+          "action": "local",
+          "bytes": 57696,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "SelectLawData.json",
+          "action": "main-world-xhr-local",
+          "bytes": 1447,
+          "lawApi": true,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "SelectLawTocData.json",
+          "action": "main-world-xhr-local",
+          "bytes": 1060535,
+          "lawApi": true,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "lawtoc.css",
+          "action": "local",
+          "bytes": 2767,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "provisiontext.css",
+          "action": "local",
+          "bytes": 10171,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "law-print.css",
+          "action": "local",
+          "bytes": 867,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "doc.svg",
+          "action": "local",
+          "bytes": 473,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "doc-text.svg",
+          "action": "local",
+          "bytes": 629,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "129AC0000000089_20260624_508AC0000000045_law.html",
+          "action": "main-world-xhr-local",
+          "bytes": 1571598,
+          "lawApi": false,
+          "bodyHtml": true
+        },
+        {
+          "endpoint": "chevron-down.svg",
+          "action": "local",
+          "bytes": 239,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "eye-fill-translucent.svg",
+          "action": "local",
+          "bytes": 731,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "eye-fill.svg",
+          "action": "local",
+          "bytes": 650,
+          "lawApi": false,
+          "bodyHtml": false
+        }
+      ],
+      "nativeBodyResponses": [],
+      "errors": [],
+      "nativeTocInteraction": true,
+      "navigation": {
+        "responseEnd": 3.5,
+        "domContentLoaded": 69,
+        "load": 89.89999999850988
+      }
+    },
+    {
+      "lawId": "129AC0000000089",
+      "lawName": "民法",
+      "mode": "xhr-cache",
+      "iteration": 2,
+      "firstArticleMs": 755.7999999970198,
+      "bodyLastMutationMs": 756.1000000014901,
+      "revisionFirstMs": 213.70000000298023,
+      "wallObservationMs": 3050.6454000000012,
+      "articleCount": 1165,
+      "htmlCharacters": 1137643,
+      "textCharacters": 239286,
+      "htmlHash": "c1ccc52d271e3e471082b9d568b9652a2c97783bf10b363c4f74c26c90daf8cb",
+      "textHash": "6be425c7cf07a154d71d1f9680855732027969ba799fff03fe21d97c21f8f24f",
+      "revision": "Law RevisionID:129AC0000000089_20260624_508AC0000000045",
+      "sameHtml": true,
+      "sameText": true,
+      "sameArticleIds": true,
+      "sameRevision": true,
+      "apiResponses": [],
+      "liveLawApiRequests": [],
+      "cacheEvents": [
+        {
+          "endpoint": "129AC0000000089",
+          "action": "local",
+          "bytes": 800,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "common-egov.css",
+          "action": "local",
+          "bytes": 1280,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "index-be73647f.css",
+          "action": "local",
+          "bytes": 3095,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "vendor-c7dcf3ca.js",
+          "action": "local",
+          "bytes": 221362,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "index-47878493.js",
+          "action": "local",
+          "bytes": 182292,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "common.css",
+          "action": "local",
+          "bytes": 40420,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "law-print.css",
+          "action": "local",
+          "bytes": 867,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "law-dc3f9bc8.js",
+          "action": "local",
+          "bytes": 141170,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "GlobalLoadingThrobber-4824d845.css",
+          "action": "local",
+          "bytes": 141,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "GlobalLoadingThrobber-d29c5ad8.js",
+          "action": "local",
+          "bytes": 14955,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "questionmark-circle-e05eff24.js",
+          "action": "local",
+          "bytes": 58,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "law-68189bfb.css",
+          "action": "local",
+          "bytes": 798,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "SelectLawRevisionData.json",
+          "action": "main-world-xhr-local",
+          "bytes": 21639,
+          "lawApi": true,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "circle-question.svg",
+          "action": "local",
+          "bytes": 1175,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "logo.svg",
+          "action": "local",
+          "bytes": 1014,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "xmark-square.svg",
+          "action": "local",
+          "bytes": 1084,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "arrow-up-forward.svg",
+          "action": "local",
+          "bytes": 1054,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "law.css",
+          "action": "local",
+          "bytes": 24058,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "SelectLawData.json",
+          "action": "main-world-xhr-local",
+          "bytes": 1447,
+          "lawApi": true,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "star-fill.svg",
+          "action": "local",
+          "bytes": 728,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "banner_hourei.png",
+          "action": "local",
+          "bytes": 57696,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "SelectLawTocData.json",
+          "action": "main-world-xhr-local",
+          "bytes": 1060535,
+          "lawApi": true,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "law-print.css",
+          "action": "local",
+          "bytes": 867,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "lawtoc.css",
+          "action": "local",
+          "bytes": 2767,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "provisiontext.css",
+          "action": "local",
+          "bytes": 10171,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "doc-text.svg",
+          "action": "local",
+          "bytes": 629,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "doc.svg",
+          "action": "local",
+          "bytes": 473,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "129AC0000000089_20260624_508AC0000000045_law.html",
+          "action": "main-world-xhr-local",
+          "bytes": 1571598,
+          "lawApi": false,
+          "bodyHtml": true
+        },
+        {
+          "endpoint": "eye-fill.svg",
+          "action": "local",
+          "bytes": 650,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "chevron-down.svg",
+          "action": "local",
+          "bytes": 239,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "eye-fill-translucent.svg",
+          "action": "local",
+          "bytes": 731,
+          "lawApi": false,
+          "bodyHtml": false
+        }
+      ],
+      "nativeBodyResponses": [],
+      "errors": [],
+      "nativeTocInteraction": true,
+      "navigation": {
+        "responseEnd": 3.7000000029802322,
+        "domContentLoaded": 54.79999999701977,
+        "load": 76.39999999850988
+      }
+    },
+    {
+      "lawId": "129AC0000000089",
+      "lawName": "民法",
+      "mode": "xhr-body-miss",
+      "iteration": 0,
+      "firstArticleMs": 1613.7000000029802,
+      "bodyLastMutationMs": 1613.9000000059605,
+      "revisionFirstMs": 229.5,
+      "wallObservationMs": 3015.9932999999983,
+      "articleCount": 1165,
+      "htmlCharacters": 1137643,
+      "textCharacters": 239286,
+      "htmlHash": "c1ccc52d271e3e471082b9d568b9652a2c97783bf10b363c4f74c26c90daf8cb",
+      "textHash": "6be425c7cf07a154d71d1f9680855732027969ba799fff03fe21d97c21f8f24f",
+      "revision": "Law RevisionID:129AC0000000089_20260624_508AC0000000045",
+      "sameHtml": true,
+      "sameText": true,
+      "sameArticleIds": true,
+      "sameRevision": true,
+      "apiResponses": [],
+      "liveLawApiRequests": [
+        {
+          "endpoint": "129AC0000000089_20260624_508AC0000000045_law.html",
+          "url": "https://laws.e-gov.go.jp/data/Act/129AC0000000089/637374_1/129AC0000000089_20260624_508AC0000000045_law.html",
+          "resourceType": "xhr",
+          "method": "GET",
+          "postData": null
+        }
+      ],
+      "cacheEvents": [
+        {
+          "endpoint": "129AC0000000089",
+          "action": "local",
+          "bytes": 800,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "common-egov.css",
+          "action": "local",
+          "bytes": 1280,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "index-be73647f.css",
+          "action": "local",
+          "bytes": 3095,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "vendor-c7dcf3ca.js",
+          "action": "local",
+          "bytes": 221362,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "index-47878493.js",
+          "action": "local",
+          "bytes": 182292,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "common.css",
+          "action": "local",
+          "bytes": 40420,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "law-print.css",
+          "action": "local",
+          "bytes": 867,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "GlobalLoadingThrobber-4824d845.css",
+          "action": "local",
+          "bytes": 141,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "law-68189bfb.css",
+          "action": "local",
+          "bytes": 798,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "GlobalLoadingThrobber-d29c5ad8.js",
+          "action": "local",
+          "bytes": 14955,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "questionmark-circle-e05eff24.js",
+          "action": "local",
+          "bytes": 58,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "law-dc3f9bc8.js",
+          "action": "local",
+          "bytes": 141170,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "SelectLawRevisionData.json",
+          "action": "main-world-xhr-local",
+          "bytes": 21639,
+          "lawApi": true,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "logo.svg",
+          "action": "local",
+          "bytes": 1014,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "xmark-square.svg",
+          "action": "local",
+          "bytes": 1084,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "circle-question.svg",
+          "action": "local",
+          "bytes": 1175,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "arrow-up-forward.svg",
+          "action": "local",
+          "bytes": 1054,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "star-fill.svg",
+          "action": "local",
+          "bytes": 728,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "banner_hourei.png",
+          "action": "local",
+          "bytes": 57696,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "SelectLawData.json",
+          "action": "main-world-xhr-local",
+          "bytes": 1447,
+          "lawApi": true,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "SelectLawTocData.json",
+          "action": "main-world-xhr-local",
+          "bytes": 1060535,
+          "lawApi": true,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "law.css",
+          "action": "local",
+          "bytes": 24058,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "lawtoc.css",
+          "action": "local",
+          "bytes": 2767,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "provisiontext.css",
+          "action": "local",
+          "bytes": 10171,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "law-print.css",
+          "action": "local",
+          "bytes": 867,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "doc-text.svg",
+          "action": "local",
+          "bytes": 629,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "chevron-down.svg",
+          "action": "local",
+          "bytes": 239,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "eye-fill-translucent.svg",
+          "action": "local",
+          "bytes": 731,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "doc.svg",
+          "action": "local",
+          "bytes": 473,
+          "lawApi": false,
+          "bodyHtml": false
+        },
+        {
+          "endpoint": "eye-fill.svg",
+          "action": "local",
+          "bytes": 650,
+          "lawApi": false,
+          "bodyHtml": false
+        }
+      ],
+      "nativeBodyResponses": [
+        {
+          "url": "https://laws.e-gov.go.jp/data/Act/129AC0000000089/637374_1/129AC0000000089_20260624_508AC0000000045_law.html",
+          "status": 200,
+          "fromDiskCache": false,
+          "fromServiceWorker": false,
+          "protocol": "h2"
+        }
+      ],
+      "errors": [],
+      "nativeTocInteraction": null,
+      "navigation": {
+        "responseEnd": 2.5,
+        "domContentLoaded": 69.5,
+        "load": 87.5
+      }
+    }
+  ],
+  "observations": []
+}

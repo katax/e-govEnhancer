@@ -1,0 +1,46 @@
+{
+  "investigationDateJapan": "2026-10-16",
+  "method": "Codex in-app browser, read-only DOM observations and page asset inventory; no extension injection, network response-body capture, or performance trace",
+  "lawId": "405AC0000000088",
+  "lawTitle": "行政手続法",
+  "current": {
+    "url": "https://laws.e-gov.go.jp/law/405AC0000000088",
+    "revisionLabel": "Law RevisionID:405AC0000000088_20260724_508AC0000000066",
+    "revisionLabelSelector": ".revisionid",
+    "articleCount": 48,
+    "visibleArticleCount": 48,
+    "firstArticleId": "Mp-Ch_1-At_1",
+    "lastArticleId": "Mp-Ch_7-At_46",
+    "currentCodeSignature": "48:Mp-Ch_1-At_1:Mp-Ch_7-At_46",
+    "provisionLinkCount": 172,
+    "hashOnlyLinkCount": 157,
+    "enhancerElementCount": 0
+  },
+  "historical": {
+    "url": "https://laws.e-gov.go.jp/law/405AC0000000088/20240401_504AC0100000052?occasion_date=20240401",
+    "revisionLabel": "Law RevisionID:405AC0000000088_20240401_504AC0100000052",
+    "articleCount": 48,
+    "visibleArticleCount": 48,
+    "currentCodeSignature": "48:Mp-Ch_1-At_1:Mp-Ch_7-At_46",
+    "provisionLinkCount": 166,
+    "hiddenCandidateCount": 0,
+    "enhancerElementCount": 0,
+    "transitionObservation": "After the history button was selected, the new revision label and law title were visible before the full article body appeared. This is a sequential observation, not a timestamped load trace."
+  },
+  "comparison": {
+    "url": "https://laws.e-gov.go.jp/law/405AC0000000088/20240401_504AC0100000052?occasion_date=20240401&tab=compare",
+    "selectedView": "compare",
+    "articleCountUsingCurrentCodeSelector": 0,
+    "provisionLinkCount": 0,
+    "duplicateIdValueCountAcrossDocument": 1,
+    "duplicateIdExample": "Mp-Ch_1-At_3"
+  },
+  "observedResources": [
+    "https://laws.e-gov.go.jp/assets/law-dc3f9bc8.js",
+    "https://laws.e-gov.go.jp/internal-api/SelectLawRevisionData.json",
+    "https://laws.e-gov.go.jp/internal-api/SelectLawTocData.json",
+    "https://laws.e-gov.go.jp/internal-api/SelectLawData.json",
+    "https://laws.e-gov.go.jp/internal-api/SelectLawTextData.json"
+  ],
+  "resourceLimitations": "Resource inventory is accumulated across navigations. It does not establish HTTP method, request parameters, exact per-view request counts, response schemas, caching headers, or completion signals."
+}

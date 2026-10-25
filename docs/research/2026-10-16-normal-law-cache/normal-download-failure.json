@@ -1,0 +1,63 @@
+{
+  "law": {
+    "id": "405AC0000000088",
+    "name": "行政手続法",
+    "url": "https://laws.e-gov.go.jp/law/405AC0000000088"
+  },
+  "mode": "data-live",
+  "errors": [],
+  "consoleErrors": [
+    "Failed to load module script: Expected a JavaScript-or-Wasm module script but the server responded with a MIME type of \"\". Strict MIME type checking is enforced for module scripts per HTML spec.",
+    "Failed to load module script: Expected a JavaScript-or-Wasm module script but the server responded with a MIME type of \"\". Strict MIME type checking is enforced for module scripts per HTML spec."
+  ],
+  "cacheEvents": [
+    {
+      "endpoint": "405AC0000000088",
+      "action": "local",
+      "bytes": 800,
+      "lawApi": false
+    },
+    {
+      "endpoint": "common-egov.css",
+      "action": "local",
+      "bytes": 1280,
+      "lawApi": false
+    },
+    {
+      "endpoint": "index-47878493.js",
+      "action": "local",
+      "bytes": 182292,
+      "lawApi": false
+    },
+    {
+      "endpoint": "vendor-c7dcf3ca.js",
+      "action": "local",
+      "bytes": 221362,
+      "lawApi": false
+    },
+    {
+      "endpoint": "index-be73647f.css",
+      "action": "local",
+      "bytes": 3095,
+      "lawApi": false
+    },
+    {
+      "endpoint": "common.css",
+      "action": "local",
+      "bytes": 40420,
+      "lawApi": false
+    },
+    {
+      "endpoint": "law-print.css",
+      "action": "local",
+      "bytes": 867,
+      "lawApi": false
+    }
+  ],
+  "liveRequests": [],
+  "text": "",
+  "title": "e-Gov 法令検索",
+  "scripts": [
+    "https://laws.e-gov.go.jp/assets/index-47878493.js"
+  ]
+}

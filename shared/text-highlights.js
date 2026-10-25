@@ -143,9 +143,7 @@
 
     function portableRangeMatchesRecord(range, record) {
       const selectedText = getPortableText(range);
-      if (!selectedText || !record.q) return false;
-      if (!record.z) return selectedText === record.q;
-      return selectedText.startsWith(record.q) && selectedText.endsWith(record.z);
+      return shared.textHighlightQuoteMatches(selectedText, record);
     }
 
     function getPortableAnchorParts(node) {
@@ -264,14 +262,18 @@
     async function loadRecords() {
       if (loaded) return;
       if (loadPromise) return loadPromise;
-      loadPromise = global.chrome.storage.local.get([storageKey]).then((stored) => {
+      loadPromise = shared.readTextHighlightStorage(global.chrome.storage.local, storageKey).then((stored) => {
         const list = Array.isArray(stored[storageKey]) ? stored[storageKey] : [];
         list.forEach((raw) => {
           const record = normalizeRecord(raw);
           if (record) records.set(record.id, record);
         });
-      }).catch(() => {}).finally(() => {
         loaded = true;
+        document.querySelector('#egov-ext-text-highlight-restore-notice[data-load-failure]')?.remove();
+      }).catch(error => {
+        shared.showTextHighlightLoadFailure();
+        throw error;
+      }).finally(() => {
         loadPromise = null;
       });
       return loadPromise;
@@ -358,7 +360,7 @@
 
     function persistSoon() {
       if (saveTimer) clearTimeout(saveTimer);
-      saveTimer = setTimeout(persistNow, 180);
+      saveTimer = setTimeout(() => persistNow().catch(() => {}), 180);
     }
 
     function buildAnchorIndex() {
@@ -391,7 +393,8 @@
           return range;
         }
       }
-      return null;
+      const recovered = shared.recoverTextHighlightQuoteRange(startAnchors, endAnchors, record, options);
+      return recovered && isRangeInsideRoot(recovered) ? recovered : null;
     }
 
     function restoreRecord(record, anchorIndex) {
@@ -633,15 +636,14 @@
         });
       });
       const anchorIndex = buildAnchorIndex();
-      let restored = 0;
+      let attempted = 0;
       for (const record of displayRecords) {
         if (!enabled) break;
         if (connected.has(record.id)) continue;
         if (restoreRecord(record, anchorIndex)) {
           connected.add(record.id);
-          restored += 1;
         }
-        if (restored && restored % 25 === 0) await new Promise((resolve) => requestAnimationFrame(resolve));
+        if (++attempted % 25 === 0) await new Promise((resolve) => requestAnimationFrame(resolve));
       }
       if (!enabled) {
         Object.keys(rangesByColor).forEach(refreshColor);
@@ -1412,7 +1414,7 @@
         clearHover({ immediate: true });
       });
     global.addEventListener('pagehide', () => {
-        if (saveTimer) persistNow();
+        if (saveTimer) persistNow().catch(() => {});
       });
     }
 

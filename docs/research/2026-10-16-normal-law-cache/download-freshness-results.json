@@ -1,0 +1,37 @@
+{
+  "publicRevisionMetadata": [
+    {
+      "url": "https://laws.e-gov.go.jp/api/2/law_revisions/405AC0000000088?response_format=json",
+      "current": [
+        {
+          "law_revision_id": "405AC0000000088_20260724_508AC0000000066",
+          "updated": "2026-07-24T13:10:39+09:00",
+          "current_revision_status": "CurrentEnforced",
+          "amendment_enforcement_date": "2026-07-24"
+        }
+      ],
+      "revisionCount": 11,
+      "lawId": "405AC0000000088"
+    },
+    {
+      "url": "https://laws.e-gov.go.jp/api/2/law_revisions/129AC0000000089?response_format=json",
+      "current": [
+        {
+          "law_revision_id": "129AC0000000089_20260624_508AC0000000045",
+          "updated": "2026-10-06T09:36:49+09:00",
+          "current_revision_status": "CurrentEnforced",
+          "amendment_enforcement_date": "2026-06-24"
+        }
+      ],
+      "revisionCount": 37,
+      "lawId": "129AC0000000089"
+    }
+  ],
+  "conditionalBodyGet": {
+    "url": "https://laws.e-gov.go.jp/data/Act/129AC0000000089/637374_1/129AC0000000089_20260624_508AC0000000045_law.html",
+    "cacheControl": "max-age=20",
+    "sentETag": "\"ac48acff45dadecf3866bbf74d75fbe4\"",
+    "status": 304,
+    "returnedContentLength": 0
+  }
+}

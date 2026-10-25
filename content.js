@@ -99,7 +99,6 @@
   // ショートカット有効/無効
   let extensionEnabled = true;
   let guideTooltipPinned = false;
-  let guideTooltipHoverHideTimer = null;
   let autoMovedToFirstArticle = false;
   let activeFlashEl = null;
   let activeFlashOrigBg = '';
@@ -536,9 +535,7 @@
 
   function textHighlightPortableRangeMatchesRecord(range, record) {
     const selectedText = getTextHighlightPortableText(range);
-    if (!selectedText || !record.q) return false;
-    if (!record.z) return selectedText === record.q;
-    return selectedText.startsWith(record.q) && selectedText.endsWith(record.z);
+    return EgovShared.textHighlightQuoteMatches(selectedText, record);
   }
 
   function updateTextHighlightPortableFields(record, range) {
@@ -648,14 +645,18 @@
     textHighlightLoadPromise = (async () => {
       const storageKey = getTextHighlightStorageKey();
       if (!storageKey) return;
-      const stored = await chrome.storage.local.get([storageKey]).catch(() => ({}));
+      const stored = await EgovShared.readTextHighlightStorage(chrome.storage.local, storageKey);
       const records = Array.isArray(stored[storageKey]) ? stored[storageKey] : [];
       records.forEach((rawRecord) => {
         const record = normalizeTextHighlightRecord(rawRecord);
         if (record) textHighlightRecords.set(record.id, record);
       });
-    })().finally(() => {
       textHighlightRecordsLoaded = true;
+      document.querySelector('#egov-ext-text-highlight-restore-notice[data-load-failure]')?.remove();
+    })().catch(error => {
+      if (canRestoreTextHighlights()) EgovShared.showTextHighlightLoadFailure();
+      throw error;
+    }).finally(() => {
       textHighlightLoadPromise = null;
     });
     return textHighlightLoadPromise;
@@ -751,7 +752,7 @@
 
   function persistTextHighlightRecordsSoon() {
     if (textHighlightSaveTimer) clearTimeout(textHighlightSaveTimer);
-    textHighlightSaveTimer = setTimeout(() => persistTextHighlightRecordsNow(), 180);
+    textHighlightSaveTimer = setTimeout(() => persistTextHighlightRecordsNow().catch(() => {}), 180);
   }
 
   function getTextHighlightFallbackAnchorIndex(indexRef) {
@@ -791,6 +792,20 @@
         }
       }
     });
+    // Lite paragraphs contain their items; e-Gov's normal HTML puts those items
+    // beside the paragraph sentence. Include them only for quote-based recovery,
+    // never interpret a paragraph's saved offsets as offsets inside one item.
+    const quoteAnchors = new Map([...index].map(([key, elements]) => [key, [...elements]]));
+    canonicalElements.forEach((element) => {
+      const parts = parseProvisionHash(`#${element.id}`) || parseProvisionPath(element.id);
+      if (!parts?.paragraph || !parts.item) return;
+      const paragraph = { ...parts, item: '' };
+      for (const key of [formatTextHighlightPortableKey(paragraph), buildJumpHistoryKey(paragraph)]) {
+        if (!quoteAnchors.has(key)) quoteAnchors.set(key, []);
+        if (!quoteAnchors.get(key).includes(element)) quoteAnchors.get(key).push(element);
+      }
+    });
+    index.quoteAnchors = quoteAnchors;
     indexRef.value = index;
     return index;
   }
@@ -812,7 +827,11 @@
         return range;
       }
     }
-    return null;
+    const recovered = EgovShared.recoverTextHighlightQuoteRange(
+      anchorIndex.quoteAnchors?.get(record.u) || startAnchors,
+      anchorIndex.quoteAnchors?.get(record.v) || endAnchors, record, options,
+    );
+    return recovered && isRangeInsideProvisionView(recovered) ? recovered : null;
   }
 
   function restoreTextHighlightRecord(record, fallbackAnchorIndexRef = { value: null }) {
@@ -925,6 +944,7 @@
   }
 
   function renderTextHighlightRestoreNotice() {
+    if (!canRestoreTextHighlights()) { clearTextHighlightRestoreNotice(); return; }
     const records = getUnrestoredTextHighlightRecords();
     const signature = records.map((record) => record.id).sort().join('\n');
     if (signature !== textHighlightUnrestoredSignature) {
@@ -980,8 +1000,21 @@
     document.querySelector('#egov-ext-text-highlight-restore-notice')?.remove();
   }
 
+  function canRestoreTextHighlights() {
+    const selected = document.querySelector('input[name="segments-provisionviews"]:checked')?.value
+      || document.querySelector('select[name="dropdown-provisionviews"]')?.value;
+    const tab = selected || new URLSearchParams(location.search).get('tab');
+    if (!textHighlightFeatureEnabled || ['compare', 'cite', 'cited'].includes(tab)) return false;
+    // e-Gov can switch its rendered view before updating the URL.
+    for (const selector of ['#provisionview .provisioncomparison', '#provisionview .provisioncited']) {
+      const panel = document.querySelector(selector);
+      if (panel && !panel.closest('[hidden], [aria-hidden="true"]') && panel.getClientRects().length) return false;
+    }
+    return true;
+  }
+
   function scheduleTextHighlightRestoreNotice(records, delay = 1500) {
-    if (!textHighlightFeatureEnabled) {
+    if (!canRestoreTextHighlights()) {
       clearTextHighlightRestoreNotice();
       return;
     }
@@ -1014,15 +1047,15 @@
     }
     textHighlightRestoreNoticeTimer = setTimeout(() => {
       textHighlightRestoreNoticeTimer = 0;
-      if (signature) renderTextHighlightRestoreNotice();
+      if (signature && canRestoreTextHighlights()) renderTextHighlightRestoreNotice();
       else clearTextHighlightRestoreNotice();
     }, delay);
   }
 
   async function restoreTextHighlights() {
-    if (!textHighlightFeatureEnabled) return;
+    if (!canRestoreTextHighlights()) { clearTextHighlightRestoreNotice(); return; }
     await loadTextHighlightRecords();
-    if (!textHighlightFeatureEnabled) return;
+    if (!canRestoreTextHighlights()) { clearTextHighlightRestoreNotice(); return; }
     if (!document.querySelector('#provisionview') || !textHighlightRecords.size) {
       scheduleTextHighlightRestoreNotice([]);
       return;
@@ -1031,35 +1064,29 @@
     const connectedRecordIds = new Set();
     const displayRecords = getTextHighlightDisplayRecords();
     const displayRecordIds = new Set(displayRecords.map((record) => record.id));
-    Object.values(textHighlightRanges).forEach((ranges) => {
-      ranges.forEach((range) => {
+    Object.keys(textHighlightRanges).forEach((colorKey) => {
+      textHighlightRanges[colorKey] = textHighlightRanges[colorKey].filter((range) => {
         const recordId = textHighlightRangeRecordId.get(range);
-        if (recordId && displayRecordIds.has(recordId) &&
-            textHighlightRangeMatchesRecord(range, textHighlightRecords.get(recordId))) {
-          connectedRecordIds.add(recordId);
-        }
+        const valid = !!recordId && displayRecordIds.has(recordId)
+          && textHighlightRangeMatchesRecord(range, textHighlightRecords.get(recordId));
+        if (valid) connectedRecordIds.add(recordId);
+        return valid;
       });
     });
-    Object.keys(textHighlightRanges).forEach((colorKey) => {
-      textHighlightRanges[colorKey] = textHighlightRanges[colorKey].filter((range) => (
-        displayRecordIds.has(textHighlightRangeRecordId.get(range))
-      ));
-    });
 
-    let restoredCount = 0;
+    let attemptedCount = 0;
     const fallbackAnchorIndexRef = { value: null };
     for (const record of displayRecords) {
-      if (!textHighlightFeatureEnabled) break;
+      if (!canRestoreTextHighlights()) break;
       if (connectedRecordIds.has(record.id)) continue;
       if (restoreTextHighlightRecord(record, fallbackAnchorIndexRef)) {
         connectedRecordIds.add(record.id);
-        restoredCount += 1;
       }
-      if (restoredCount > 0 && restoredCount % 25 === 0) {
+      if (++attemptedCount % 25 === 0) {
         await new Promise((resolve) => requestAnimationFrame(resolve));
       }
     }
-    if (!textHighlightFeatureEnabled) {
+    if (!canRestoreTextHighlights()) {
       Object.keys(textHighlightRanges).forEach(refreshTextHighlightColor);
       clearTextHighlightRestoreNotice();
       return;
@@ -1071,8 +1098,9 @@
   }
 
   function scheduleTextHighlightRestore(delay = 220) {
-    if (!textHighlightFeatureEnabled) return;
     if (textHighlightRestoreTimer) clearTimeout(textHighlightRestoreTimer);
+    textHighlightRestoreTimer = 0;
+    if (!canRestoreTextHighlights()) { clearTextHighlightRestoreNotice(); return; }
     textHighlightRestoreTimer = setTimeout(() => {
       textHighlightRestoreTimer = 0;
       restoreTextHighlights().catch(() => {});
@@ -1101,6 +1129,14 @@
     const root = document.querySelector('#provisionview') || document.documentElement;
     let validationTimer = 0;
     const observer = new MutationObserver(() => {
+      if (!canRestoreTextHighlights()) {
+        clearTimeout(validationTimer);
+        clearTimeout(textHighlightRestoreTimer);
+        textHighlightRestoreTimer = 0;
+        clearTextHighlightRestoreNotice();
+        Object.keys(textHighlightRanges).forEach(refreshTextHighlightColor);
+        return;
+      }
       textHighlightHitTestCache = null;
       if (textHighlightPopup) scheduleTextHighlightTargetOutline();
       if (!textHighlightRecords.size) return;
@@ -1111,6 +1147,12 @@
       }, 80);
     });
     observer.observe(root, { childList: true, subtree: true });
+    document.addEventListener('change', event => {
+      if (!event.target.matches('input[name="segments-provisionviews"], select[name="dropdown-provisionviews"]')) return;
+      scheduleTextHighlightRestore(0);
+      Object.keys(textHighlightRanges).forEach(refreshTextHighlightColor);
+    });
+    window.addEventListener('popstate', () => scheduleTextHighlightRestore(0));
   }
 
   function refreshTextHighlightColor(colorKey) {
@@ -1118,7 +1160,7 @@
     textHighlightHitTestCache = null;
     textHighlightRanges[colorKey] = textHighlightRanges[colorKey]
       .filter((range) => range.startContainer?.isConnected && range.endContainer?.isConnected);
-    if (!textHighlightFeatureEnabled) {
+    if (!canRestoreTextHighlights()) {
       CSS.highlights.delete(`egov-ext-text-highlight-${colorKey}`);
       return;
     }
@@ -1833,10 +1875,10 @@
       clearTextHighlightMemoHover({ immediate: true });
     });
     window.addEventListener('pagehide', () => {
-      if (textHighlightSaveTimer) persistTextHighlightRecordsNow();
+      if (textHighlightSaveTimer) persistTextHighlightRecordsNow().catch(() => {});
     });
     document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'hidden' && textHighlightSaveTimer) persistTextHighlightRecordsNow();
+      if (document.visibilityState === 'hidden' && textHighlightSaveTimer) persistTextHighlightRecordsNow().catch(() => {});
     });
     observeTextHighlightDomChanges();
     scheduleTextHighlightRestore(0);
@@ -1983,7 +2025,11 @@
     const deferBookmarkRender = options?.deferBookmarkRender === true;
     const preserveHighlights = options?.preserveHighlights === true;
     const closingBookmarkDialog = activeDialog?.classList.contains('egov-ext-bookmark-mode') === true;
-    if (activeDialog) { activeDialog.remove(); activeDialog = null; }
+    if (activeDialog) {
+      activeDialog.dispatchEvent(new Event('egov-dialog-close'));
+      activeDialog.remove();
+      activeDialog = null;
+    }
     if (!preserveHighlights) clearHighlights();
     if (!closingBookmarkDialog || deferBookmarkRender) return;
 
@@ -2330,7 +2376,7 @@
     badge.classList.toggle('is-favorite', !!isFavorite);
     badge.classList.toggle('is-not-favorite', !isFavorite);
     badge.textContent = '★';
-    badge.title = isFavorite ? 'お気に入りに登録済み' : 'お気に入り未登録';
+    badge.title = `${isFavorite ? 'お気に入りに登録済み' : 'お気に入り未登録'}（Fで編集）`;
     badge.setAttribute('aria-label', isFavorite ? 'お気に入りに登録済み' : 'お気に入り未登録');
   }
 
@@ -2408,9 +2454,9 @@
     button.classList.toggle('is-active', effectiveScrollMode && !lawRefModeCtrlPressed);
     button.classList.toggle('is-ctrl-temporary', lawRefModeCtrlPressed);
     button.setAttribute('aria-pressed', String(effectiveScrollMode));
-    button.title = lawRefModeCtrlPressed
-      ? `Ctrl一時切替中：${modeLabel}`
-      : `${modeLabel}（この法令だけの一時設定）`;
+    button.title = effectiveScrollMode
+      ? '法令内リンクをスクロールで移動にする（Ctrlで一時的に切り替える）'
+      : '法令内リンクをポップアップで表示する（Ctrlで一時的に切り替える）';
     button.setAttribute('aria-label', button.title);
   }
 
@@ -2424,18 +2470,18 @@
     setHeaderToggleButtonState(
       document.getElementById('egov-ext-wide-button'),
       lawRevisionAreaExpanded,
-      lawRevisionAreaExpanded ? 'ワイド表示を解除' : 'ワイド表示に切り替え'
+      `${lawRevisionAreaExpanded ? 'ワイド表示を解除' : 'ワイド表示に切り替え'}（W）`
     );
     setHeaderToggleButtonState(
       document.getElementById('egov-ext-paren-button'),
       parenthesesMuteMode === 'nested',
-      parenthesesMuteMode === 'nested' ? 'かっこ消しを解除' : 'かっこをほぼ非表示にする'
+      `${parenthesesMuteMode === 'nested' ? 'かっこ消しを解除' : 'かっこをほぼ非表示にする'}（SHIFT+G）`
     );
     const externalButton = document.getElementById('egov-ext-external-references-button');
     setHeaderToggleButtonState(
       externalButton,
       externalReferencesEnabled,
-      externalReferencesEnabled ? '逆参照リンクを無効化' : '逆参照リンクを有効化'
+      `${externalReferencesEnabled ? '逆参照リンクを無効化' : '逆参照リンクを有効化'}（E）`
     );
     if (externalButton) {
       externalButton.disabled = externalReferencesLoading;
@@ -2444,16 +2490,17 @@
     setHeaderToggleButtonState(
       document.getElementById('egov-ext-definition-button'),
       defTooltipEnabled,
-      defTooltipEnabled ? '定義語リンクを無効化' : '定義語リンクを有効化'
+      `${defTooltipEnabled ? '定義参照を無効化' : '定義参照を有効化'}（ALT+D）`
     );
     setHeaderToggleButtonState(
       document.getElementById('egov-ext-highlight-list-button'),
       textHighlightFeatureEnabled,
       textHighlightFeatureEnabled
-        ? 'ハイライト・メモを一時的に無効化（Alt+M）'
-        : 'ハイライト・メモを有効化（Alt+M）'
+        ? 'ハイライト・メモを一時的に無効化（ALT+M）'
+        : 'ハイライト・メモを有効化（ALT+M）'
     );
     updateLawRefModeButton();
+    updateGuideButtonState();
   }
 
   function setTextHighlightFeatureEnabled(enabled, { notify = true } = {}) {
@@ -2500,10 +2547,14 @@
     const host = ensureHeaderControlHost();
     if (!host) return [];
     const configs = [
+      { id: 'egov-ext-shortcuts-toggle', label: 'ショートカット', onClick: () => {
+        extensionEnabled = !extensionEnabled;
+        updateGuideButtonState();
+      } },
       { id: 'egov-ext-wide-button', label: 'ワイド', onClick: () => toggleLawRevisionArea() },
       { id: 'egov-ext-paren-button', label: 'かっこ', onClick: () => toggleParenthesesMute('nested') },
       { id: 'egov-ext-external-references-button', label: '逆リンク', onClick: () => toggleExternalReferenceLinks() },
-      { id: 'egov-ext-definition-button', label: '定義', onClick: toggleDefinitionHeaderLinks },
+      { id: 'egov-ext-definition-button', label: '定義参照', onClick: toggleDefinitionHeaderLinks },
       { id: 'egov-ext-law-ref-mode-button', label: 'スクロール', onClick: toggleLawRefPageMode },
       { id: 'egov-ext-highlight-list-button', label: 'メモ', onClick: toggleTextHighlightFeature },
     ];
@@ -2535,7 +2586,7 @@
   }
 
   function ensureLightweightViewerButton() {
-    const host = ensureHeaderControlHost();
+    const host = document.getElementById('egov-normal-cache-actions');
     if (!host) return null;
 
     let button = document.getElementById('egov-ext-lightweight-viewer-button');
@@ -2543,10 +2594,10 @@
       button = document.createElement('button');
       button.id = 'egov-ext-lightweight-viewer-button';
       button.type = 'button';
-      button.className = 'egov-ext-lightweight-viewer-button';
+      button.className = 'egov-ext-footer-lite-button';
       button.textContent = 'Lite';
-      button.title = 'Liteモードで開く';
-      button.setAttribute('aria-label', button.title);
+      button.title = 'Liteモードで開く（ALT+L）';
+      button.setAttribute('aria-label', 'Liteモードで開く');
       button.addEventListener('click', async (e) => {
         e.preventDefault();
         e.stopPropagation();
@@ -2555,11 +2606,8 @@
       });
     }
 
-    const toggles = ensureHeaderToggleButtons();
-    const lastToggle = toggles[toggles.length - 1];
-    const favorite = document.getElementById('egov-ext-favorite-header-badge');
-    if (lastToggle?.parentElement === host) lastToggle.insertAdjacentElement('afterend', button);
-    else if (favorite?.parentElement === host) favorite.insertAdjacentElement('afterend', button);
+    const anchor = document.getElementById('egov-ext-footer-manual-button') || document.getElementById('egov-ext-guide');
+    if (anchor?.parentElement === host) anchor.insertAdjacentElement('beforebegin', button);
     else host.appendChild(button);
     return button;
   }
@@ -3649,7 +3697,6 @@
   function setLawRevisionAreaExpanded(expanded) {
     const sidebar = document.getElementById('sidebar');
     const revision = document.getElementById('revision');
-    const footer = document.querySelector('footer.toolbar-main');
     if (!sidebar || !revision) return false;
 
     if (!lawRevisionAreaOriginalStyle) {
@@ -3657,7 +3704,6 @@
         sidebarDisplay: sidebar.style.display,
         revisionMarginLeft: revision.style.marginLeft,
         revisionWidth: revision.style.width,
-        footerWidth: footer?.style.width || '',
       };
     }
 
@@ -3665,15 +3711,14 @@
       sidebar.style.display = 'none';
       revision.style.marginLeft = '0px';
       revision.style.width = '100%';
-      if (footer) footer.style.width = '100%';
     } else {
       sidebar.style.display = lawRevisionAreaOriginalStyle.sidebarDisplay;
       revision.style.marginLeft = lawRevisionAreaOriginalStyle.revisionMarginLeft;
       revision.style.width = lawRevisionAreaOriginalStyle.revisionWidth;
-      if (footer) footer.style.width = lawRevisionAreaOriginalStyle.footerWidth;
     }
 
     lawRevisionAreaExpanded = expanded;
+    document.documentElement.classList.toggle('egov-ext-law-expanded', expanded);
     updateHeaderToggleButtonStates();
     return true;
   }
@@ -3704,6 +3749,11 @@
       chrome.runtime.sendMessage({ type: 'egov-open-options-page' }).catch(() => {});
       return;
     }
+    if (e.altKey && !e.ctrlKey && !e.metaKey && (e.key === 'd' || e.key === 'D' || e.code === 'KeyD')) {
+      e.preventDefault();
+      if (!e.repeat) toggleDefinitionHeaderLinks();
+      return;
+    }
     if (e.altKey && !e.ctrlKey && !e.metaKey && (e.key === 'm' || e.key === 'M' || e.code === 'KeyM')) {
       e.preventDefault();
       toggleTextHighlightFeature();
@@ -3726,10 +3776,16 @@
       return;
     }
     if (guideTooltipPinned) {
-      hideShortcutGuideTooltip();
-      e.preventDefault();
+      if (e.key === 'Escape') {
+        hideShortcutGuideTooltip();
+        document.querySelector('#egov-ext-guide .egov-ext-guide-btn')?.focus();
+        e.preventDefault();
+      }
       return;
     }
+    // Let native header/footer buttons handle Enter/Space themselves.
+    if ((e.key === 'Enter' || e.key === ' ') && e.target instanceof Element
+        && e.target.closest('#egov-normal-cache-status, #egov-ext-header-controls')) return;
 
     const isGuideShortcut =
       e.key === '?' ||
@@ -6909,6 +6965,7 @@
 
   async function showLawSearchDialog() {
     const favorites = await readFavorites();
+    const lawSearch = shared.createLawSearch();
 
     const initQuery = cleanLawNameForSearch(getCurrentLawName());
 
@@ -6937,6 +6994,7 @@
     const input    = dialog.querySelector('#egov-law-search-input');
     const statusEl = dialog.querySelector('#egov-law-search-status');
     const listEl   = dialog.querySelector('#egov-law-result-list');
+    dialog.addEventListener('egov-dialog-close', lawSearch.cancel, { once: true });
     input.focus();
     input.select();
 
@@ -7008,7 +7066,12 @@
     // 選択を残すと、検索のための Enter でその法令を開いてしまう。
     input.addEventListener('focus', () => setFocus(-1));
     input.addEventListener('pointerdown', () => setFocus(-1));
-    input.addEventListener('input', () => setFocus(-1));
+    input.addEventListener('input', () => {
+      lawSearch.cancel();
+      setFocus(-1);
+      statusEl.textContent = 'Enterで検索';
+      statusEl.className = 'egov-ext-result';
+    });
 
     function openLaw(law) {
       window.open(buildLawUrl(law.lawId), '_blank');
@@ -7057,7 +7120,9 @@
 
     async function doSearch() {
       const query = input.value.trim();
+      if (!query) lawSearch.cancel();
       if (!query) return;
+      const request = lawSearch.start(query);
       statusEl.textContent = '検索中…';
       statusEl.className   = 'egov-ext-result';
       listEl.style.setProperty('display', 'none', 'important');
@@ -7066,11 +7131,8 @@
       hoverEnabled = false;
       setTimeout(() => { hoverEnabled = true; }, 300);
       try {
-        const url  = `https://laws.e-gov.go.jp/api/2/laws?law_title=${encodeURIComponent(query)}&limit=31&response_format=json`;
-        const res  = await fetch(url);
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const data = await res.json();
-        const laws = Array.isArray(data.laws) ? data.laws : [];
+        const laws = await request.promise;
+        if (!request.isCurrent() || !dialog.isConnected) return;
         if (laws.length === 0) {
           statusEl.textContent = '見つかりませんでした';
           statusEl.className   = 'egov-ext-result egov-ext-result-error';
@@ -7081,6 +7143,7 @@
         statusEl.className   = 'egov-ext-result egov-ext-result-success';
         renderResults();
       } catch (err) {
+        if (!request.isCurrent() || !dialog.isConnected) return;
         statusEl.textContent = `エラー: ${err.message}`;
         statusEl.className   = 'egov-ext-result egov-ext-result-error';
       }
@@ -7280,30 +7343,22 @@
   }
 
   // ==================
-  // ガイドボタン状態更新（有効=青 / 無効=灰）
+  // ヘッダのショートカット切替状態を更新
   // ==================
   function updateGuideButtonState() {
-    const guide = document.getElementById('egov-ext-guide');
-    if (!guide) return;
-    if (extensionEnabled) {
-      guide.classList.remove('egov-ext-disabled');
-    } else {
-      guide.classList.add('egov-ext-disabled');
-    }
-  }
-
-  function clearGuideTooltipHoverHideTimer() {
-    if (!guideTooltipHoverHideTimer) return;
-    clearTimeout(guideTooltipHoverHideTimer);
-    guideTooltipHoverHideTimer = null;
+    const toggle = document.getElementById('egov-ext-shortcuts-toggle');
+    if (!toggle) return;
+    toggle.textContent = 'ショートカット';
+    setHeaderToggleButtonState(toggle, extensionEnabled, `ショートカットを${extensionEnabled ? '無効化' : '有効化'}（ALT+P）`);
   }
 
   function showShortcutGuideTooltip() {
     const guide = document.getElementById('egov-ext-guide');
     if (!guide) return;
-    clearGuideTooltipHoverHideTimer();
     guideTooltipPinned = true;
+    guide.querySelector('.egov-ext-guide-tooltip').hidden = false;
     guide.classList.add('egov-ext-guide-open');
+    guide.querySelector('.egov-ext-guide-btn').setAttribute('aria-expanded', 'true');
   }
 
   function hideShortcutGuideTooltip() {
@@ -7311,28 +7366,36 @@
     guideTooltipPinned = false;
     if (!guide) return;
     guide.classList.remove('egov-ext-guide-open');
+    guide.querySelector('.egov-ext-guide-tooltip').hidden = true;
+    guide.querySelector('.egov-ext-guide-btn').setAttribute('aria-expanded', 'false');
   }
 
   window.addEventListener('blur', () => {
     if (guideTooltipPinned) hideShortcutGuideTooltip();
   });
+  document.addEventListener('pointerdown', (event) => {
+    const guide = document.getElementById('egov-ext-guide');
+    if (guideTooltipPinned && guide && !guide.contains(event.target)) hideShortcutGuideTooltip();
+  });
 
   // ==================
-  // ショートカットガイドボタン（右下に常駐）
+  // ヘルプ（フッタの機能起動ボタン）
   // ==================
   function addShortcutGuide() {
     injectHighlightStyles();
-    if (!document.querySelector('#provisionview')) return;
+    const footer = document.getElementById('egov-normal-cache-actions');
+    if (!footer) return;
+    ensureLightweightViewerButton();
     if (document.getElementById('egov-ext-guide')) return;
 
     const guide = document.createElement('div');
     guide.id = 'egov-ext-guide';
     guide.innerHTML = `
-      <button class="egov-ext-guide-btn" title="クリックでショートカット有効/無効を切り替え" aria-label="キーボードショートカット一覧">⌨️</button>
-      <div class="egov-ext-guide-tooltip" role="tooltip">
+      <button type="button" class="egov-ext-guide-btn" title="ヘルプ（?）" aria-expanded="false" aria-controls="egov-ext-guide-panel" aria-haspopup="dialog">ヘルプ</button>
+      <div id="egov-ext-guide-panel" class="egov-ext-guide-tooltip" role="dialog" aria-label="キーボードショートカット" hidden>
         <div class="egov-ext-guide-header">
           <div class="egov-ext-guide-title">キーボードショートカット</div>
-          <button type="button" class="egov-ext-guide-manual-button">マニュアル</button>
+          <button type="button" class="egov-ext-guide-close-button">閉じる</button>
         </div>
         <table class="egov-ext-guide-table">
           <tr><td><kbd>0</kbd>〜<kbd>9</kbd></td>
@@ -7368,11 +7431,13 @@
               <td>オプション画面を開く</td></tr>
           <tr><td><kbd>Alt</kbd>+<kbd>M</kbd></td>
               <td>ハイライト・メモの有効 / 無効を切り替える</td></tr>
+          <tr><td><kbd>Alt</kbd>+<kbd>D</kbd></td>
+              <td>定義参照の有効 / 無効を切り替える</td></tr>
           <tr><td><kbd>Alt</kbd>+<kbd>L</kbd></td>
               <td>Liteモードに変更</td></tr>
           <tr><td><kbd>Alt</kbd>+<kbd>P</kbd></td>
               <td>ショートカット有効/無効の切り替え<br>
-                <span class="egov-ext-guide-sub">青=有効 / 灰=無効。このボタンクリックでも切り替え可</span></td></tr>
+                <span class="egov-ext-guide-sub">ヘッダの「ショートカット」ボタンでも切り替え可</span></td></tr>
           <tr><td><kbd>?</kbd></td>
               <td>操作ガイドを表示</td></tr>
           <tr><td><kbd>Esc</kbd></td>
@@ -7407,43 +7472,47 @@
       `);
     }
 
-    document.body.appendChild(guide);
-
-    // ガイドボタンクリックで有効/無効トグル
-    guide.addEventListener('mouseenter', () => {
-      clearGuideTooltipHoverHideTimer();
-      guide.classList.add('egov-ext-guide-hover');
-    });
-
-    guide.addEventListener('mouseleave', () => {
-      clearGuideTooltipHoverHideTimer();
-      guideTooltipHoverHideTimer = setTimeout(() => {
-        guideTooltipHoverHideTimer = null;
-        guide.classList.remove('egov-ext-guide-hover');
-      }, 500);
-    });
+    const helpActions = document.createElement('div');
+    helpActions.className = 'egov-normal-cache-help-actions';
+    for (const { id, label, action } of [
+      { id: 'egov-ext-footer-manual-button', label: 'マニュアル', action: openManualPageFromGuide },
+      { id: 'egov-ext-footer-options-button', label: 'オプション', action: () => {
+        chrome.runtime.sendMessage({ type: 'egov-open-options-page' }).catch(() => {});
+      } },
+    ]) {
+      const button = document.createElement('button');
+      button.id = id;
+      button.type = 'button';
+      button.textContent = label;
+      button.title = id === 'egov-ext-footer-options-button' ? `${label}（ALT+O）` : label;
+      button.addEventListener('click', (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        action();
+      });
+      (id === 'egov-ext-footer-options-button' ? helpActions : footer).appendChild(button);
+    }
+    helpActions.appendChild(guide);
+    footer.appendChild(helpActions);
 
     guide.querySelector('.egov-ext-guide-btn').addEventListener('click', (e) => {
       e.stopPropagation();
-      extensionEnabled = !extensionEnabled;
-      updateGuideButtonState();
+      if (guideTooltipPinned) hideShortcutGuideTooltip();
+      else showShortcutGuideTooltip();
     });
-    guide.querySelector('.egov-ext-guide-manual-button').addEventListener('click', (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      openManualPageFromGuide();
+    guide.querySelector('.egov-ext-guide-close-button').addEventListener('click', () => {
+      hideShortcutGuideTooltip();
+      guide.querySelector('.egov-ext-guide-btn').focus();
     });
+    updateGuideButtonState();
   }
 
   function ensureShortcutGuide() {
+    addShortcutGuide();
     if (document.getElementById('egov-ext-guide')) return;
-    if (document.querySelector('#provisionview')) {
-      addShortcutGuide();
-      return;
-    }
 
     const observer = new MutationObserver(() => {
-      if (!document.querySelector('#provisionview')) return;
+      if (!document.getElementById('egov-normal-cache-actions')) return;
       observer.disconnect();
       addShortcutGuide();
     });

@@ -1,0 +1,4899 @@
+{
+  "dateJapan": "2026-10-16",
+  "browser": "155.0.8059.80",
+  "fixtureSource": "Synthetic old/new normal-mode DOM, informed by observed e-Gov article/paragraph/column structure. Not a full downloaded statute.",
+  "productionSource": "Unmodified functions from current content.js and shared/egov-shared.js; automatic feature startup replaced with test hooks in memory.",
+  "storage": "In-memory JSON round-trip only. Native chrome.storage.local IPC, latency, quota and service worker behavior are NOT tested.",
+  "repetitions": {
+    "warmups": 2,
+    "measuredPerMode": 10,
+    "alternatedOrder": true
+  },
+  "checks": [
+    {
+      "name": "old DOM: A/B/C/D definitions, current source rebinding, exact marked HTML",
+      "passed": true,
+      "details": {
+        "patterns": [
+          "patternA",
+          "patternB",
+          "patternC",
+          "patternD"
+        ],
+        "markCount": 371,
+        "restoredMarkCount": 371,
+        "serializedMatch": true,
+        "sourcesCurrent": true,
+        "htmlMatch": true,
+        "miss": "miss",
+        "hit": "hit",
+        "extractedOnHit": 0,
+        "recordBytes": 1149
+      }
+    },
+    {
+      "name": "old DOM: internal reference JSON and clickable DOM round trip",
+      "passed": true,
+      "details": {
+        "hit": "hit",
+        "analysesOnHit": 0,
+        "jsonMatch": true,
+        "htmlMatch": true,
+        "targets": 1,
+        "sourceCount": 26,
+        "clickableCount": 1,
+        "recordBytes": 10365
+      }
+    },
+    {
+      "name": "new DOM: A/B/C/D definitions, current source rebinding, exact marked HTML",
+      "passed": true,
+      "details": {
+        "patterns": [
+          "patternA",
+          "patternB",
+          "patternC",
+          "patternD"
+        ],
+        "markCount": 371,
+        "restoredMarkCount": 371,
+        "serializedMatch": true,
+        "sourcesCurrent": true,
+        "htmlMatch": true,
+        "miss": "miss",
+        "hit": "hit",
+        "extractedOnHit": 0,
+        "recordBytes": 1149
+      }
+    },
+    {
+      "name": "new DOM: internal reference JSON and clickable DOM round trip",
+      "passed": true,
+      "details": {
+        "hit": "hit",
+        "analysesOnHit": 0,
+        "jsonMatch": true,
+        "htmlMatch": true,
+        "targets": 1,
+        "sourceCount": 26,
+        "clickableCount": 1,
+        "recordBytes": 10365
+      }
+    },
+    {
+      "name": "changed text",
+      "passed": true,
+      "details": {
+        "name": "changed text",
+        "status": "miss"
+      }
+    },
+    {
+      "name": "href only",
+      "passed": true,
+      "details": {
+        "name": "href only",
+        "status": "miss"
+      }
+    },
+    {
+      "name": "duplicate IDs",
+      "passed": true,
+      "details": {
+        "name": "duplicate IDs",
+        "status": "bypass"
+      }
+    },
+    {
+      "name": "outside candidates",
+      "passed": true,
+      "details": {
+        "name": "outside candidates",
+        "status": "bypass"
+      }
+    },
+    {
+      "name": "comparison view",
+      "passed": true,
+      "details": {
+        "name": "comparison view",
+        "status": "bypass"
+      }
+    },
+    {
+      "name": "transformed text",
+      "passed": true,
+      "details": {
+        "name": "transformed text",
+        "status": "bypass"
+      }
+    },
+    {
+      "name": "corrupt source ID",
+      "passed": true,
+      "details": {
+        "name": "corrupt source ID",
+        "status": "miss"
+      }
+    },
+    {
+      "name": "corrupt record JSON",
+      "passed": true,
+      "details": {
+        "name": "corrupt record JSON",
+        "status": "miss"
+      }
+    },
+    {
+      "name": "old cache version",
+      "passed": true,
+      "details": {
+        "name": "old cache version",
+        "status": "miss"
+      }
+    },
+    {
+      "name": "storage get failure",
+      "passed": true,
+      "details": {
+        "name": "storage get failure",
+        "status": "miss"
+      }
+    },
+    {
+      "name": "storage put failure",
+      "passed": true,
+      "details": {
+        "name": "storage put failure",
+        "status": "miss"
+      }
+    },
+    {
+      "name": "disabled during read",
+      "passed": true,
+      "details": {
+        "name": "disabled during read",
+        "status": "cancelled"
+      }
+    },
+    {
+      "name": "newer job during read",
+      "passed": true,
+      "details": {
+        "name": "newer job during read",
+        "status": "cancelled"
+      }
+    },
+    {
+      "name": "text changed during read",
+      "passed": true,
+      "details": {
+        "name": "text changed during read",
+        "status": "stale"
+      }
+    },
+    {
+      "name": "root replaced during read",
+      "passed": true,
+      "details": {
+        "name": "root replaced during read",
+        "status": "stale"
+      }
+    },
+    {
+      "name": "same markup, descendants replaced with cached article list",
+      "passed": true,
+      "details": {
+        "name": "same markup, descendants replaced with cached article list",
+        "status": "stale"
+      }
+    },
+    {
+      "name": "same markup, descendants replaced and article list invalidated",
+      "passed": true,
+      "details": {
+        "name": "same markup, descendants replaced and article list invalidated",
+        "status": "hit"
+      }
+    },
+    {
+      "name": "unrelated bookmark button",
+      "passed": true,
+      "details": {
+        "name": "unrelated bookmark button",
+        "status": "miss"
+      }
+    },
+    {
+      "name": "parentheses wrapper",
+      "passed": true,
+      "details": {
+        "name": "parentheses wrapper",
+        "status": "miss"
+      }
+    },
+    {
+      "name": "supplement source",
+      "passed": true,
+      "details": {
+        "name": "supplement source",
+        "status": "405AC0000000088-Sp_1-At_1-Pr_1",
+        "scopePreserved": true
+      }
+    },
+    {
+      "name": "zero definitions",
+      "passed": true,
+      "details": {
+        "name": "zero definitions",
+        "status": "hit",
+        "size": 0,
+        "first": "miss"
+      }
+    },
+    {
+      "name": "restored definitions open a real tooltip on click",
+      "passed": true,
+      "details": {}
+    },
+    {
+      "name": "restored reference JSON opens a real source popup on click",
+      "passed": true,
+      "details": {}
+    }
+  ],
+  "benchmarks": [
+    {
+      "count": 26,
+      "modern": false,
+      "dense": false,
+      "definitionCount": 5,
+      "htmlBytes": 23081,
+      "results": [
+        {
+          "kind": "definitions",
+          "samples": [
+            {
+              "iteration": 0,
+              "mode": "off",
+              "status": "off",
+              "analysisMs": 0.3999999985098839,
+              "applyMs": 1.1999999955296516,
+              "totalMs": 1.5999999940395355
+            },
+            {
+              "iteration": 0,
+              "mode": "hit",
+              "status": "hit",
+              "analysisMs": 0.5,
+              "applyMs": 1.6000000014901161,
+              "totalMs": 2.100000001490116,
+              "recordBytes": 1149,
+              "inputBytes": 24542
+            },
+            {
+              "iteration": 0,
+              "mode": "miss",
+              "status": "miss",
+              "analysisMs": 0.7999999970197678,
+              "applyMs": 1.3999999985098839,
+              "totalMs": 2.1999999955296516,
+              "recordBytes": 1149,
+              "inputBytes": 24542
+            },
+            {
+              "iteration": 1,
+              "mode": "miss",
+              "status": "miss",
+              "analysisMs": 0.7000000029802322,
+              "applyMs": 1.8999999985098839,
+              "totalMs": 2.600000001490116,
+              "recordBytes": 1149,
+              "inputBytes": 24542
+            },
+            {
+              "iteration": 1,
+              "mode": "hit",
+              "status": "hit",
+              "analysisMs": 0.6999999955296516,
+              "applyMs": 1.9000000059604645,
+              "totalMs": 2.600000001490116,
+              "recordBytes": 1149,
+              "inputBytes": 24542
+            },
+            {
+              "iteration": 1,
+              "mode": "off",
+              "status": "off",
+              "analysisMs": 0.6000000014901161,
+              "applyMs": 1.7000000029802322,
+              "totalMs": 2.3000000044703484
+            },
+            {
+              "iteration": 2,
+              "mode": "off",
+              "status": "off",
+              "analysisMs": 0.5,
+              "applyMs": 1.2999999970197678,
+              "totalMs": 1.7999999970197678
+            },
+            {
+              "iteration": 2,
+              "mode": "hit",
+              "status": "hit",
+              "analysisMs": 0.5,
+              "applyMs": 1.3000000044703484,
+              "totalMs": 1.8000000044703484,
+              "recordBytes": 1149,
+              "inputBytes": 24542
+            },
+            {
+              "iteration": 2,
+              "mode": "miss",
+              "status": "miss",
+              "analysisMs": 0.8000000044703484,
+              "applyMs": 1.3999999985098839,
+              "totalMs": 2.2000000029802322,
+              "recordBytes": 1149,
+              "inputBytes": 24542
+            },
+            {
+              "iteration": 3,
+              "mode": "miss",
+              "status": "miss",
+              "analysisMs": 1.3000000044703484,
+              "applyMs": 1.5,
+              "totalMs": 2.8000000044703484,
+              "recordBytes": 1149,
+              "inputBytes": 24542
+            },
+            {
+              "iteration": 3,
+              "mode": "hit",
+              "status": "hit",
+              "analysisMs": 0.5,
+              "applyMs": 1.3000000044703484,
+              "totalMs": 1.8000000044703484,
+              "recordBytes": 1149,
+              "inputBytes": 24542
+            },
+            {
+              "iteration": 3,
+              "mode": "off",
+              "status": "off",
+              "analysisMs": 0.6000000014901161,
+              "applyMs": 1.6000000014901161,
+              "totalMs": 2.2000000029802322
+            },
+            {
+              "iteration": 4,
+              "mode": "off",
+              "status": "off",
+              "analysisMs": 0.6999999955296516,
+              "applyMs": 1.8000000044703484,
+              "totalMs": 2.5
+            },
+            {
+              "iteration": 4,
+              "mode": "hit",
+              "status": "hit",
+              "analysisMs": 0.7999999970197678,
+              "applyMs": 2.7000000029802322,
+              "totalMs": 3.5,
+              "recordBytes": 1149,
+              "inputBytes": 24542
+            },
+            {
+              "iteration": 4,
+              "mode": "miss",
+              "status": "miss",
+              "analysisMs": 1.2999999970197678,
+              "applyMs": 1.7999999970197678,
+              "totalMs": 3.0999999940395355,
+              "recordBytes": 1149,
+              "inputBytes": 24542
+            },
+            {
+              "iteration": 5,
+              "mode": "miss",
+              "status": "miss",
+              "analysisMs": 1.2000000029802322,
+              "applyMs": 2.1999999955296516,
+              "totalMs": 3.399999998509884,
+              "recordBytes": 1149,
+              "inputBytes": 24542
+            },
+            {
+              "iteration": 5,
+              "mode": "hit",
+              "status": "hit",
+              "analysisMs": 0.6000000014901161,
+              "applyMs": 1.8000000044703484,
+              "totalMs": 2.4000000059604645,
+              "recordBytes": 1149,
+              "inputBytes": 24542
+            },
+            {
+              "iteration": 5,
+              "mode": "off",
+              "status": "off",
+              "analysisMs": 0.7000000029802322,
+              "applyMs": 2.1999999955296516,
+              "totalMs": 2.899999998509884
+            },
+            {
+              "iteration": 6,
+              "mode": "off",
+              "status": "off",
+              "analysisMs": 4.100000001490116,
+              "applyMs": 1.5,
+              "totalMs": 5.600000001490116
+            },
+            {
+              "iteration": 6,
+              "mode": "hit",
+              "status": "hit",
+              "analysisMs": 0.7000000029802322,
+              "applyMs": 1.3999999985098839,
+              "totalMs": 2.100000001490116,
+              "recordBytes": 1149,
+              "inputBytes": 24542
+            },
+            {
+              "iteration": 6,
+              "mode": "miss",
+              "status": "miss",
+              "analysisMs": 0.8999999985098839,
+              "applyMs": 1.3000000044703484,
+              "totalMs": 2.2000000029802322,
+              "recordBytes": 1149,
+              "inputBytes": 24542
+            },
+            {
+              "iteration": 7,
+              "mode": "miss",
+              "status": "miss",
+              "analysisMs": 0.8000000044703484,
+              "applyMs": 1.3999999985098839,
+              "totalMs": 2.2000000029802322,
+              "recordBytes": 1149,
+              "inputBytes": 24542
+            },
+            {
+              "iteration": 7,
+              "mode": "hit",
+              "status": "hit",
+              "analysisMs": 0.6000000014901161,
+              "applyMs": 1.3999999985098839,
+              "totalMs": 2,
+              "recordBytes": 1149,
+              "inputBytes": 24542
+            },
+            {
+              "iteration": 7,
+              "mode": "off",
+              "status": "off",
+              "analysisMs": 0.4000000059604645,
+              "applyMs": 1.7999999970197678,
+              "totalMs": 2.2000000029802322
+            },
+            {
+              "iteration": 8,
+              "mode": "off",
+              "status": "off",
+              "analysisMs": 0.5,
+              "applyMs": 1.6000000014901161,
+              "totalMs": 2.100000001490116
+            },
+            {
+              "iteration": 8,
+              "mode": "hit",
+              "status": "hit",
+              "analysisMs": 0.3999999985098839,
+              "applyMs": 1.3000000044703484,
+              "totalMs": 1.7000000029802322,
+              "recordBytes": 1149,
+              "inputBytes": 24542
+            },
+            {
+              "iteration": 8,
+              "mode": "miss",
+              "status": "miss",
+              "analysisMs": 1.3000000044703484,
+              "applyMs": 1.2999999970197678,
+              "totalMs": 2.600000001490116,
+              "recordBytes": 1149,
+              "inputBytes": 24542
+            },
+            {
+              "iteration": 9,
+              "mode": "miss",
+              "status": "miss",
+              "analysisMs": 1.5,
+              "applyMs": 1.8999999985098839,
+              "totalMs": 3.399999998509884,
+              "recordBytes": 1149,
+              "inputBytes": 24542
+            },
+            {
+              "iteration": 9,
+              "mode": "hit",
+              "status": "hit",
+              "analysisMs": 0.5,
+              "applyMs": 1.7000000029802322,
+              "totalMs": 2.2000000029802322,
+              "recordBytes": 1149,
+              "inputBytes": 24542
+            },
+            {
+              "iteration": 9,
+              "mode": "off",
+              "status": "off",
+              "analysisMs": 0.4000000059604645,
+              "applyMs": 1.5,
+              "totalMs": 1.9000000059604645
+            }
+          ]
+        },
+        {
+          "kind": "internalReferences",
+          "samples": [
+            {
+              "iteration": 0,
+              "mode": "off",
+              "status": "off",
+              "analysisMs": 0.7000000029802322,
+              "applyMs": null,
+              "totalMs": null
+            },
+            {
+              "iteration": 0,
+              "mode": "hit",
+              "status": "hit",
+              "analysisMs": 0.5,
+              "applyMs": null,
+              "totalMs": null,
+              "recordBytes": 10365,
+              "inputBytes": 24549
+            },
+            {
+              "iteration": 0,
+              "mode": "miss",
+              "status": "miss",
+              "analysisMs": 1.1999999955296516,
+              "applyMs": null,
+              "totalMs": null,
+              "recordBytes": 10365,
+              "inputBytes": 24549
+            },
+            {
+              "iteration": 1,
+              "mode": "miss",
+              "status": "miss",
+              "analysisMs": 1.0999999940395355,
+              "applyMs": null,
+              "totalMs": null,
+              "recordBytes": 10365,
+              "inputBytes": 24549
+            },
+            {
+              "iteration": 1,
+              "mode": "hit",
+              "status": "hit",
+              "analysisMs": 0.7000000029802322,
+              "applyMs": null,
+              "totalMs": null,
+              "recordBytes": 10365,
+              "inputBytes": 24549
+            },
+            {
+              "iteration": 1,
+              "mode": "off",
+              "status": "off",
+              "analysisMs": 0.8000000044703484,
+              "applyMs": null,
+              "totalMs": null
+            },
+            {
+              "iteration": 2,
+              "mode": "off",
+              "status": "off",
+              "analysisMs": 0.5999999940395355,
+              "applyMs": null,
+              "totalMs": null
+            },
+            {
+              "iteration": 2,
+              "mode": "hit",
+              "status": "hit",
+              "analysisMs": 0.6000000014901161,
+              "applyMs": null,
+              "totalMs": null,
+              "recordBytes": 10365,
+              "inputBytes": 24549
+            },
+            {
+              "iteration": 2,
+              "mode": "miss",
+              "status": "miss",
+              "analysisMs": 1.3999999985098839,
+              "applyMs": null,
+              "totalMs": null,
+              "recordBytes": 10365,
+              "inputBytes": 24549
+            },
+            {
+              "iteration": 3,
+              "mode": "miss",
+              "status": "miss",
+              "analysisMs": 1.0999999940395355,
+              "applyMs": null,
+              "totalMs": null,
+              "recordBytes": 10365,
+              "inputBytes": 24549
+            },
+            {
+              "iteration": 3,
+              "mode": "hit",
+              "status": "hit",
+              "analysisMs": 0.6000000014901161,
+              "applyMs": null,
+              "totalMs": null,
+              "recordBytes": 10365,
+              "inputBytes": 24549
+            },
+            {
+              "iteration": 3,
+              "mode": "off",
+              "status": "off",
+              "analysisMs": 0.7999999970197678,
+              "applyMs": null,
+              "totalMs": null
+            },
+            {
+              "iteration": 4,
+              "mode": "off",
+              "status": "off",
+              "analysisMs": 0.8000000044703484,
+              "applyMs": null,
+              "totalMs": null
+            },
+            {
+              "iteration": 4,
+              "mode": "hit",
+              "status": "hit",
+              "analysisMs": 0.6000000014901161,
+              "applyMs": null,
+              "totalMs": null,
+              "recordBytes": 10365,
+              "inputBytes": 24549
+            },
+            {
+              "iteration": 4,
+              "mode": "miss",
+              "status": "miss",
+              "analysisMs": 1.3999999985098839,
+              "applyMs": null,
+              "totalMs": null,
+              "recordBytes": 10365,
+              "inputBytes": 24549
+            },
+            {
+              "iteration": 5,
+              "mode": "miss",
+              "status": "miss",
+              "analysisMs": 1.1000000014901161,
+              "applyMs": null,
+              "totalMs": null,
+              "recordBytes": 10365,
+              "inputBytes": 24549
+            },
+            {
+              "iteration": 5,
+              "mode": "hit",
+              "status": "hit",
+              "analysisMs": 0.5,
+              "applyMs": null,
+              "totalMs": null,
+              "recordBytes": 10365,
+              "inputBytes": 24549
+            },
+            {
+              "iteration": 5,
+              "mode": "off",
+              "status": "off",
+              "analysisMs": 0.6000000014901161,
+              "applyMs": null,
+              "totalMs": null
+            },
+            {
+              "iteration": 6,
+              "mode": "off",
+              "status": "off",
+              "analysisMs": 0.6999999955296516,
+              "applyMs": null,
+              "totalMs": null
+            },
+            {
+              "iteration": 6,
+              "mode": "hit",
+              "status": "hit",
+              "analysisMs": 0.6000000014901161,
+              "applyMs": null,
+              "totalMs": null,
+              "recordBytes": 10365,
+              "inputBytes": 24549
+            },
+            {
+              "iteration": 6,
+              "mode": "miss",
+              "status": "miss",
+              "analysisMs": 1.1000000014901161,
+              "applyMs": null,
+              "totalMs": null,
+              "recordBytes": 10365,
+              "inputBytes": 24549
+            },
+            {
+              "iteration": 7,
+              "mode": "miss",
+              "status": "miss",
+              "analysisMs": 1.1999999955296516,
+              "applyMs": null,
+              "totalMs": null,
+              "recordBytes": 10365,
+              "inputBytes": 24549
+            },
+            {
+              "iteration": 7,
+              "mode": "hit",
+              "status": "hit",
+              "analysisMs": 0.3999999985098839,
+              "applyMs": null,
+              "totalMs": null,
+              "recordBytes": 10365,
+              "inputBytes": 24549
+            },
+            {
+              "iteration": 7,
+              "mode": "off",
+              "status": "off",
+              "analysisMs": 0.7000000029802322,
+              "applyMs": null,
+              "totalMs": null
+            },
+            {
+              "iteration": 8,
+              "mode": "off",
+              "status": "off",
+              "analysisMs": 0.7000000029802322,
+              "applyMs": null,
+              "totalMs": null
+            },
+            {
+              "iteration": 8,
+              "mode": "hit",
+              "status": "hit",
+              "analysisMs": 0.7999999970197678,
+              "applyMs": null,
+              "totalMs": null,
+              "recordBytes": 10365,
+              "inputBytes": 24549
+            },
+            {
+              "iteration": 8,
+              "mode": "miss",
+              "status": "miss",
+              "analysisMs": 1.2000000029802322,
+              "applyMs": null,
+              "totalMs": null,
+              "recordBytes": 10365,
+              "inputBytes": 24549
+            },
+            {
+              "iteration": 9,
+              "mode": "miss",
+              "status": "miss",
+              "analysisMs": 1.7000000029802322,
+              "applyMs": null,
+              "totalMs": null,
+              "recordBytes": 10365,
+              "inputBytes": 24549
+            },
+            {
+              "iteration": 9,
+              "mode": "hit",
+              "status": "hit",
+              "analysisMs": 0.3999999985098839,
+              "applyMs": null,
+              "totalMs": null,
+              "recordBytes": 10365,
+              "inputBytes": 24549
+            },
+            {
+              "iteration": 9,
+              "mode": "off",
+              "status": "off",
+              "analysisMs": 5,
+              "applyMs": null,
+              "totalMs": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "count": 26,
+      "modern": true,
+      "dense": false,
+      "definitionCount": 5,
+      "htmlBytes": 21469,
+      "results": [
+        {
+          "kind": "definitions",
+          "samples": [
+            {
+              "iteration": 0,
+              "mode": "off",
+              "status": "off",
+              "analysisMs": 0.29999999701976776,
+              "applyMs": 1.2000000029802322,
+              "totalMs": 1.5
+            },
+            {
+              "iteration": 0,
+              "mode": "hit",
+              "status": "hit",
+              "analysisMs": 0.30000000447034836,
+              "applyMs": 1.2999999970197678,
+              "totalMs": 1.6000000014901161,
+              "recordBytes": 1149,
+              "inputBytes": 22774
+            },
+            {
+              "iteration": 0,
+              "mode": "miss",
+              "status": "miss",
+              "analysisMs": 0.8000000044703484,
+              "applyMs": 1.1999999955296516,
+              "totalMs": 2,
+              "recordBytes": 1149,
+              "inputBytes": 22774
+            },
+            {
+              "iteration": 1,
+              "mode": "miss",
+              "status": "miss",
+              "analysisMs": 0.8000000044703484,
+              "applyMs": 1.2999999970197678,
+              "totalMs": 2.100000001490116,
+              "recordBytes": 1149,
+              "inputBytes": 22774
+            },
+            {
+              "iteration": 1,
+              "mode": "hit",
+              "status": "hit",
+              "analysisMs": 2.100000001490116,
+              "applyMs": 1.7000000029802322,
+              "totalMs": 3.8000000044703484,
+              "recordBytes": 1149,
+              "inputBytes": 22774
+            },
+            {
+              "iteration": 1,
+              "mode": "off",
+              "status": "off",
+              "analysisMs": 0.6000000014901161,
+              "applyMs": 2.5,
+              "totalMs": 3.100000001490116
+            },
+            {
+              "iteration": 2,
+              "mode": "off",
+              "status": "off",
+              "analysisMs": 0.3999999985098839,
+              "applyMs": 1.1999999955296516,
+              "totalMs": 1.5999999940395355
+            },
+            {
+              "iteration": 2,
+              "mode": "hit",
+              "status": "hit",
+              "analysisMs": 0.5,
+              "applyMs": 1.8999999985098839,
+              "totalMs": 2.399999998509884,
+              "recordBytes": 1149,
+              "inputBytes": 22774
+            },
+            {
+              "iteration": 2,
+              "mode": "miss",
+              "status": "miss",
+              "analysisMs": 1,
+              "applyMs": 1.1000000014901161,
+              "totalMs": 2.100000001490116,
+              "recordBytes": 1149,
+              "inputBytes": 22774
+            },
+            {
+              "iteration": 3,
+              "mode": "miss",
+              "status": "miss",
+              "analysisMs": 0.9000000059604645,
+              "applyMs": 1.0999999940395355,
+              "totalMs": 2,
+              "recordBytes": 1149,
+              "inputBytes": 22774
+            },
+            {
+              "iteration": 3,
+              "mode": "hit",
+              "status": "hit",
+              "analysisMs": 0.5,
+              "applyMs": 1.1000000014901161,
+              "totalMs": 1.6000000014901161,
+              "recordBytes": 1149,
+              "inputBytes": 22774
+            },
+            {
+              "iteration": 3,
+              "mode": "off",
+              "status": "off",
+              "analysisMs": 0.3999999985098839,
+              "applyMs": 1.1000000014901161,
+              "totalMs": 1.5
+            },
+            {
+              "iteration": 4,
+              "mode": "off",
+              "status": "off",
+              "analysisMs": 0.4000000059604645,
+              "applyMs": 1.1999999955296516,
+              "totalMs": 1.6000000014901161
+            },
+            {
+              "iteration": 4,
+              "mode": "hit",
+              "status": "hit",
+              "analysisMs": 0.3999999985098839,
+              "applyMs": 1.1999999955296516,
+              "totalMs": 1.5999999940395355,
+              "recordBytes": 1149,
+              "inputBytes": 22774
+            },
+            {
+              "iteration": 4,
+              "mode": "miss",
+              "status": "miss",
+              "analysisMs": 3.100000001490116,
+              "applyMs": 1.2999999970197678,
+              "totalMs": 4.399999998509884,
+              "recordBytes": 1149,
+              "inputBytes": 22774
+            },
+            {
+              "iteration": 5,
+              "mode": "miss",
+              "status": "miss",
+              "analysisMs": 0.8999999985098839,
+              "applyMs": 1.1999999955296516,
+              "totalMs": 2.0999999940395355,
+              "recordBytes": 1149,
+              "inputBytes": 22774
+            },
+            {
+              "iteration": 5,
+              "mode": "hit",
+              "status": "hit",
+              "analysisMs": 0.3999999985098839,
+              "applyMs": 1.2000000029802322,
+              "totalMs": 1.6000000014901161,
+              "recordBytes": 1149,
+              "inputBytes": 22774
+            },
+            {
+              "iteration": 5,
+              "mode": "off",
+              "status": "off",
+              "analysisMs": 0.4000000059604645,
+              "applyMs": 1.1999999955296516,
+              "totalMs": 1.6000000014901161
+            },
+            {
+              "iteration": 6,
+              "mode": "off",
+              "status": "off",
+              "analysisMs": 0.29999999701976776,
+              "applyMs": 1.2000000029802322,
+              "totalMs": 1.5
+            },
+            {
+              "iteration": 6,
+              "mode": "hit",
+              "status": "hit",
+              "analysisMs": 0.30000000447034836,
+              "applyMs": 1.2999999970197678,
+              "totalMs": 1.6000000014901161,
+              "recordBytes": 1149,
+              "inputBytes": 22774
+            },
+            {
+              "iteration": 6,
+              "mode": "miss",
+              "status": "miss",
+              "analysisMs": 0.8000000044703484,
+              "applyMs": 1.1999999955296516,
+              "totalMs": 2,
+              "recordBytes": 1149,
+              "inputBytes": 22774
+            },
+            {
+              "iteration": 7,
+              "mode": "miss",
+              "status": "miss",
+              "analysisMs": 0.9000000059604645,
+              "applyMs": 1.1999999955296516,
+              "totalMs": 2.100000001490116,
+              "recordBytes": 1149,
+              "inputBytes": 22774
+            },
+            {
+              "iteration": 7,
+              "mode": "hit",
+              "status": "hit",
+              "analysisMs": 0.3999999985098839,
+              "applyMs": 1.4000000059604645,
+              "totalMs": 1.8000000044703484,
+              "recordBytes": 1149,
+              "inputBytes": 22774
+            },
+            {
+              "iteration": 7,
+              "mode": "off",
+              "status": "off",
+              "analysisMs": 0.29999999701976776,
+              "applyMs": 1.2000000029802322,
+              "totalMs": 1.5
+            },
+            {
+              "iteration": 8,
+              "mode": "off",
+              "status": "off",
+              "analysisMs": 0.3999999985098839,
+              "applyMs": 1.1000000014901161,
+              "totalMs": 1.5
+            },
+            {
+              "iteration": 8,
+              "mode": "hit",
+              "status": "hit",
+              "analysisMs": 1.1000000014901161,
+              "applyMs": 1.8999999985098839,
+              "totalMs": 3,
+              "recordBytes": 1149,
+              "inputBytes": 22774
+            },
+            {
+              "iteration": 8,
+              "mode": "miss",
+              "status": "miss",
+              "analysisMs": 0.8000000044703484,
+              "applyMs": 1.2999999970197678,
+              "totalMs": 2.100000001490116,
+              "recordBytes": 1149,
+              "inputBytes": 22774
+            },
+            {
+              "iteration": 9,
+              "mode": "miss",
+              "status": "miss",
+              "analysisMs": 0.8999999985098839,
+              "applyMs": 1.2999999970197678,
+              "totalMs": 2.1999999955296516,
+              "recordBytes": 1149,
+              "inputBytes": 22774
+            },
+            {
+              "iteration": 9,
+              "mode": "hit",
+              "status": "hit",
+              "analysisMs": 0.29999999701976776,
+              "applyMs": 1.2000000029802322,
+              "totalMs": 1.5,
+              "recordBytes": 1149,
+              "inputBytes": 22774
+            },
+            {
+              "iteration": 9,
+              "mode": "off",
+              "status": "off",
+              "analysisMs": 0.3999999985098839,
+              "applyMs": 1.1999999955296516,
+              "totalMs": 1.5999999940395355
+            }
+          ]
+        },
+        {
+          "kind": "internalReferences",
+          "samples": [
+            {
+              "iteration": 0,
+              "mode": "off",
+              "status": "off",
+              "analysisMs": 0.6000000014901161,
+              "applyMs": null,
+              "totalMs": null
+            },
+            {
+              "iteration": 0,
+              "mode": "hit",
+              "status": "hit",
+              "analysisMs": 0.7999999970197678,
+              "applyMs": null,
+              "totalMs": null,
+              "recordBytes": 10365,
+              "inputBytes": 22781
+            },
+            {
+              "iteration": 0,
+              "mode": "miss",
+              "status": "miss",
+              "analysisMs": 1.9000000059604645,
+              "applyMs": null,
+              "totalMs": null,
+              "recordBytes": 10365,
+              "inputBytes": 22781
+            },
+            {
+              "iteration": 1,
+              "mode": "miss",
+              "status": "miss",
+              "analysisMs": 1.7000000029802322,
+              "applyMs": null,
+              "totalMs": null,
+              "recordBytes": 10365,
+              "inputBytes": 22781
+            },
+            {
+              "iteration": 1,
+              "mode": "hit",
+              "status": "hit",
+              "analysisMs": 0.5,
+              "applyMs": null,
+              "totalMs": null,
+              "recordBytes": 10365,
+              "inputBytes": 22781
+            },
+            {
+              "iteration": 1,
+              "mode": "off",
+              "status": "off",
+              "analysisMs": 1,
+              "applyMs": null,
+              "totalMs": null
+            },
+            {
+              "iteration": 2,
+              "mode": "off",
+              "status": "off",
+              "analysisMs": 0.6999999955296516,
+              "applyMs": null,
+              "totalMs": null
+            },
+            {
+              "iteration": 2,
+              "mode": "hit",
+              "status": "hit",
+              "analysisMs": 0.5,
+              "applyMs": null,
+              "totalMs": null,
+              "recordBytes": 10365,
+              "inputBytes": 22781
+            },
+            {
+              "iteration": 2,
+              "mode": "miss",
+              "status": "miss",
+              "analysisMs": 1.0999999940395355,
+              "applyMs": null,
+              "totalMs": null,
+              "recordBytes": 10365,
+              "inputBytes": 22781
+            },
+            {
+              "iteration": 3,
+              "mode": "miss",
+              "status": "miss",
+              "analysisMs": 1.1999999955296516,
+              "applyMs": null,
+              "totalMs": null,
+              "recordBytes": 10365,
+              "inputBytes": 22781
+            },
+            {
+              "iteration": 3,
+              "mode": "hit",
+              "status": "hit",
+              "analysisMs": 0.5,
+              "applyMs": null,
+              "totalMs": null,
+              "recordBytes": 10365,
+              "inputBytes": 22781
+            },
+            {
+              "iteration": 3,
+              "mode": "off",
+              "status": "off",
+              "analysisMs": 0.5,
+              "applyMs": null,
+              "totalMs": null
+            },
+            {
+              "iteration": 4,
+              "mode": "off",
+              "status": "off",
+              "analysisMs": 0.6000000014901161,
+              "applyMs": null,
+              "totalMs": null
+            },
+            {
+              "iteration": 4,
+              "mode": "hit",
+              "status": "hit",
+              "analysisMs": 0.5,
+              "applyMs": null,
+              "totalMs": null,
+              "recordBytes": 10365,
+              "inputBytes": 22781
+            },
+            {
+              "iteration": 4,
+              "mode": "miss",
+              "status": "miss",
+              "analysisMs": 1,
+              "applyMs": null,
+              "totalMs": null,
+              "recordBytes": 10365,
+              "inputBytes": 22781
+            },
+            {
+              "iteration": 5,
+              "mode": "miss",
+              "status": "miss",
+              "analysisMs": 1.8999999985098839,
+              "applyMs": null,
+              "totalMs": null,
+              "recordBytes": 10365,
+              "inputBytes": 22781
+            },
+            {
+              "iteration": 5,
+              "mode": "hit",
+              "status": "hit",
+              "analysisMs": 0.3999999985098839,
+              "applyMs": null,
+              "totalMs": null,
+              "recordBytes": 10365,
+              "inputBytes": 22781
+            },
+            {
+              "iteration": 5,
+              "mode": "off",
+              "status": "off",
+              "analysisMs": 0.7000000029802322,
+              "applyMs": null,
+              "totalMs": null
+            },
+            {
+              "iteration": 6,
+              "mode": "off",
+              "status": "off",
+              "analysisMs": 1.1999999955296516,
+              "applyMs": null,
+              "totalMs": null
+            },
+            {
+              "iteration": 6,
+              "mode": "hit",
+              "status": "hit",
+              "analysisMs": 0.4000000059604645,
+              "applyMs": null,
+              "totalMs": null,
+              "recordBytes": 10365,
+              "inputBytes": 22781
+            },
+            {
+              "iteration": 6,
+              "mode": "miss",
+              "status": "miss",
+              "analysisMs": 1,
+              "applyMs": null,
+              "totalMs": null,
+              "recordBytes": 10365,
+              "inputBytes": 22781
+            },
+            {
+              "iteration": 7,
+              "mode": "miss",
+              "status": "miss",
+              "analysisMs": 2.1999999955296516,
+              "applyMs": null,
+              "totalMs": null,
+              "recordBytes": 10365,
+              "inputBytes": 22781
+            },
+            {
+              "iteration": 7,
+              "mode": "hit",
+              "status": "hit",
+              "analysisMs": 0.5999999940395355,
+              "applyMs": null,
+              "totalMs": null,
+              "recordBytes": 10365,
+              "inputBytes": 22781
+            },
+            {
+              "iteration": 7,
+              "mode": "off",
+              "status": "off",
+              "analysisMs": 0.8999999985098839,
+              "applyMs": null,
+              "totalMs": null
+            },
+            {
+              "iteration": 8,
+              "mode": "off",
+              "status": "off",
+              "analysisMs": 0.5999999940395355,
+              "applyMs": null,
+              "totalMs": null
+            },
+            {
+              "iteration": 8,
+              "mode": "hit",
+              "status": "hit",
+              "analysisMs": 0.5,
+              "applyMs": null,
+              "totalMs": null,
+              "recordBytes": 10365,
+              "inputBytes": 22781
+            },
+            {
+              "iteration": 8,
+              "mode": "miss",
+              "status": "miss",
+              "analysisMs": 1.1000000014901161,
+              "applyMs": null,
+              "totalMs": null,
+              "recordBytes": 10365,
+              "inputBytes": 22781
+            },
+            {
+              "iteration": 9,
+              "mode": "miss",
+              "status": "miss",
+              "analysisMs": 1.0999999940395355,
+              "applyMs": null,
+              "totalMs": null,
+              "recordBytes": 10365,
+              "inputBytes": 22781
+            },
+            {
+              "iteration": 9,
+              "mode": "hit",
+              "status": "hit",
+              "analysisMs": 0.5,
+              "applyMs": null,
+              "totalMs": null,
+              "recordBytes": 10365,
+              "inputBytes": 22781
+            },
+            {
+              "iteration": 9,
+              "mode": "off",
+              "status": "off",
+              "analysisMs": 0.5,
+              "applyMs": null,
+              "totalMs": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "count": 242,
+      "modern": false,
+      "dense": false,
+      "definitionCount": 5,
+      "htmlBytes": 221285,
+      "results": [
+        {
+          "kind": "definitions",
+          "samples": [
+            {
+              "iteration": 0,
+              "mode": "off",
+              "status": "off",
+              "analysisMs": 3.899999998509884,
+              "applyMs": 13.5,
+              "totalMs": 17.399999998509884
+            },
+            {
+              "iteration": 0,
+              "mode": "hit",
+              "status": "hit",
+              "analysisMs": 5.199999995529652,
+              "applyMs": 16.400000005960464,
+              "totalMs": 21.600000001490116,
+              "recordBytes": 1149,
+              "inputBytes": 233687
+            },
+            {
+              "iteration": 0,
+              "mode": "miss",
+              "status": "miss",
+              "analysisMs": 7.5,
+              "applyMs": 14.799999997019768,
+              "totalMs": 22.299999997019768,
+              "recordBytes": 1149,
+              "inputBytes": 233687
+            },
+            {
+              "iteration": 1,
+              "mode": "miss",
+              "status": "miss",
+              "analysisMs": 7.5,
+              "applyMs": 13.699999995529652,
+              "totalMs": 21.19999999552965,
+              "recordBytes": 1149,
+              "inputBytes": 233687
+            },
+            {
+              "iteration": 1,
+              "mode": "hit",
+              "status": "hit",
+              "analysisMs": 4.600000001490116,
+              "applyMs": 13.799999997019768,
+              "totalMs": 18.399999998509884,
+              "recordBytes": 1149,
+              "inputBytes": 233687
+            },
+            {
+              "iteration": 1,
+              "mode": "off",
+              "status": "off",
+              "analysisMs": 2.600000001490116,
+              "applyMs": 14.399999998509884,
+              "totalMs": 17
+            },
+            {
+              "iteration": 2,
+              "mode": "off",
+              "status": "off",
+              "analysisMs": 2.600000001490116,
+              "applyMs": 13.800000004470348,
+              "totalMs": 16.400000005960464
+            },
+            {
+              "iteration": 2,
+              "mode": "hit",
+              "status": "hit",
+              "analysisMs": 4.700000002980232,
+              "applyMs": 13.599999994039536,
+              "totalMs": 18.299999997019768,
+              "recordBytes": 1149,
+              "inputBytes": 233687
+            },
+            {
+              "iteration": 2,
+              "mode": "miss",
+              "status": "miss",
+              "analysisMs": 7.699999995529652,
+              "applyMs": 16.100000001490116,
+              "totalMs": 23.799999997019768,
+              "recordBytes": 1149,
+              "inputBytes": 233687
+            },
+            {
+              "iteration": 3,
+              "mode": "miss",
+              "status": "miss",
+              "analysisMs": 8.5,
+              "applyMs": 15.700000002980232,
+              "totalMs": 24.200000002980232,
+              "recordBytes": 1149,
+              "inputBytes": 233687
+            },
+            {
+              "iteration": 3,
+              "mode": "hit",
+              "status": "hit",
+              "analysisMs": 5.100000001490116,
+              "applyMs": 14.399999998509884,
+              "totalMs": 19.5,
+              "recordBytes": 1149,
+              "inputBytes": 233687
+            },
+            {
+              "iteration": 3,
+              "mode": "off",
+              "status": "off",
+              "analysisMs": 5.300000004470348,
+              "applyMs": 13.599999994039536,
+              "totalMs": 18.899999998509884
+            },
+            {
+              "iteration": 4,
+              "mode": "off",
+              "status": "off",
+              "analysisMs": 3.399999998509884,
+              "applyMs": 12.800000004470348,
+              "totalMs": 16.200000002980232
+            },
+            {
+              "iteration": 4,
+              "mode": "hit",
+              "status": "hit",
+              "analysisMs": 4.800000004470348,
+              "applyMs": 13.799999997019768,
+              "totalMs": 18.600000001490116,
+              "recordBytes": 1149,
+              "inputBytes": 233687
+            },
+            {
+              "iteration": 4,
+              "mode": "miss",
+              "status": "miss",
+              "analysisMs": 9,
+              "applyMs": 13.199999995529652,
+              "totalMs": 22.19999999552965,
+              "recordBytes": 1149,
+              "inputBytes": 233687
+            },
+            {
+              "iteration": 5,
+              "mode": "miss",
+              "status": "miss",
+              "analysisMs": 7.700000002980232,
+              "applyMs": 13.5,
+              "totalMs": 21.200000002980232,
+              "recordBytes": 1149,
+              "inputBytes": 233687
+            },
+            {
+              "iteration": 5,
+              "mode": "hit",
+              "status": "hit",
+              "analysisMs": 5.100000001490116,
+              "applyMs": 15.100000001490116,
+              "totalMs": 20.200000002980232,
+              "recordBytes": 1149,
+              "inputBytes": 233687
+            },
+            {
+              "iteration": 5,
+              "mode": "off",
+              "status": "off",
+              "analysisMs": 4,
+              "applyMs": 13.399999998509884,
+              "totalMs": 17.399999998509884
+            },
+            {
+              "iteration": 6,
+              "mode": "off",
+              "status": "off",
+              "analysisMs": 3.5,
+              "applyMs": 16,
+              "totalMs": 19.5
+            },
+            {
+              "iteration": 6,
+              "mode": "hit",
+              "status": "hit",
+              "analysisMs": 5,
+              "applyMs": 14.399999998509884,
+              "totalMs": 19.399999998509884,
+              "recordBytes": 1149,
+              "inputBytes": 233687
+            },
+            {
+              "iteration": 6,
+              "mode": "miss",
+              "status": "miss",
+              "analysisMs": 9.399999998509884,
+              "applyMs": 13.100000001490116,
+              "totalMs": 22.5,
+              "recordBytes": 1149,
+              "inputBytes": 233687
+            },
+            {
+              "iteration": 7,
+              "mode": "miss",
+              "status": "miss",
+              "analysisMs": 14.299999997019768,
+              "applyMs": 26.700000002980232,
+              "totalMs": 41,
+              "recordBytes": 1149,
+              "inputBytes": 233687
+            },
+            {
+              "iteration": 7,
+              "mode": "hit",
+              "status": "hit",
+              "analysisMs": 4.699999995529652,
+              "applyMs": 15.200000002980232,
+              "totalMs": 19.899999998509884,
+              "recordBytes": 1149,
+              "inputBytes": 233687
+            },
+            {
+              "iteration": 7,
+              "mode": "off",
+              "status": "off",
+              "analysisMs": 3.2000000029802322,
+              "applyMs": 13.799999997019768,
+              "totalMs": 17
+            },
+            {
+              "iteration": 8,
+              "mode": "off",
+              "status": "off",
+              "analysisMs": 3.2000000029802322,
+              "applyMs": 13.5,
+              "totalMs": 16.700000002980232
+            },
+            {
+              "iteration": 8,
+              "mode": "hit",
+              "status": "hit",
+              "analysisMs": 9,
+              "applyMs": 18.099999994039536,
+              "totalMs": 27.099999994039536,
+              "recordBytes": 1149,
+              "inputBytes": 233687
+            },
+            {
+              "iteration": 8,
+              "mode": "miss",
+              "status": "miss",
+              "analysisMs": 8.799999997019768,
+              "applyMs": 14.5,
+              "totalMs": 23.299999997019768,
+              "recordBytes": 1149,
+              "inputBytes": 233687
+            },
+            {
+              "iteration": 9,
+              "mode": "miss",
+              "status": "miss",
+              "analysisMs": 7.5999999940395355,
+              "applyMs": 13.800000004470348,
+              "totalMs": 21.399999998509884,
+              "recordBytes": 1149,
+              "inputBytes": 233687
+            },
+            {
+              "iteration": 9,
+              "mode": "hit",
+              "status": "hit",
+              "analysisMs": 5,
+              "applyMs": 13.600000001490116,
+              "totalMs": 18.600000001490116,
+              "recordBytes": 1149,
+              "inputBytes": 233687
+            },
+            {
+              "iteration": 9,
+              "mode": "off",
+              "status": "off",
+              "analysisMs": 3.1999999955296516,
+              "applyMs": 13.300000004470348,
+              "totalMs": 16.5
+            }
+          ]
+        },
+        {
+          "kind": "internalReferences",
+          "samples": [
+            {
+              "iteration": 0,
+              "mode": "off",
+              "status": "off",
+              "analysisMs": 5.5999999940395355,
+              "applyMs": null,
+              "totalMs": null
+            },
+            {
+              "iteration": 0,
+              "mode": "hit",
+              "status": "hit",
+              "analysisMs": 6.5,
+              "applyMs": null,
+              "totalMs": null,
+              "recordBytes": 95319,
+              "inputBytes": 233694
+            },
+            {
+              "iteration": 0,
+              "mode": "miss",
+              "status": "miss",
+              "analysisMs": 11.899999998509884,
+              "applyMs": null,
+              "totalMs": null,
+              "recordBytes": 95319,
+              "inputBytes": 233694
+            },
+            {
+              "iteration": 1,
+              "mode": "miss",
+              "status": "miss",
+              "analysisMs": 11,
+              "applyMs": null,
+              "totalMs": null,
+              "recordBytes": 95319,
+              "inputBytes": 233694
+            },
+            {
+              "iteration": 1,
+              "mode": "hit",
+              "status": "hit",
+              "analysisMs": 5.100000001490116,
+              "applyMs": null,
+              "totalMs": null,
+              "recordBytes": 95319,
+              "inputBytes": 233694
+            },
+            {
+              "iteration": 1,
+              "mode": "off",
+              "status": "off",
+              "analysisMs": 6.399999998509884,
+              "applyMs": null,
+              "totalMs": null
+            },
+            {
+              "iteration": 2,
+              "mode": "off",
+              "status": "off",
+              "analysisMs": 5.4000000059604645,
+              "applyMs": null,
+              "totalMs": null
+            },
+            {
+              "iteration": 2,
+              "mode": "hit",
+              "status": "hit",
+              "analysisMs": 4.9000000059604645,
+              "applyMs": null,
+              "totalMs": null,
+              "recordBytes": 95319,
+              "inputBytes": 233694
+            },
+            {
+              "iteration": 2,
+              "mode": "miss",
+              "status": "miss",
+              "analysisMs": 11.5,
+              "applyMs": null,
+              "totalMs": null,
+              "recordBytes": 95319,
+              "inputBytes": 233694
+            },
+            {
+              "iteration": 3,
+              "mode": "miss",
+              "status": "miss",
+              "analysisMs": 12,
+              "applyMs": null,
+              "totalMs": null,
+              "recordBytes": 95319,
+              "inputBytes": 233694
+            },
+            {
+              "iteration": 3,
+              "mode": "hit",
+              "status": "hit",
+              "analysisMs": 5.199999995529652,
+              "applyMs": null,
+              "totalMs": null,
+              "recordBytes": 95319,
+              "inputBytes": 233694
+            },
+            {
+              "iteration": 3,
+              "mode": "off",
+              "status": "off",
+              "analysisMs": 5.5,
+              "applyMs": null,
+              "totalMs": null
+            },
+            {
+              "iteration": 4,
+              "mode": "off",
+              "status": "off",
+              "analysisMs": 5.399999998509884,
+              "applyMs": null,
+              "totalMs": null
+            },
+            {
+              "iteration": 4,
+              "mode": "hit",
+              "status": "hit",
+              "analysisMs": 5.5,
+              "applyMs": null,
+              "totalMs": null,
+              "recordBytes": 95319,
+              "inputBytes": 233694
+            },
+            {
+              "iteration": 4,
+              "mode": "miss",
+              "status": "miss",
+              "analysisMs": 12,
+              "applyMs": null,
+              "totalMs": null,
+              "recordBytes": 95319,
+              "inputBytes": 233694
+            },
+            {
+              "iteration": 5,
+              "mode": "miss",
+              "status": "miss",
+              "analysisMs": 10.399999998509884,
+              "applyMs": null,
+              "totalMs": null,
+              "recordBytes": 95319,
+              "inputBytes": 233694
+            },
+            {
+              "iteration": 5,
+              "mode": "hit",
+              "status": "hit",
+              "analysisMs": 5.5,
+              "applyMs": null,
+              "totalMs": null,
+              "recordBytes": 95319,
+              "inputBytes": 233694
+            },
+            {
+              "iteration": 5,
+              "mode": "off",
+              "status": "off",
+              "analysisMs": 6,
+              "applyMs": null,
+              "totalMs": null
+            },
+            {
+              "iteration": 6,
+              "mode": "off",
+              "status": "off",
+              "analysisMs": 5.5,
+              "applyMs": null,
+              "totalMs": null
+            },
+            {
+              "iteration": 6,
+              "mode": "hit",
+              "status": "hit",
+              "analysisMs": 4.899999998509884,
+              "applyMs": null,
+              "totalMs": null,
+              "recordBytes": 95319,
+              "inputBytes": 233694
+            },
+            {
+              "iteration": 6,
+              "mode": "miss",
+              "status": "miss",
+              "analysisMs": 17.100000001490116,
+              "applyMs": null,
+              "totalMs": null,
+              "recordBytes": 95319,
+              "inputBytes": 233694
+            },
+            {
+              "iteration": 7,
+              "mode": "miss",
+              "status": "miss",
+              "analysisMs": 11.5,
+              "applyMs": null,
+              "totalMs": null,
+              "recordBytes": 95319,
+              "inputBytes": 233694
+            },
+            {
+              "iteration": 7,
+              "mode": "hit",
+              "status": "hit",
+              "analysisMs": 5.200000002980232,
+              "applyMs": null,
+              "totalMs": null,
+              "recordBytes": 95319,
+              "inputBytes": 233694
+            },
+            {
+              "iteration": 7,
+              "mode": "off",
+              "status": "off",
+              "analysisMs": 8.199999995529652,
+              "applyMs": null,
+              "totalMs": null
+            },
+            {
+              "iteration": 8,
+              "mode": "off",
+              "status": "off",
+              "analysisMs": 12.5,
+              "applyMs": null,
+              "totalMs": null
+            },
+            {
+              "iteration": 8,
+              "mode": "hit",
+              "status": "hit",
+              "analysisMs": 6.9000000059604645,
+              "applyMs": null,
+              "totalMs": null,
+              "recordBytes": 95319,
+              "inputBytes": 233694
+            },
+            {
+              "iteration": 8,
+              "mode": "miss",
+              "status": "miss",
+              "analysisMs": 10.699999995529652,
+              "applyMs": null,
+              "totalMs": null,
+              "recordBytes": 95319,
+              "inputBytes": 233694
+            },
+            {
+              "iteration": 9,
+              "mode": "miss",
+              "status": "miss",
+              "analysisMs": 11.699999995529652,
+              "applyMs": null,
+              "totalMs": null,
+              "recordBytes": 95319,
+              "inputBytes": 233694
+            },
+            {
+              "iteration": 9,
+              "mode": "hit",
+              "status": "hit",
+              "analysisMs": 5.0999999940395355,
+              "applyMs": null,
+              "totalMs": null,
+              "recordBytes": 95319,
+              "inputBytes": 233694
+            },
+            {
+              "iteration": 9,
+              "mode": "off",
+              "status": "off",
+              "analysisMs": 5.5,
+              "applyMs": null,
+              "totalMs": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "count": 242,
+      "modern": true,
+      "dense": false,
+      "definitionCount": 5,
+      "htmlBytes": 206281,
+      "results": [
+        {
+          "kind": "definitions",
+          "samples": [
+            {
+              "iteration": 0,
+              "mode": "off",
+              "status": "off",
+              "analysisMs": 7.799999997019768,
+              "applyMs": 13.300000004470348,
+              "totalMs": 21.100000001490116
+            },
+            {
+              "iteration": 0,
+              "mode": "hit",
+              "status": "hit",
+              "analysisMs": 4.700000002980232,
+              "applyMs": 12.700000002980232,
+              "totalMs": 17.400000005960464,
+              "recordBytes": 1149,
+              "inputBytes": 217231
+            },
+            {
+              "iteration": 0,
+              "mode": "miss",
+              "status": "miss",
+              "analysisMs": 7.100000001490116,
+              "applyMs": 13.700000002980232,
+              "totalMs": 20.80000000447035,
+              "recordBytes": 1149,
+              "inputBytes": 217231
+            },
+            {
+              "iteration": 1,
+              "mode": "miss",
+              "status": "miss",
+              "analysisMs": 9.5,
+              "applyMs": 13.299999997019768,
+              "totalMs": 22.799999997019768,
+              "recordBytes": 1149,
+              "inputBytes": 217231
+            },
+            {
+              "iteration": 1,
+              "mode": "hit",
+              "status": "hit",
+              "analysisMs": 4.899999998509884,
+              "applyMs": 14,
+              "totalMs": 18.899999998509884,
+              "recordBytes": 1149,
+              "inputBytes": 217231
+            },
+            {
+              "iteration": 1,
+              "mode": "off",
+              "status": "off",
+              "analysisMs": 2.899999998509884,
+              "applyMs": 14.399999998509884,
+              "totalMs": 17.299999997019768
+            },
+            {
+              "iteration": 2,
+              "mode": "off",
+              "status": "off",
+              "analysisMs": 5.399999998509884,
+              "applyMs": 14.299999997019768,
+              "totalMs": 19.69999999552965
+            },
+            {
+              "iteration": 2,
+              "mode": "hit",
+              "status": "hit",
+              "analysisMs": 4,
+              "applyMs": 12.799999997019768,
+              "totalMs": 16.799999997019768,
+              "recordBytes": 1149,
+              "inputBytes": 217231
+            },
+            {
+              "iteration": 2,
+              "mode": "miss",
+              "status": "miss",
+              "analysisMs": 6.200000002980232,
+              "applyMs": 12.699999995529652,
+              "totalMs": 18.899999998509884,
+              "recordBytes": 1149,
+              "inputBytes": 217231
+            },
+            {
+              "iteration": 3,
+              "mode": "miss",
+              "status": "miss",
+              "analysisMs": 7.4000000059604645,
+              "applyMs": 13.099999994039536,
+              "totalMs": 20.5,
+              "recordBytes": 1149,
+              "inputBytes": 217231
+            },
+            {
+              "iteration": 3,
+              "mode": "hit",
+              "status": "hit",
+              "analysisMs": 4.0999999940395355,
+              "applyMs": 12.700000002980232,
+              "totalMs": 16.799999997019768,
+              "recordBytes": 1149,
+              "inputBytes": 217231
+            },
+            {
+              "iteration": 3,
+              "mode": "off",
+              "status": "off",
+              "analysisMs": 2.399999998509884,
+              "applyMs": 12.5,
+              "totalMs": 14.899999998509884
+            },
+            {
+              "iteration": 4,
+              "mode": "off",
+              "status": "off",
+              "analysisMs": 2.5,
+              "applyMs": 12.700000002980232,
+              "totalMs": 15.200000002980232
+            },
+            {
+              "iteration": 4,
+              "mode": "hit",
+              "status": "hit",
+              "analysisMs": 5,
+              "applyMs": 14.100000001490116,
+              "totalMs": 19.100000001490116,
+              "recordBytes": 1149,
+              "inputBytes": 217231
+            },
+            {
+              "iteration": 4,
+              "mode": "miss",
+              "status": "miss",
+              "analysisMs": 6.800000004470348,
+              "applyMs": 12.699999995529652,
+              "totalMs": 19.5,
+              "recordBytes": 1149,
+              "inputBytes": 217231
+            },
+            {
+              "iteration": 5,
+              "mode": "miss",
+              "status": "miss",
+              "analysisMs": 6.700000002980232,
+              "applyMs": 13,
+              "totalMs": 19.700000002980232,
+              "recordBytes": 1149,
+              "inputBytes": 217231
+            },
+            {
+              "iteration": 5,
+              "mode": "hit",
+              "status": "hit",
+              "analysisMs": 4.299999997019768,
+              "applyMs": 21.80000000447035,
+              "totalMs": 26.100000001490116,
+              "recordBytes": 1149,
+              "inputBytes": 217231
+            },
+            {
+              "iteration": 5,
+              "mode": "off",
+              "status": "off",
+              "analysisMs": 2.7999999970197678,
+              "applyMs": 12.400000005960464,
+              "totalMs": 15.200000002980232
+            },
+            {
+              "iteration": 6,
+              "mode": "off",
+              "status": "off",
+              "analysisMs": 2.5,
+              "applyMs": 12.099999994039536,
+              "totalMs": 14.599999994039536
+            },
+            {
+              "iteration": 6,
+              "mode": "hit",
+              "status": "hit",
+              "analysisMs": 4.699999995529652,
+              "applyMs": 14.600000001490116,
+              "totalMs": 19.299999997019768,
+              "recordBytes": 1149,
+              "inputBytes": 217231
+            },
+            {
+              "iteration": 6,
+              "mode": "miss",
+              "status": "miss",
+              "analysisMs": 6.899999998509884,
+              "applyMs": 13,
+              "totalMs": 19.899999998509884,
+              "recordBytes": 1149,
+              "inputBytes": 217231
+            },
+            {
+              "iteration": 7,
+              "mode": "miss",
+              "status": "miss",
+              "analysisMs": 7.100000001490116,
+              "applyMs": 12.5,
+              "totalMs": 19.600000001490116,
+              "recordBytes": 1149,
+              "inputBytes": 217231
+            },
+            {
+              "iteration": 7,
+              "mode": "hit",
+              "status": "hit",
+              "analysisMs": 4.399999998509884,
+              "applyMs": 19.700000002980232,
+              "totalMs": 24.100000001490116,
+              "recordBytes": 1149,
+              "inputBytes": 217231
+            },
+            {
+              "iteration": 7,
+              "mode": "off",
+              "status": "off",
+              "analysisMs": 2.600000001490116,
+              "applyMs": 12.799999997019768,
+              "totalMs": 15.399999998509884
+            },
+            {
+              "iteration": 8,
+              "mode": "off",
+              "status": "off",
+              "analysisMs": 2.7999999970197678,
+              "applyMs": 12.399999998509884,
+              "totalMs": 15.199999995529652
+            },
+            {
+              "iteration": 8,
+              "mode": "hit",
+              "status": "hit",
+              "analysisMs": 4.9000000059604645,
+              "applyMs": 14.599999994039536,
+              "totalMs": 19.5,
+              "recordBytes": 1149,
+              "inputBytes": 217231
+            },
+            {
+              "iteration": 8,
+              "mode": "miss",
+              "status": "miss",
+              "analysisMs": 6.700000002980232,
+              "applyMs": 12.799999997019768,
+              "totalMs": 19.5,
+              "recordBytes": 1149,
+              "inputBytes": 217231
+            },
+            {
+              "iteration": 9,
+              "mode": "miss",
+              "status": "miss",
+              "analysisMs": 6.800000004470348,
+              "applyMs": 13.299999997019768,
+              "totalMs": 20.100000001490116,
+              "recordBytes": 1149,
+              "inputBytes": 217231
+            },
+            {
+              "iteration": 9,
+              "mode": "hit",
+              "status": "hit",
+              "analysisMs": 5.0999999940395355,
+              "applyMs": 20.100000001490116,
+              "totalMs": 25.19999999552965,
+              "recordBytes": 1149,
+              "inputBytes": 217231
+            },
+            {
+              "iteration": 9,
+              "mode": "off",
+              "status": "off",
+              "analysisMs": 3.2000000029802322,
+              "applyMs": 12.700000002980232,
+              "totalMs": 15.900000005960464
+            }
+          ]
+        },
+        {
+          "kind": "internalReferences",
+          "samples": [
+            {
+              "iteration": 0,
+              "mode": "off",
+              "status": "off",
+              "analysisMs": 5.100000001490116,
+              "applyMs": null,
+              "totalMs": null
+            },
+            {
+              "iteration": 0,
+              "mode": "hit",
+              "status": "hit",
+              "analysisMs": 8.799999997019768,
+              "applyMs": null,
+              "totalMs": null,
+              "recordBytes": 95319,
+              "inputBytes": 217238
+            },
+            {
+              "iteration": 0,
+              "mode": "miss",
+              "status": "miss",
+              "analysisMs": 10.700000002980232,
+              "applyMs": null,
+              "totalMs": null,
+              "recordBytes": 95319,
+              "inputBytes": 217238
+            },
+            {
+              "iteration": 1,
+              "mode": "miss",
+              "status": "miss",
+              "analysisMs": 11.299999997019768,
+              "applyMs": null,
+              "totalMs": null,
+              "recordBytes": 95319,
+              "inputBytes": 217238
+            },
+            {
+              "iteration": 1,
+              "mode": "hit",
+              "status": "hit",
+              "analysisMs": 4.600000001490116,
+              "applyMs": null,
+              "totalMs": null,
+              "recordBytes": 95319,
+              "inputBytes": 217238
+            },
+            {
+              "iteration": 1,
+              "mode": "off",
+              "status": "off",
+              "analysisMs": 5.100000001490116,
+              "applyMs": null,
+              "totalMs": null
+            },
+            {
+              "iteration": 2,
+              "mode": "off",
+              "status": "off",
+              "analysisMs": 5.700000002980232,
+              "applyMs": null,
+              "totalMs": null
+            },
+            {
+              "iteration": 2,
+              "mode": "hit",
+              "status": "hit",
+              "analysisMs": 4.600000001490116,
+              "applyMs": null,
+              "totalMs": null,
+              "recordBytes": 95319,
+              "inputBytes": 217238
+            },
+            {
+              "iteration": 2,
+              "mode": "miss",
+              "status": "miss",
+              "analysisMs": 10,
+              "applyMs": null,
+              "totalMs": null,
+              "recordBytes": 95319,
+              "inputBytes": 217238
+            },
+            {
+              "iteration": 3,
+              "mode": "miss",
+              "status": "miss",
+              "analysisMs": 10.100000001490116,
+              "applyMs": null,
+              "totalMs": null,
+              "recordBytes": 95319,
+              "inputBytes": 217238
+            },
+            {
+              "iteration": 3,
+              "mode": "hit",
+              "status": "hit",
+              "analysisMs": 4.799999997019768,
+              "applyMs": null,
+              "totalMs": null,
+              "recordBytes": 95319,
+              "inputBytes": 217238
+            },
+            {
+              "iteration": 3,
+              "mode": "off",
+              "status": "off",
+              "analysisMs": 10.5,
+              "applyMs": null,
+              "totalMs": null
+            },
+            {
+              "iteration": 4,
+              "mode": "off",
+              "status": "off",
+              "analysisMs": 5.399999998509884,
+              "applyMs": null,
+              "totalMs": null
+            },
+            {
+              "iteration": 4,
+              "mode": "hit",
+              "status": "hit",
+              "analysisMs": 4.399999998509884,
+              "applyMs": null,
+              "totalMs": null,
+              "recordBytes": 95319,
+              "inputBytes": 217238
+            },
+            {
+              "iteration": 4,
+              "mode": "miss",
+              "status": "miss",
+              "analysisMs": 10.199999995529652,
+              "applyMs": null,
+              "totalMs": null,
+              "recordBytes": 95319,
+              "inputBytes": 217238
+            },
+            {
+              "iteration": 5,
+              "mode": "miss",
+              "status": "miss",
+              "analysisMs": 9.300000004470348,
+              "applyMs": null,
+              "totalMs": null,
+              "recordBytes": 95319,
+              "inputBytes": 217238
+            },
+            {
+              "iteration": 5,
+              "mode": "hit",
+              "status": "hit",
+              "analysisMs": 4.699999995529652,
+              "applyMs": null,
+              "totalMs": null,
+              "recordBytes": 95319,
+              "inputBytes": 217238
+            },
+            {
+              "iteration": 5,
+              "mode": "off",
+              "status": "off",
+              "analysisMs": 5.399999998509884,
+              "applyMs": null,
+              "totalMs": null
+            },
+            {
+              "iteration": 6,
+              "mode": "off",
+              "status": "off",
+              "analysisMs": 5,
+              "applyMs": null,
+              "totalMs": null
+            },
+            {
+              "iteration": 6,
+              "mode": "hit",
+              "status": "hit",
+              "analysisMs": 4.700000002980232,
+              "applyMs": null,
+              "totalMs": null,
+              "recordBytes": 95319,
+              "inputBytes": 217238
+            },
+            {
+              "iteration": 6,
+              "mode": "miss",
+              "status": "miss",
+              "analysisMs": 13.800000004470348,
+              "applyMs": null,
+              "totalMs": null,
+              "recordBytes": 95319,
+              "inputBytes": 217238
+            },
+            {
+              "iteration": 7,
+              "mode": "miss",
+              "status": "miss",
+              "analysisMs": 10.200000002980232,
+              "applyMs": null,
+              "totalMs": null,
+              "recordBytes": 95319,
+              "inputBytes": 217238
+            },
+            {
+              "iteration": 7,
+              "mode": "hit",
+              "status": "hit",
+              "analysisMs": 4.600000001490116,
+              "applyMs": null,
+              "totalMs": null,
+              "recordBytes": 95319,
+              "inputBytes": 217238
+            },
+            {
+              "iteration": 7,
+              "mode": "off",
+              "status": "off",
+              "analysisMs": 6.100000001490116,
+              "applyMs": null,
+              "totalMs": null
+            },
+            {
+              "iteration": 8,
+              "mode": "off",
+              "status": "off",
+              "analysisMs": 4.899999998509884,
+              "applyMs": null,
+              "totalMs": null
+            },
+            {
+              "iteration": 8,
+              "mode": "hit",
+              "status": "hit",
+              "analysisMs": 4.5,
+              "applyMs": null,
+              "totalMs": null,
+              "recordBytes": 95319,
+              "inputBytes": 217238
+            },
+            {
+              "iteration": 8,
+              "mode": "miss",
+              "status": "miss",
+              "analysisMs": 9.899999998509884,
+              "applyMs": null,
+              "totalMs": null,
+              "recordBytes": 95319,
+              "inputBytes": 217238
+            },
+            {
+              "iteration": 9,
+              "mode": "miss",
+              "status": "miss",
+              "analysisMs": 9.600000001490116,
+              "applyMs": null,
+              "totalMs": null,
+              "recordBytes": 95319,
+              "inputBytes": 217238
+            },
+            {
+              "iteration": 9,
+              "mode": "hit",
+              "status": "hit",
+              "analysisMs": 4.899999998509884,
+              "applyMs": null,
+              "totalMs": null,
+              "recordBytes": 95319,
+              "inputBytes": 217238
+            },
+            {
+              "iteration": 9,
+              "mode": "off",
+              "status": "off",
+              "analysisMs": 6,
+              "applyMs": null,
+              "totalMs": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "count": 802,
+      "modern": false,
+      "dense": false,
+      "definitionCount": 5,
+      "htmlBytes": 735925,
+      "results": [
+        {
+          "kind": "definitions",
+          "samples": [
+            {
+              "iteration": 0,
+              "mode": "off",
+              "status": "off",
+              "analysisMs": 12.899999998509884,
+              "applyMs": 46.70000000298023,
+              "totalMs": 59.600000001490116
+            },
+            {
+              "iteration": 0,
+              "mode": "hit",
+              "status": "hit",
+              "analysisMs": 15.899999998509884,
+              "applyMs": 49.899999998509884,
+              "totalMs": 65.79999999701977,
+              "recordBytes": 1149,
+              "inputBytes": 776887
+            },
+            {
+              "iteration": 0,
+              "mode": "miss",
+              "status": "miss",
+              "analysisMs": 26.299999997019768,
+              "applyMs": 46.100000001490116,
+              "totalMs": 72.39999999850988,
+              "recordBytes": 1149,
+              "inputBytes": 776887
+            },
+            {
+              "iteration": 1,
+              "mode": "miss",
+              "status": "miss",
+              "analysisMs": 23.299999997019768,
+              "applyMs": 47.900000005960464,
+              "totalMs": 71.20000000298023,
+              "recordBytes": 1149,
+              "inputBytes": 776887
+            },
+            {
+              "iteration": 1,
+              "mode": "hit",
+              "status": "hit",
+              "analysisMs": 17,
+              "applyMs": 48.600000001490116,
+              "totalMs": 65.60000000149012,
+              "recordBytes": 1149,
+              "inputBytes": 776887
+            },
+            {
+              "iteration": 1,
+              "mode": "off",
+              "status": "off",
+              "analysisMs": 10,
+              "applyMs": 47.899999998509884,
+              "totalMs": 57.899999998509884
+            },
+            {
+              "iteration": 2,
+              "mode": "off",
+              "status": "off",
+              "analysisMs": 10.699999995529652,
+              "applyMs": 55.30000000447035,
+              "totalMs": 66
+            },
+            {
+              "iteration": 2,
+              "mode": "hit",
+              "status": "hit",
+              "analysisMs": 16.399999998509884,
+              "applyMs": 49.20000000298023,
+              "totalMs": 65.60000000149012,
+              "recordBytes": 1149,
+              "inputBytes": 776887
+            },
+            {
+              "iteration": 2,
+              "mode": "miss",
+              "status": "miss",
+              "analysisMs": 26.5,
+              "applyMs": 50.899999998509884,
+              "totalMs": 77.39999999850988,
+              "recordBytes": 1149,
+              "inputBytes": 776887
+            },
+            {
+              "iteration": 3,
+              "mode": "miss",
+              "status": "miss",
+              "analysisMs": 31,
+              "applyMs": 47,
+              "totalMs": 78,
+              "recordBytes": 1149,
+              "inputBytes": 776887
+            },
+            {
+              "iteration": 3,
+              "mode": "hit",
+              "status": "hit",
+              "analysisMs": 15.699999995529652,
+              "applyMs": 52,
+              "totalMs": 67.69999999552965,
+              "recordBytes": 1149,
+              "inputBytes": 776887
+            },
+            {
+              "iteration": 3,
+              "mode": "off",
+              "status": "off",
+              "analysisMs": 13.600000001490116,
+              "applyMs": 47.79999999701977,
+              "totalMs": 61.399999998509884
+            },
+            {
+              "iteration": 4,
+              "mode": "off",
+              "status": "off",
+              "analysisMs": 9.900000005960464,
+              "applyMs": 49.19999999552965,
+              "totalMs": 59.100000001490116
+            },
+            {
+              "iteration": 4,
+              "mode": "hit",
+              "status": "hit",
+              "analysisMs": 25.80000000447035,
+              "applyMs": 49.5,
+              "totalMs": 75.30000000447035,
+              "recordBytes": 1149,
+              "inputBytes": 776887
+            },
+            {
+              "iteration": 4,
+              "mode": "miss",
+              "status": "miss",
+              "analysisMs": 27.600000001490116,
+              "applyMs": 49.100000001490116,
+              "totalMs": 76.70000000298023,
+              "recordBytes": 1149,
+              "inputBytes": 776887
+            },
+            {
+              "iteration": 5,
+              "mode": "miss",
+              "status": "miss",
+              "analysisMs": 30.100000001490116,
+              "applyMs": 50.5,
+              "totalMs": 80.60000000149012,
+              "recordBytes": 1149,
+              "inputBytes": 776887
+            },
+            {
+              "iteration": 5,
+              "mode": "hit",
+              "status": "hit",
+              "analysisMs": 17.5,
+              "applyMs": 50.70000000298023,
+              "totalMs": 68.20000000298023,
+              "recordBytes": 1149,
+              "inputBytes": 776887
+            },
+            {
+              "iteration": 5,
+              "mode": "off",
+              "status": "off",
+              "analysisMs": 13.399999998509884,
+              "applyMs": 51.80000000447035,
+              "totalMs": 65.20000000298023
+            },
+            {
+              "iteration": 6,
+              "mode": "off",
+              "status": "off",
+              "analysisMs": 9.399999998509884,
+              "applyMs": 45.600000001490116,
+              "totalMs": 55
+            },
+            {
+              "iteration": 6,
+              "mode": "hit",
+              "status": "hit",
+              "analysisMs": 17.80000000447035,
+              "applyMs": 47.100000001490116,
+              "totalMs": 64.90000000596046,
+              "recordBytes": 1149,
+              "inputBytes": 776887
+            },
+            {
+              "iteration": 6,
+              "mode": "miss",
+              "status": "miss",
+              "analysisMs": 24.799999997019768,
+              "applyMs": 46.899999998509884,
+              "totalMs": 71.69999999552965,
+              "recordBytes": 1149,
+              "inputBytes": 776887
+            },
+            {
+              "iteration": 7,
+              "mode": "miss",
+              "status": "miss",
+              "analysisMs": 28.5,
+              "applyMs": 48.399999998509884,
+              "totalMs": 76.89999999850988,
+              "recordBytes": 1149,
+              "inputBytes": 776887
+            },
+            {
+              "iteration": 7,
+              "mode": "hit",
+              "status": "hit",
+              "analysisMs": 15.100000001490116,
+              "applyMs": 47.70000000298023,
+              "totalMs": 62.80000000447035,
+              "recordBytes": 1149,
+              "inputBytes": 776887
+            },
+            {
+              "iteration": 7,
+              "mode": "off",
+              "status": "off",
+              "analysisMs": 12.299999997019768,
+              "applyMs": 52.100000001490116,
+              "totalMs": 64.39999999850988
+            },
+            {
+              "iteration": 8,
+              "mode": "off",
+              "status": "off",
+              "analysisMs": 12.300000004470348,
+              "applyMs": 66.89999999850988,
+              "totalMs": 79.20000000298023
+            },
+            {
+              "iteration": 8,
+              "mode": "hit",
+              "status": "hit",
+              "analysisMs": 15.700000002980232,
+              "applyMs": 48.69999999552965,
+              "totalMs": 64.39999999850988,
+              "recordBytes": 1149,
+              "inputBytes": 776887
+            },
+            {
+              "iteration": 8,
+              "mode": "miss",
+              "status": "miss",
+              "analysisMs": 26.400000005960464,
+              "applyMs": 46.599999994039536,
+              "totalMs": 73,
+              "recordBytes": 1149,
+              "inputBytes": 776887
+            },
+            {
+              "iteration": 9,
+              "mode": "miss",
+              "status": "miss",
+              "analysisMs": 24.599999994039536,
+              "applyMs": 52.100000001490116,
+              "totalMs": 76.69999999552965,
+              "recordBytes": 1149,
+              "inputBytes": 776887
+            },
+            {
+              "iteration": 9,
+              "mode": "hit",
+              "status": "hit",
+              "analysisMs": 18.5,
+              "applyMs": 49.70000000298023,
+              "totalMs": 68.20000000298023,
+              "recordBytes": 1149,
+              "inputBytes": 776887
+            },
+            {
+              "iteration": 9,
+              "mode": "off",
+              "status": "off",
+              "analysisMs": 9.300000004470348,
+              "applyMs": 47.69999999552965,
+              "totalMs": 57
+            }
+          ]
+        },
+        {
+          "kind": "internalReferences",
+          "samples": [
+            {
+              "iteration": 0,
+              "mode": "off",
+              "status": "off",
+              "analysisMs": 19.899999998509884,
+              "applyMs": null,
+              "totalMs": null
+            },
+            {
+              "iteration": 0,
+              "mode": "hit",
+              "status": "hit",
+              "analysisMs": 16.69999999552965,
+              "applyMs": null,
+              "totalMs": null,
+              "recordBytes": 315959,
+              "inputBytes": 776894
+            },
+            {
+              "iteration": 0,
+              "mode": "miss",
+              "status": "miss",
+              "analysisMs": 41.19999999552965,
+              "applyMs": null,
+              "totalMs": null,
+              "recordBytes": 315959,
+              "inputBytes": 776894
+            },
+            {
+              "iteration": 1,
+              "mode": "miss",
+              "status": "miss",
+              "analysisMs": 42.80000000447035,
+              "applyMs": null,
+              "totalMs": null,
+              "recordBytes": 315959,
+              "inputBytes": 776894
+            },
+            {
+              "iteration": 1,
+              "mode": "hit",
+              "status": "hit",
+              "analysisMs": 17,
+              "applyMs": null,
+              "totalMs": null,
+              "recordBytes": 315959,
+              "inputBytes": 776894
+            },
+            {
+              "iteration": 1,
+              "mode": "off",
+              "status": "off",
+              "analysisMs": 18.899999998509884,
+              "applyMs": null,
+              "totalMs": null
+            },
+            {
+              "iteration": 2,
+              "mode": "off",
+              "status": "off",
+              "analysisMs": 19.19999999552965,
+              "applyMs": null,
+              "totalMs": null
+            },
+            {
+              "iteration": 2,
+              "mode": "hit",
+              "status": "hit",
+              "analysisMs": 19,
+              "applyMs": null,
+              "totalMs": null,
+              "recordBytes": 315959,
+              "inputBytes": 776894
+            },
+            {
+              "iteration": 2,
+              "mode": "miss",
+              "status": "miss",
+              "analysisMs": 36.100000001490116,
+              "applyMs": null,
+              "totalMs": null,
+              "recordBytes": 315959,
+              "inputBytes": 776894
+            },
+            {
+              "iteration": 3,
+              "mode": "miss",
+              "status": "miss",
+              "analysisMs": 35.600000001490116,
+              "applyMs": null,
+              "totalMs": null,
+              "recordBytes": 315959,
+              "inputBytes": 776894
+            },
+            {
+              "iteration": 3,
+              "mode": "hit",
+              "status": "hit",
+              "analysisMs": 17.299999997019768,
+              "applyMs": null,
+              "totalMs": null,
+              "recordBytes": 315959,
+              "inputBytes": 776894
+            },
+            {
+              "iteration": 3,
+              "mode": "off",
+              "status": "off",
+              "analysisMs": 19.5,
+              "applyMs": null,
+              "totalMs": null
+            },
+            {
+              "iteration": 4,
+              "mode": "off",
+              "status": "off",
+              "analysisMs": 18.200000002980232,
+              "applyMs": null,
+              "totalMs": null
+            },
+            {
+              "iteration": 4,
+              "mode": "hit",
+              "status": "hit",
+              "analysisMs": 16.200000002980232,
+              "applyMs": null,
+              "totalMs": null,
+              "recordBytes": 315959,
+              "inputBytes": 776894
+            },
+            {
+              "iteration": 4,
+              "mode": "miss",
+              "status": "miss",
+              "analysisMs": 34.599999994039536,
+              "applyMs": null,
+              "totalMs": null,
+              "recordBytes": 315959,
+              "inputBytes": 776894
+            },
+            {
+              "iteration": 5,
+              "mode": "miss",
+              "status": "miss",
+              "analysisMs": 39.29999999701977,
+              "applyMs": null,
+              "totalMs": null,
+              "recordBytes": 315959,
+              "inputBytes": 776894
+            },
+            {
+              "iteration": 5,
+              "mode": "hit",
+              "status": "hit",
+              "analysisMs": 18.5,
+              "applyMs": null,
+              "totalMs": null,
+              "recordBytes": 315959,
+              "inputBytes": 776894
+            },
+            {
+              "iteration": 5,
+              "mode": "off",
+              "status": "off",
+              "analysisMs": 19.900000005960464,
+              "applyMs": null,
+              "totalMs": null
+            },
+            {
+              "iteration": 6,
+              "mode": "off",
+              "status": "off",
+              "analysisMs": 18.600000001490116,
+              "applyMs": null,
+              "totalMs": null
+            },
+            {
+              "iteration": 6,
+              "mode": "hit",
+              "status": "hit",
+              "analysisMs": 16.69999999552965,
+              "applyMs": null,
+              "totalMs": null,
+              "recordBytes": 315959,
+              "inputBytes": 776894
+            },
+            {
+              "iteration": 6,
+              "mode": "miss",
+              "status": "miss",
+              "analysisMs": 36.70000000298023,
+              "applyMs": null,
+              "totalMs": null,
+              "recordBytes": 315959,
+              "inputBytes": 776894
+            },
+            {
+              "iteration": 7,
+              "mode": "miss",
+              "status": "miss",
+              "analysisMs": 41.70000000298023,
+              "applyMs": null,
+              "totalMs": null,
+              "recordBytes": 315959,
+              "inputBytes": 776894
+            },
+            {
+              "iteration": 7,
+              "mode": "hit",
+              "status": "hit",
+              "analysisMs": 19.899999998509884,
+              "applyMs": null,
+              "totalMs": null,
+              "recordBytes": 315959,
+              "inputBytes": 776894
+            },
+            {
+              "iteration": 7,
+              "mode": "off",
+              "status": "off",
+              "analysisMs": 20.799999997019768,
+              "applyMs": null,
+              "totalMs": null
+            },
+            {
+              "iteration": 8,
+              "mode": "off",
+              "status": "off",
+              "analysisMs": 19,
+              "applyMs": null,
+              "totalMs": null
+            },
+            {
+              "iteration": 8,
+              "mode": "hit",
+              "status": "hit",
+              "analysisMs": 16.900000005960464,
+              "applyMs": null,
+              "totalMs": null,
+              "recordBytes": 315959,
+              "inputBytes": 776894
+            },
+            {
+              "iteration": 8,
+              "mode": "miss",
+              "status": "miss",
+              "analysisMs": 46.600000001490116,
+              "applyMs": null,
+              "totalMs": null,
+              "recordBytes": 315959,
+              "inputBytes": 776894
+            },
+            {
+              "iteration": 9,
+              "mode": "miss",
+              "status": "miss",
+              "analysisMs": 35.399999998509884,
+              "applyMs": null,
+              "totalMs": null,
+              "recordBytes": 315959,
+              "inputBytes": 776894
+            },
+            {
+              "iteration": 9,
+              "mode": "hit",
+              "status": "hit",
+              "analysisMs": 18.5,
+              "applyMs": null,
+              "totalMs": null,
+              "recordBytes": 315959,
+              "inputBytes": 776894
+            },
+            {
+              "iteration": 9,
+              "mode": "off",
+              "status": "off",
+              "analysisMs": 18.700000002980232,
+              "applyMs": null,
+              "totalMs": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "count": 802,
+      "modern": true,
+      "dense": false,
+      "definitionCount": 5,
+      "htmlBytes": 686201,
+      "results": [
+        {
+          "kind": "definitions",
+          "samples": [
+            {
+              "iteration": 0,
+              "mode": "off",
+              "status": "off",
+              "analysisMs": 12.100000001490116,
+              "applyMs": 43,
+              "totalMs": 55.100000001490116
+            },
+            {
+              "iteration": 0,
+              "mode": "hit",
+              "status": "hit",
+              "analysisMs": 15.299999997019768,
+              "applyMs": 45.5,
+              "totalMs": 60.79999999701977,
+              "recordBytes": 1149,
+              "inputBytes": 722351
+            },
+            {
+              "iteration": 0,
+              "mode": "miss",
+              "status": "miss",
+              "analysisMs": 23.5,
+              "applyMs": 47,
+              "totalMs": 70.5,
+              "recordBytes": 1149,
+              "inputBytes": 722351
+            },
+            {
+              "iteration": 1,
+              "mode": "miss",
+              "status": "miss",
+              "analysisMs": 27.19999999552965,
+              "applyMs": 43.600000001490116,
+              "totalMs": 70.79999999701977,
+              "recordBytes": 1149,
+              "inputBytes": 722351
+            },
+            {
+              "iteration": 1,
+              "mode": "hit",
+              "status": "hit",
+              "analysisMs": 14.700000002980232,
+              "applyMs": 46.69999999552965,
+              "totalMs": 61.399999998509884,
+              "recordBytes": 1149,
+              "inputBytes": 722351
+            },
+            {
+              "iteration": 1,
+              "mode": "off",
+              "status": "off",
+              "analysisMs": 9.399999998509884,
+              "applyMs": 46.30000000447035,
+              "totalMs": 55.70000000298023
+            },
+            {
+              "iteration": 2,
+              "mode": "off",
+              "status": "off",
+              "analysisMs": 9.299999997019768,
+              "applyMs": 44.5,
+              "totalMs": 53.79999999701977
+            },
+            {
+              "iteration": 2,
+              "mode": "hit",
+              "status": "hit",
+              "analysisMs": 15.199999995529652,
+              "applyMs": 43.80000000447035,
+              "totalMs": 59,
+              "recordBytes": 1149,
+              "inputBytes": 722351
+            },
+            {
+              "iteration": 2,
+              "mode": "miss",
+              "status": "miss",
+              "analysisMs": 25.900000005960464,
+              "applyMs": 42.69999999552965,
+              "totalMs": 68.60000000149012,
+              "recordBytes": 1149,
+              "inputBytes": 722351
+            },
+            {
+              "iteration": 3,
+              "mode": "miss",
+              "status": "miss",
+              "analysisMs": 22.599999994039536,
+              "applyMs": 44.900000005960464,
+              "totalMs": 67.5,
+              "recordBytes": 1149,
+              "inputBytes": 722351
+            },
+            {
+              "iteration": 3,
+              "mode": "hit",
+              "status": "hit",
+              "analysisMs": 15.400000005960464,
+              "applyMs": 50.5,
+              "totalMs": 65.90000000596046,
+              "recordBytes": 1149,
+              "inputBytes": 722351
+            },
+            {
+              "iteration": 3,
+              "mode": "off",
+              "status": "off",
+              "analysisMs": 9.5,
+              "applyMs": 44.099999994039536,
+              "totalMs": 53.599999994039536
+            },
+            {
+              "iteration": 4,
+              "mode": "off",
+              "status": "off",
+              "analysisMs": 8.199999995529652,
+              "applyMs": 46.600000001490116,
+              "totalMs": 54.79999999701977
+            },
+            {
+              "iteration": 4,
+              "mode": "hit",
+              "status": "hit",
+              "analysisMs": 14.5,
+              "applyMs": 45.79999999701977,
+              "totalMs": 60.29999999701977,
+              "recordBytes": 1149,
+              "inputBytes": 722351
+            },
+            {
+              "iteration": 4,
+              "mode": "miss",
+              "status": "miss",
+              "analysisMs": 22.899999998509884,
+              "applyMs": 46.79999999701977,
+              "totalMs": 69.69999999552965,
+              "recordBytes": 1149,
+              "inputBytes": 722351
+            },
+            {
+              "iteration": 5,
+              "mode": "miss",
+              "status": "miss",
+              "analysisMs": 24.700000002980232,
+              "applyMs": 66.19999999552965,
+              "totalMs": 90.89999999850988,
+              "recordBytes": 1149,
+              "inputBytes": 722351
+            },
+            {
+              "iteration": 5,
+              "mode": "hit",
+              "status": "hit",
+              "analysisMs": 15.899999998509884,
+              "applyMs": 46.29999999701977,
+              "totalMs": 62.19999999552965,
+              "recordBytes": 1149,
+              "inputBytes": 722351
+            },
+            {
+              "iteration": 5,
+              "mode": "off",
+              "status": "off",
+              "analysisMs": 11.599999994039536,
+              "applyMs": 43.30000000447035,
+              "totalMs": 54.899999998509884
+            },
+            {
+              "iteration": 6,
+              "mode": "off",
+              "status": "off",
+              "analysisMs": 8.600000001490116,
+              "applyMs": 43.600000001490116,
+              "totalMs": 52.20000000298023
+            },
+            {
+              "iteration": 6,
+              "mode": "hit",
+              "status": "hit",
+              "analysisMs": 15.299999997019768,
+              "applyMs": 51.79999999701977,
+              "totalMs": 67.09999999403954,
+              "recordBytes": 1149,
+              "inputBytes": 722351
+            },
+            {
+              "iteration": 6,
+              "mode": "miss",
+              "status": "miss",
+              "analysisMs": 22.700000002980232,
+              "applyMs": 44,
+              "totalMs": 66.70000000298023,
+              "recordBytes": 1149,
+              "inputBytes": 722351
+            },
+            {
+              "iteration": 7,
+              "mode": "miss",
+              "status": "miss",
+              "analysisMs": 24,
+              "applyMs": 44.30000000447035,
+              "totalMs": 68.30000000447035,
+              "recordBytes": 1149,
+              "inputBytes": 722351
+            },
+            {
+              "iteration": 7,
+              "mode": "hit",
+              "status": "hit",
+              "analysisMs": 15.399999998509884,
+              "applyMs": 45.20000000298023,
+              "totalMs": 60.600000001490116,
+              "recordBytes": 1149,
+              "inputBytes": 722351
+            },
+            {
+              "iteration": 7,
+              "mode": "off",
+              "status": "off",
+              "analysisMs": 9.100000001490116,
+              "applyMs": 46.399999998509884,
+              "totalMs": 55.5
+            },
+            {
+              "iteration": 8,
+              "mode": "off",
+              "status": "off",
+              "analysisMs": 9.100000001490116,
+              "applyMs": 51.100000001490116,
+              "totalMs": 60.20000000298023
+            },
+            {
+              "iteration": 8,
+              "mode": "hit",
+              "status": "hit",
+              "analysisMs": 14.600000001490116,
+              "applyMs": 43.600000001490116,
+              "totalMs": 58.20000000298023,
+              "recordBytes": 1149,
+              "inputBytes": 722351
+            },
+            {
+              "iteration": 8,
+              "mode": "miss",
+              "status": "miss",
+              "analysisMs": 24,
+              "applyMs": 43.69999999552965,
+              "totalMs": 67.69999999552965,
+              "recordBytes": 1149,
+              "inputBytes": 722351
+            },
+            {
+              "iteration": 9,
+              "mode": "miss",
+              "status": "miss",
+              "analysisMs": 26.299999997019768,
+              "applyMs": 44.70000000298023,
+              "totalMs": 71,
+              "recordBytes": 1149,
+              "inputBytes": 722351
+            },
+            {
+              "iteration": 9,
+              "mode": "hit",
+              "status": "hit",
+              "analysisMs": 14.5,
+              "applyMs": 47.5,
+              "totalMs": 62,
+              "recordBytes": 1149,
+              "inputBytes": 722351
+            },
+            {
+              "iteration": 9,
+              "mode": "off",
+              "status": "off",
+              "analysisMs": 8.799999997019768,
+              "applyMs": 47.70000000298023,
+              "totalMs": 56.5
+            }
+          ]
+        },
+        {
+          "kind": "internalReferences",
+          "samples": [
+            {
+              "iteration": 0,
+              "mode": "off",
+              "status": "off",
+              "analysisMs": 17.69999999552965,
+              "applyMs": null,
+              "totalMs": null
+            },
+            {
+              "iteration": 0,
+              "mode": "hit",
+              "status": "hit",
+              "analysisMs": 17.299999997019768,
+              "applyMs": null,
+              "totalMs": null,
+              "recordBytes": 315959,
+              "inputBytes": 722358
+            },
+            {
+              "iteration": 0,
+              "mode": "miss",
+              "status": "miss",
+              "analysisMs": 34.5,
+              "applyMs": null,
+              "totalMs": null,
+              "recordBytes": 315959,
+              "inputBytes": 722358
+            },
+            {
+              "iteration": 1,
+              "mode": "miss",
+              "status": "miss",
+              "analysisMs": 34.30000000447035,
+              "applyMs": null,
+              "totalMs": null,
+              "recordBytes": 315959,
+              "inputBytes": 722358
+            },
+            {
+              "iteration": 1,
+              "mode": "hit",
+              "status": "hit",
+              "analysisMs": 17.799999997019768,
+              "applyMs": null,
+              "totalMs": null,
+              "recordBytes": 315959,
+              "inputBytes": 722358
+            },
+            {
+              "iteration": 1,
+              "mode": "off",
+              "status": "off",
+              "analysisMs": 20.400000005960464,
+              "applyMs": null,
+              "totalMs": null
+            },
+            {
+              "iteration": 2,
+              "mode": "off",
+              "status": "off",
+              "analysisMs": 19.19999999552965,
+              "applyMs": null,
+              "totalMs": null
+            },
+            {
+              "iteration": 2,
+              "mode": "hit",
+              "status": "hit",
+              "analysisMs": 15.899999998509884,
+              "applyMs": null,
+              "totalMs": null,
+              "recordBytes": 315959,
+              "inputBytes": 722358
+            },
+            {
+              "iteration": 2,
+              "mode": "miss",
+              "status": "miss",
+              "analysisMs": 35.600000001490116,
+              "applyMs": null,
+              "totalMs": null,
+              "recordBytes": 315959,
+              "inputBytes": 722358
+            },
+            {
+              "iteration": 3,
+              "mode": "miss",
+              "status": "miss",
+              "analysisMs": 58.30000000447035,
+              "applyMs": null,
+              "totalMs": null,
+              "recordBytes": 315959,
+              "inputBytes": 722358
+            },
+            {
+              "iteration": 3,
+              "mode": "hit",
+              "status": "hit",
+              "analysisMs": 15.400000005960464,
+              "applyMs": null,
+              "totalMs": null,
+              "recordBytes": 315959,
+              "inputBytes": 722358
+            },
+            {
+              "iteration": 3,
+              "mode": "off",
+              "status": "off",
+              "analysisMs": 18.700000002980232,
+              "applyMs": null,
+              "totalMs": null
+            },
+            {
+              "iteration": 4,
+              "mode": "off",
+              "status": "off",
+              "analysisMs": 18.100000001490116,
+              "applyMs": null,
+              "totalMs": null
+            },
+            {
+              "iteration": 4,
+              "mode": "hit",
+              "status": "hit",
+              "analysisMs": 15.699999995529652,
+              "applyMs": null,
+              "totalMs": null,
+              "recordBytes": 315959,
+              "inputBytes": 722358
+            },
+            {
+              "iteration": 4,
+              "mode": "miss",
+              "status": "miss",
+              "analysisMs": 33.100000001490116,
+              "applyMs": null,
+              "totalMs": null,
+              "recordBytes": 315959,
+              "inputBytes": 722358
+            },
+            {
+              "iteration": 5,
+              "mode": "miss",
+              "status": "miss",
+              "analysisMs": 35,
+              "applyMs": null,
+              "totalMs": null,
+              "recordBytes": 315959,
+              "inputBytes": 722358
+            },
+            {
+              "iteration": 5,
+              "mode": "hit",
+              "status": "hit",
+              "analysisMs": 17.899999998509884,
+              "applyMs": null,
+              "totalMs": null,
+              "recordBytes": 315959,
+              "inputBytes": 722358
+            },
+            {
+              "iteration": 5,
+              "mode": "off",
+              "status": "off",
+              "analysisMs": 19.19999999552965,
+              "applyMs": null,
+              "totalMs": null
+            },
+            {
+              "iteration": 6,
+              "mode": "off",
+              "status": "off",
+              "analysisMs": 17.799999997019768,
+              "applyMs": null,
+              "totalMs": null
+            },
+            {
+              "iteration": 6,
+              "mode": "hit",
+              "status": "hit",
+              "analysisMs": 15.100000001490116,
+              "applyMs": null,
+              "totalMs": null,
+              "recordBytes": 315959,
+              "inputBytes": 722358
+            },
+            {
+              "iteration": 6,
+              "mode": "miss",
+              "status": "miss",
+              "analysisMs": 37.399999998509884,
+              "applyMs": null,
+              "totalMs": null,
+              "recordBytes": 315959,
+              "inputBytes": 722358
+            },
+            {
+              "iteration": 7,
+              "mode": "miss",
+              "status": "miss",
+              "analysisMs": 33.899999998509884,
+              "applyMs": null,
+              "totalMs": null,
+              "recordBytes": 315959,
+              "inputBytes": 722358
+            },
+            {
+              "iteration": 7,
+              "mode": "hit",
+              "status": "hit",
+              "analysisMs": 17.100000001490116,
+              "applyMs": null,
+              "totalMs": null,
+              "recordBytes": 315959,
+              "inputBytes": 722358
+            },
+            {
+              "iteration": 7,
+              "mode": "off",
+              "status": "off",
+              "analysisMs": 18.700000002980232,
+              "applyMs": null,
+              "totalMs": null
+            },
+            {
+              "iteration": 8,
+              "mode": "off",
+              "status": "off",
+              "analysisMs": 20.899999998509884,
+              "applyMs": null,
+              "totalMs": null
+            },
+            {
+              "iteration": 8,
+              "mode": "hit",
+              "status": "hit",
+              "analysisMs": 17.399999998509884,
+              "applyMs": null,
+              "totalMs": null,
+              "recordBytes": 315959,
+              "inputBytes": 722358
+            },
+            {
+              "iteration": 8,
+              "mode": "miss",
+              "status": "miss",
+              "analysisMs": 33.400000005960464,
+              "applyMs": null,
+              "totalMs": null,
+              "recordBytes": 315959,
+              "inputBytes": 722358
+            },
+            {
+              "iteration": 9,
+              "mode": "miss",
+              "status": "miss",
+              "analysisMs": 34.69999999552965,
+              "applyMs": null,
+              "totalMs": null,
+              "recordBytes": 315959,
+              "inputBytes": 722358
+            },
+            {
+              "iteration": 9,
+              "mode": "hit",
+              "status": "hit",
+              "analysisMs": 16.80000000447035,
+              "applyMs": null,
+              "totalMs": null,
+              "recordBytes": 315959,
+              "inputBytes": 722358
+            },
+            {
+              "iteration": 9,
+              "mode": "off",
+              "status": "off",
+              "analysisMs": 17.799999997019768,
+              "applyMs": null,
+              "totalMs": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "count": 242,
+      "modern": false,
+      "dense": true,
+      "definitionCount": 241,
+      "htmlBytes": 192861,
+      "results": [
+        {
+          "kind": "definitions",
+          "samples": [
+            {
+              "iteration": 0,
+              "mode": "off",
+              "status": "off",
+              "analysisMs": 5,
+              "applyMs": 7.0999999940395355,
+              "totalMs": 12.099999994039536
+            },
+            {
+              "iteration": 0,
+              "mode": "hit",
+              "status": "hit",
+              "analysisMs": 11.600000001490116,
+              "applyMs": 7.899999998509884,
+              "totalMs": 19.5,
+              "recordBytes": 58197,
+              "inputBytes": 205263
+            },
+            {
+              "iteration": 0,
+              "mode": "miss",
+              "status": "miss",
+              "analysisMs": 10.200000002980232,
+              "applyMs": 6.600000001490116,
+              "totalMs": 16.80000000447035,
+              "recordBytes": 58197,
+              "inputBytes": 205263
+            },
+            {
+              "iteration": 1,
+              "mode": "miss",
+              "status": "miss",
+              "analysisMs": 9.700000002980232,
+              "applyMs": 5.899999998509884,
+              "totalMs": 15.600000001490116,
+              "recordBytes": 58197,
+              "inputBytes": 205263
+            },
+            {
+              "iteration": 1,
+              "mode": "hit",
+              "status": "hit",
+              "analysisMs": 4.600000001490116,
+              "applyMs": 6.399999998509884,
+              "totalMs": 11,
+              "recordBytes": 58197,
+              "inputBytes": 205263
+            },
+            {
+              "iteration": 1,
+              "mode": "off",
+              "status": "off",
+              "analysisMs": 4.700000002980232,
+              "applyMs": 5.699999995529652,
+              "totalMs": 10.399999998509884
+            },
+            {
+              "iteration": 2,
+              "mode": "off",
+              "status": "off",
+              "analysisMs": 5,
+              "applyMs": 6.399999998509884,
+              "totalMs": 11.399999998509884
+            },
+            {
+              "iteration": 2,
+              "mode": "hit",
+              "status": "hit",
+              "analysisMs": 5.300000004470348,
+              "applyMs": 8.399999998509884,
+              "totalMs": 13.700000002980232,
+              "recordBytes": 58197,
+              "inputBytes": 205263
+            },
+            {
+              "iteration": 2,
+              "mode": "miss",
+              "status": "miss",
+              "analysisMs": 10.200000002980232,
+              "applyMs": 6.299999997019768,
+              "totalMs": 16.5,
+              "recordBytes": 58197,
+              "inputBytes": 205263
+            },
+            {
+              "iteration": 3,
+              "mode": "miss",
+              "status": "miss",
+              "analysisMs": 10,
+              "applyMs": 6.299999997019768,
+              "totalMs": 16.299999997019768,
+              "recordBytes": 58197,
+              "inputBytes": 205263
+            },
+            {
+              "iteration": 3,
+              "mode": "hit",
+              "status": "hit",
+              "analysisMs": 4.600000001490116,
+              "applyMs": 6.0999999940395355,
+              "totalMs": 10.699999995529652,
+              "recordBytes": 58197,
+              "inputBytes": 205263
+            },
+            {
+              "iteration": 3,
+              "mode": "off",
+              "status": "off",
+              "analysisMs": 4.800000004470348,
+              "applyMs": 7.299999997019768,
+              "totalMs": 12.100000001490116
+            },
+            {
+              "iteration": 4,
+              "mode": "off",
+              "status": "off",
+              "analysisMs": 5,
+              "applyMs": 6.899999998509884,
+              "totalMs": 11.899999998509884
+            },
+            {
+              "iteration": 4,
+              "mode": "hit",
+              "status": "hit",
+              "analysisMs": 5.399999998509884,
+              "applyMs": 7.399999998509884,
+              "totalMs": 12.799999997019768,
+              "recordBytes": 58197,
+              "inputBytes": 205263
+            },
+            {
+              "iteration": 4,
+              "mode": "miss",
+              "status": "miss",
+              "analysisMs": 9.399999998509884,
+              "applyMs": 6,
+              "totalMs": 15.399999998509884,
+              "recordBytes": 58197,
+              "inputBytes": 205263
+            },
+            {
+              "iteration": 5,
+              "mode": "miss",
+              "status": "miss",
+              "analysisMs": 9.200000002980232,
+              "applyMs": 6,
+              "totalMs": 15.200000002980232,
+              "recordBytes": 58197,
+              "inputBytes": 205263
+            },
+            {
+              "iteration": 5,
+              "mode": "hit",
+              "status": "hit",
+              "analysisMs": 4.699999995529652,
+              "applyMs": 6.5,
+              "totalMs": 11.199999995529652,
+              "recordBytes": 58197,
+              "inputBytes": 205263
+            },
+            {
+              "iteration": 5,
+              "mode": "off",
+              "status": "off",
+              "analysisMs": 4.5,
+              "applyMs": 6.299999997019768,
+              "totalMs": 10.799999997019768
+            },
+            {
+              "iteration": 6,
+              "mode": "off",
+              "status": "off",
+              "analysisMs": 4.799999997019768,
+              "applyMs": 6.100000001490116,
+              "totalMs": 10.899999998509884
+            },
+            {
+              "iteration": 6,
+              "mode": "hit",
+              "status": "hit",
+              "analysisMs": 5.300000004470348,
+              "applyMs": 8.099999994039536,
+              "totalMs": 13.399999998509884,
+              "recordBytes": 58197,
+              "inputBytes": 205263
+            },
+            {
+              "iteration": 6,
+              "mode": "miss",
+              "status": "miss",
+              "analysisMs": 10.099999994039536,
+              "applyMs": 6.5,
+              "totalMs": 16.599999994039536,
+              "recordBytes": 58197,
+              "inputBytes": 205263
+            },
+            {
+              "iteration": 7,
+              "mode": "miss",
+              "status": "miss",
+              "analysisMs": 9.399999998509884,
+              "applyMs": 6,
+              "totalMs": 15.399999998509884,
+              "recordBytes": 58197,
+              "inputBytes": 205263
+            },
+            {
+              "iteration": 7,
+              "mode": "hit",
+              "status": "hit",
+              "analysisMs": 4.5,
+              "applyMs": 6.600000001490116,
+              "totalMs": 11.100000001490116,
+              "recordBytes": 58197,
+              "inputBytes": 205263
+            },
+            {
+              "iteration": 7,
+              "mode": "off",
+              "status": "off",
+              "analysisMs": 4.399999998509884,
+              "applyMs": 6.399999998509884,
+              "totalMs": 10.799999997019768
+            },
+            {
+              "iteration": 8,
+              "mode": "off",
+              "status": "off",
+              "analysisMs": 4.800000004470348,
+              "applyMs": 6.199999995529652,
+              "totalMs": 11
+            },
+            {
+              "iteration": 8,
+              "mode": "hit",
+              "status": "hit",
+              "analysisMs": 5.200000002980232,
+              "applyMs": 8.100000001490116,
+              "totalMs": 13.300000004470348,
+              "recordBytes": 58197,
+              "inputBytes": 205263
+            },
+            {
+              "iteration": 8,
+              "mode": "miss",
+              "status": "miss",
+              "analysisMs": 9.800000004470348,
+              "applyMs": 6,
+              "totalMs": 15.800000004470348,
+              "recordBytes": 58197,
+              "inputBytes": 205263
+            },
+            {
+              "iteration": 9,
+              "mode": "miss",
+              "status": "miss",
+              "analysisMs": 10.199999995529652,
+              "applyMs": 5.800000004470348,
+              "totalMs": 16,
+              "recordBytes": 58197,
+              "inputBytes": 205263
+            },
+            {
+              "iteration": 9,
+              "mode": "hit",
+              "status": "hit",
+              "analysisMs": 4.5,
+              "applyMs": 6.299999997019768,
+              "totalMs": 10.799999997019768,
+              "recordBytes": 58197,
+              "inputBytes": 205263
+            },
+            {
+              "iteration": 9,
+              "mode": "off",
+              "status": "off",
+              "analysisMs": 4.600000001490116,
+              "applyMs": 5.899999998509884,
+              "totalMs": 10.5
+            }
+          ]
+        },
+        {
+          "kind": "internalReferences",
+          "samples": [
+            {
+              "iteration": 0,
+              "mode": "off",
+              "status": "off",
+              "analysisMs": 5.5,
+              "applyMs": null,
+              "totalMs": null
+            },
+            {
+              "iteration": 0,
+              "mode": "hit",
+              "status": "hit",
+              "analysisMs": 5,
+              "applyMs": null,
+              "totalMs": null,
+              "recordBytes": 100643,
+              "inputBytes": 205270
+            },
+            {
+              "iteration": 0,
+              "mode": "miss",
+              "status": "miss",
+              "analysisMs": 11.899999998509884,
+              "applyMs": null,
+              "totalMs": null,
+              "recordBytes": 100643,
+              "inputBytes": 205270
+            },
+            {
+              "iteration": 1,
+              "mode": "miss",
+              "status": "miss",
+              "analysisMs": 10.399999998509884,
+              "applyMs": null,
+              "totalMs": null,
+              "recordBytes": 100643,
+              "inputBytes": 205270
+            },
+            {
+              "iteration": 1,
+              "mode": "hit",
+              "status": "hit",
+              "analysisMs": 4.600000001490116,
+              "applyMs": null,
+              "totalMs": null,
+              "recordBytes": 100643,
+              "inputBytes": 205270
+            },
+            {
+              "iteration": 1,
+              "mode": "off",
+              "status": "off",
+              "analysisMs": 5.800000004470348,
+              "applyMs": null,
+              "totalMs": null
+            },
+            {
+              "iteration": 2,
+              "mode": "off",
+              "status": "off",
+              "analysisMs": 5.300000004470348,
+              "applyMs": null,
+              "totalMs": null
+            },
+            {
+              "iteration": 2,
+              "mode": "hit",
+              "status": "hit",
+              "analysisMs": 4.5,
+              "applyMs": null,
+              "totalMs": null,
+              "recordBytes": 100643,
+              "inputBytes": 205270
+            },
+            {
+              "iteration": 2,
+              "mode": "miss",
+              "status": "miss",
+              "analysisMs": 10.600000001490116,
+              "applyMs": null,
+              "totalMs": null,
+              "recordBytes": 100643,
+              "inputBytes": 205270
+            },
+            {
+              "iteration": 3,
+              "mode": "miss",
+              "status": "miss",
+              "analysisMs": 12.100000001490116,
+              "applyMs": null,
+              "totalMs": null,
+              "recordBytes": 100643,
+              "inputBytes": 205270
+            },
+            {
+              "iteration": 3,
+              "mode": "hit",
+              "status": "hit",
+              "analysisMs": 4.699999995529652,
+              "applyMs": null,
+              "totalMs": null,
+              "recordBytes": 100643,
+              "inputBytes": 205270
+            },
+            {
+              "iteration": 3,
+              "mode": "off",
+              "status": "off",
+              "analysisMs": 5.299999997019768,
+              "applyMs": null,
+              "totalMs": null
+            },
+            {
+              "iteration": 4,
+              "mode": "off",
+              "status": "off",
+              "analysisMs": 5.600000001490116,
+              "applyMs": null,
+              "totalMs": null
+            },
+            {
+              "iteration": 4,
+              "mode": "hit",
+              "status": "hit",
+              "analysisMs": 5.100000001490116,
+              "applyMs": null,
+              "totalMs": null,
+              "recordBytes": 100643,
+              "inputBytes": 205270
+            },
+            {
+              "iteration": 4,
+              "mode": "miss",
+              "status": "miss",
+              "analysisMs": 11.399999998509884,
+              "applyMs": null,
+              "totalMs": null,
+              "recordBytes": 100643,
+              "inputBytes": 205270
+            },
+            {
+              "iteration": 5,
+              "mode": "miss",
+              "status": "miss",
+              "analysisMs": 10.299999997019768,
+              "applyMs": null,
+              "totalMs": null,
+              "recordBytes": 100643,
+              "inputBytes": 205270
+            },
+            {
+              "iteration": 5,
+              "mode": "hit",
+              "status": "hit",
+              "analysisMs": 5.100000001490116,
+              "applyMs": null,
+              "totalMs": null,
+              "recordBytes": 100643,
+              "inputBytes": 205270
+            },
+            {
+              "iteration": 5,
+              "mode": "off",
+              "status": "off",
+              "analysisMs": 5.9000000059604645,
+              "applyMs": null,
+              "totalMs": null
+            },
+            {
+              "iteration": 6,
+              "mode": "off",
+              "status": "off",
+              "analysisMs": 5.399999998509884,
+              "applyMs": null,
+              "totalMs": null
+            },
+            {
+              "iteration": 6,
+              "mode": "hit",
+              "status": "hit",
+              "analysisMs": 5,
+              "applyMs": null,
+              "totalMs": null,
+              "recordBytes": 100643,
+              "inputBytes": 205270
+            },
+            {
+              "iteration": 6,
+              "mode": "miss",
+              "status": "miss",
+              "analysisMs": 10.100000001490116,
+              "applyMs": null,
+              "totalMs": null,
+              "recordBytes": 100643,
+              "inputBytes": 205270
+            },
+            {
+              "iteration": 7,
+              "mode": "miss",
+              "status": "miss",
+              "analysisMs": 9.600000001490116,
+              "applyMs": null,
+              "totalMs": null,
+              "recordBytes": 100643,
+              "inputBytes": 205270
+            },
+            {
+              "iteration": 7,
+              "mode": "hit",
+              "status": "hit",
+              "analysisMs": 4.5,
+              "applyMs": null,
+              "totalMs": null,
+              "recordBytes": 100643,
+              "inputBytes": 205270
+            },
+            {
+              "iteration": 7,
+              "mode": "off",
+              "status": "off",
+              "analysisMs": 5.5,
+              "applyMs": null,
+              "totalMs": null
+            },
+            {
+              "iteration": 8,
+              "mode": "off",
+              "status": "off",
+              "analysisMs": 5.699999995529652,
+              "applyMs": null,
+              "totalMs": null
+            },
+            {
+              "iteration": 8,
+              "mode": "hit",
+              "status": "hit",
+              "analysisMs": 14.200000002980232,
+              "applyMs": null,
+              "totalMs": null,
+              "recordBytes": 100643,
+              "inputBytes": 205270
+            },
+            {
+              "iteration": 8,
+              "mode": "miss",
+              "status": "miss",
+              "analysisMs": 11.799999997019768,
+              "applyMs": null,
+              "totalMs": null,
+              "recordBytes": 100643,
+              "inputBytes": 205270
+            },
+            {
+              "iteration": 9,
+              "mode": "miss",
+              "status": "miss",
+              "analysisMs": 10.300000004470348,
+              "applyMs": null,
+              "totalMs": null,
+              "recordBytes": 100643,
+              "inputBytes": 205270
+            },
+            {
+              "iteration": 9,
+              "mode": "hit",
+              "status": "hit",
+              "analysisMs": 4.600000001490116,
+              "applyMs": null,
+              "totalMs": null,
+              "recordBytes": 100643,
+              "inputBytes": 205270
+            },
+            {
+              "iteration": 9,
+              "mode": "off",
+              "status": "off",
+              "analysisMs": 5.899999998509884,
+              "applyMs": null,
+              "totalMs": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "count": 802,
+      "modern": false,
+      "dense": true,
+      "definitionCount": 801,
+      "htmlBytes": 639741,
+      "results": [
+        {
+          "kind": "definitions",
+          "samples": [
+            {
+              "iteration": 0,
+              "mode": "off",
+              "status": "off",
+              "analysisMs": 17.299999997019768,
+              "applyMs": 23,
+              "totalMs": 40.29999999701977
+            },
+            {
+              "iteration": 0,
+              "mode": "hit",
+              "status": "hit",
+              "analysisMs": 17.600000001490116,
+              "applyMs": 22,
+              "totalMs": 39.600000001490116,
+              "recordBytes": 194277,
+              "inputBytes": 680703
+            },
+            {
+              "iteration": 0,
+              "mode": "miss",
+              "status": "miss",
+              "analysisMs": 35.20000000298023,
+              "applyMs": 21.200000002980232,
+              "totalMs": 56.400000005960464,
+              "recordBytes": 194277,
+              "inputBytes": 680703
+            },
+            {
+              "iteration": 1,
+              "mode": "miss",
+              "status": "miss",
+              "analysisMs": 36.5,
+              "applyMs": 22.700000002980232,
+              "totalMs": 59.20000000298023,
+              "recordBytes": 194277,
+              "inputBytes": 680703
+            },
+            {
+              "iteration": 1,
+              "mode": "hit",
+              "status": "hit",
+              "analysisMs": 19.600000001490116,
+              "applyMs": 23.200000002980232,
+              "totalMs": 42.80000000447035,
+              "recordBytes": 194277,
+              "inputBytes": 680703
+            },
+            {
+              "iteration": 1,
+              "mode": "off",
+              "status": "off",
+              "analysisMs": 16.5,
+              "applyMs": 20.30000000447035,
+              "totalMs": 36.80000000447035
+            },
+            {
+              "iteration": 2,
+              "mode": "off",
+              "status": "off",
+              "analysisMs": 17.700000002980232,
+              "applyMs": 22.399999998509884,
+              "totalMs": 40.100000001490116
+            },
+            {
+              "iteration": 2,
+              "mode": "hit",
+              "status": "hit",
+              "analysisMs": 18.299999997019768,
+              "applyMs": 23.100000001490116,
+              "totalMs": 41.399999998509884,
+              "recordBytes": 194277,
+              "inputBytes": 680703
+            },
+            {
+              "iteration": 2,
+              "mode": "miss",
+              "status": "miss",
+              "analysisMs": 35.30000000447035,
+              "applyMs": 22.299999997019768,
+              "totalMs": 57.600000001490116,
+              "recordBytes": 194277,
+              "inputBytes": 680703
+            },
+            {
+              "iteration": 3,
+              "mode": "miss",
+              "status": "miss",
+              "analysisMs": 33.5,
+              "applyMs": 23.80000000447035,
+              "totalMs": 57.30000000447035,
+              "recordBytes": 194277,
+              "inputBytes": 680703
+            },
+            {
+              "iteration": 3,
+              "mode": "hit",
+              "status": "hit",
+              "analysisMs": 17.799999997019768,
+              "applyMs": 22.399999998509884,
+              "totalMs": 40.19999999552965,
+              "recordBytes": 194277,
+              "inputBytes": 680703
+            },
+            {
+              "iteration": 3,
+              "mode": "off",
+              "status": "off",
+              "analysisMs": 16.599999994039536,
+              "applyMs": 21.900000005960464,
+              "totalMs": 38.5
+            },
+            {
+              "iteration": 4,
+              "mode": "off",
+              "status": "off",
+              "analysisMs": 17,
+              "applyMs": 22,
+              "totalMs": 39
+            },
+            {
+              "iteration": 4,
+              "mode": "hit",
+              "status": "hit",
+              "analysisMs": 17.19999999552965,
+              "applyMs": 22.5,
+              "totalMs": 39.69999999552965,
+              "recordBytes": 194277,
+              "inputBytes": 680703
+            },
+            {
+              "iteration": 4,
+              "mode": "miss",
+              "status": "miss",
+              "analysisMs": 33.099999994039536,
+              "applyMs": 21.900000005960464,
+              "totalMs": 55,
+              "recordBytes": 194277,
+              "inputBytes": 680703
+            },
+            {
+              "iteration": 5,
+              "mode": "miss",
+              "status": "miss",
+              "analysisMs": 37.29999999701977,
+              "applyMs": 21.600000001490116,
+              "totalMs": 58.899999998509884,
+              "recordBytes": 194277,
+              "inputBytes": 680703
+            },
+            {
+              "iteration": 5,
+              "mode": "hit",
+              "status": "hit",
+              "analysisMs": 16.5,
+              "applyMs": 21.5,
+              "totalMs": 38,
+              "recordBytes": 194277,
+              "inputBytes": 680703
+            },
+            {
+              "iteration": 5,
+              "mode": "off",
+              "status": "off",
+              "analysisMs": 16.30000000447035,
+              "applyMs": 21.19999999552965,
+              "totalMs": 37.5
+            },
+            {
+              "iteration": 6,
+              "mode": "off",
+              "status": "off",
+              "analysisMs": 16.600000001490116,
+              "applyMs": 21.69999999552965,
+              "totalMs": 38.29999999701977
+            },
+            {
+              "iteration": 6,
+              "mode": "hit",
+              "status": "hit",
+              "analysisMs": 17.700000002980232,
+              "applyMs": 22.299999997019768,
+              "totalMs": 40,
+              "recordBytes": 194277,
+              "inputBytes": 680703
+            },
+            {
+              "iteration": 6,
+              "mode": "miss",
+              "status": "miss",
+              "analysisMs": 34.100000001490116,
+              "applyMs": 21.19999999552965,
+              "totalMs": 55.29999999701977,
+              "recordBytes": 194277,
+              "inputBytes": 680703
+            },
+            {
+              "iteration": 7,
+              "mode": "miss",
+              "status": "miss",
+              "analysisMs": 34.30000000447035,
+              "applyMs": 21.299999997019768,
+              "totalMs": 55.600000001490116,
+              "recordBytes": 194277,
+              "inputBytes": 680703
+            },
+            {
+              "iteration": 7,
+              "mode": "hit",
+              "status": "hit",
+              "analysisMs": 18.399999998509884,
+              "applyMs": 22.100000001490116,
+              "totalMs": 40.5,
+              "recordBytes": 194277,
+              "inputBytes": 680703
+            },
+            {
+              "iteration": 7,
+              "mode": "off",
+              "status": "off",
+              "analysisMs": 16.69999999552965,
+              "applyMs": 21.80000000447035,
+              "totalMs": 38.5
+            },
+            {
+              "iteration": 8,
+              "mode": "off",
+              "status": "off",
+              "analysisMs": 18.200000002980232,
+              "applyMs": 22.399999998509884,
+              "totalMs": 40.600000001490116
+            },
+            {
+              "iteration": 8,
+              "mode": "hit",
+              "status": "hit",
+              "analysisMs": 17.799999997019768,
+              "applyMs": 22.399999998509884,
+              "totalMs": 40.19999999552965,
+              "recordBytes": 194277,
+              "inputBytes": 680703
+            },
+            {
+              "iteration": 8,
+              "mode": "miss",
+              "status": "miss",
+              "analysisMs": 34.29999999701977,
+              "applyMs": 22.30000000447035,
+              "totalMs": 56.600000001490116,
+              "recordBytes": 194277,
+              "inputBytes": 680703
+            },
+            {
+              "iteration": 9,
+              "mode": "miss",
+              "status": "miss",
+              "analysisMs": 34.900000005960464,
+              "applyMs": 20.899999998509884,
+              "totalMs": 55.80000000447035,
+              "recordBytes": 194277,
+              "inputBytes": 680703
+            },
+            {
+              "iteration": 9,
+              "mode": "hit",
+              "status": "hit",
+              "analysisMs": 19.5,
+              "applyMs": 27.100000001490116,
+              "totalMs": 46.600000001490116,
+              "recordBytes": 194277,
+              "inputBytes": 680703
+            },
+            {
+              "iteration": 9,
+              "mode": "off",
+              "status": "off",
+              "analysisMs": 16.700000002980232,
+              "applyMs": 21.5,
+              "totalMs": 38.20000000298023
+            }
+          ]
+        },
+        {
+          "kind": "internalReferences",
+          "samples": [
+            {
+              "iteration": 0,
+              "mode": "off",
+              "status": "off",
+              "analysisMs": 18.200000002980232,
+              "applyMs": null,
+              "totalMs": null
+            },
+            {
+              "iteration": 0,
+              "mode": "hit",
+              "status": "hit",
+              "analysisMs": 17.5,
+              "applyMs": null,
+              "totalMs": null,
+              "recordBytes": 333603,
+              "inputBytes": 680710
+            },
+            {
+              "iteration": 0,
+              "mode": "miss",
+              "status": "miss",
+              "analysisMs": 37.899999998509884,
+              "applyMs": null,
+              "totalMs": null,
+              "recordBytes": 333603,
+              "inputBytes": 680710
+            },
+            {
+              "iteration": 1,
+              "mode": "miss",
+              "status": "miss",
+              "analysisMs": 35.600000001490116,
+              "applyMs": null,
+              "totalMs": null,
+              "recordBytes": 333603,
+              "inputBytes": 680710
+            },
+            {
+              "iteration": 1,
+              "mode": "hit",
+              "status": "hit",
+              "analysisMs": 17.80000000447035,
+              "applyMs": null,
+              "totalMs": null,
+              "recordBytes": 333603,
+              "inputBytes": 680710
+            },
+            {
+              "iteration": 1,
+              "mode": "off",
+              "status": "off",
+              "analysisMs": 29.700000002980232,
+              "applyMs": null,
+              "totalMs": null
+            },
+            {
+              "iteration": 2,
+              "mode": "off",
+              "status": "off",
+              "analysisMs": 19.799999997019768,
+              "applyMs": null,
+              "totalMs": null
+            },
+            {
+              "iteration": 2,
+              "mode": "hit",
+              "status": "hit",
+              "analysisMs": 18.399999998509884,
+              "applyMs": null,
+              "totalMs": null,
+              "recordBytes": 333603,
+              "inputBytes": 680710
+            },
+            {
+              "iteration": 2,
+              "mode": "miss",
+              "status": "miss",
+              "analysisMs": 38.100000001490116,
+              "applyMs": null,
+              "totalMs": null,
+              "recordBytes": 333603,
+              "inputBytes": 680710
+            },
+            {
+              "iteration": 3,
+              "mode": "miss",
+              "status": "miss",
+              "analysisMs": 41.29999999701977,
+              "applyMs": null,
+              "totalMs": null,
+              "recordBytes": 333603,
+              "inputBytes": 680710
+            },
+            {
+              "iteration": 3,
+              "mode": "hit",
+              "status": "hit",
+              "analysisMs": 16.19999999552965,
+              "applyMs": null,
+              "totalMs": null,
+              "recordBytes": 333603,
+              "inputBytes": 680710
+            },
+            {
+              "iteration": 3,
+              "mode": "off",
+              "status": "off",
+              "analysisMs": 19.100000001490116,
+              "applyMs": null,
+              "totalMs": null
+            },
+            {
+              "iteration": 4,
+              "mode": "off",
+              "status": "off",
+              "analysisMs": 19.5,
+              "applyMs": null,
+              "totalMs": null
+            },
+            {
+              "iteration": 4,
+              "mode": "hit",
+              "status": "hit",
+              "analysisMs": 23.899999998509884,
+              "applyMs": null,
+              "totalMs": null,
+              "recordBytes": 333603,
+              "inputBytes": 680710
+            },
+            {
+              "iteration": 4,
+              "mode": "miss",
+              "status": "miss",
+              "analysisMs": 37,
+              "applyMs": null,
+              "totalMs": null,
+              "recordBytes": 333603,
+              "inputBytes": 680710
+            },
+            {
+              "iteration": 5,
+              "mode": "miss",
+              "status": "miss",
+              "analysisMs": 40.100000001490116,
+              "applyMs": null,
+              "totalMs": null,
+              "recordBytes": 333603,
+              "inputBytes": 680710
+            },
+            {
+              "iteration": 5,
+              "mode": "hit",
+              "status": "hit",
+              "analysisMs": 33.099999994039536,
+              "applyMs": null,
+              "totalMs": null,
+              "recordBytes": 333603,
+              "inputBytes": 680710
+            },
+            {
+              "iteration": 5,
+              "mode": "off",
+              "status": "off",
+              "analysisMs": 23,
+              "applyMs": null,
+              "totalMs": null
+            },
+            {
+              "iteration": 6,
+              "mode": "off",
+              "status": "off",
+              "analysisMs": 19.69999999552965,
+              "applyMs": null,
+              "totalMs": null
+            },
+            {
+              "iteration": 6,
+              "mode": "hit",
+              "status": "hit",
+              "analysisMs": 19.799999997019768,
+              "applyMs": null,
+              "totalMs": null,
+              "recordBytes": 333603,
+              "inputBytes": 680710
+            },
+            {
+              "iteration": 6,
+              "mode": "miss",
+              "status": "miss",
+              "analysisMs": 40.100000001490116,
+              "applyMs": null,
+              "totalMs": null,
+              "recordBytes": 333603,
+              "inputBytes": 680710
+            },
+            {
+              "iteration": 7,
+              "mode": "miss",
+              "status": "miss",
+              "analysisMs": 42.399999998509884,
+              "applyMs": null,
+              "totalMs": null,
+              "recordBytes": 333603,
+              "inputBytes": 680710
+            },
+            {
+              "iteration": 7,
+              "mode": "hit",
+              "status": "hit",
+              "analysisMs": 20.799999997019768,
+              "applyMs": null,
+              "totalMs": null,
+              "recordBytes": 333603,
+              "inputBytes": 680710
+            },
+            {
+              "iteration": 7,
+              "mode": "off",
+              "status": "off",
+              "analysisMs": 22.399999998509884,
+              "applyMs": null,
+              "totalMs": null
+            },
+            {
+              "iteration": 8,
+              "mode": "off",
+              "status": "off",
+              "analysisMs": 19.600000001490116,
+              "applyMs": null,
+              "totalMs": null
+            },
+            {
+              "iteration": 8,
+              "mode": "hit",
+              "status": "hit",
+              "analysisMs": 23.200000002980232,
+              "applyMs": null,
+              "totalMs": null,
+              "recordBytes": 333603,
+              "inputBytes": 680710
+            },
+            {
+              "iteration": 8,
+              "mode": "miss",
+              "status": "miss",
+              "analysisMs": 34.70000000298023,
+              "applyMs": null,
+              "totalMs": null,
+              "recordBytes": 333603,
+              "inputBytes": 680710
+            },
+            {
+              "iteration": 9,
+              "mode": "miss",
+              "status": "miss",
+              "analysisMs": 38.400000005960464,
+              "applyMs": null,
+              "totalMs": null,
+              "recordBytes": 333603,
+              "inputBytes": 680710
+            },
+            {
+              "iteration": 9,
+              "mode": "hit",
+              "status": "hit",
+              "analysisMs": 16.30000000447035,
+              "applyMs": null,
+              "totalMs": null,
+              "recordBytes": 333603,
+              "inputBytes": 680710
+            },
+            {
+              "iteration": 9,
+              "mode": "off",
+              "status": "off",
+              "analysisMs": 35.600000001490116,
+              "applyMs": null,
+              "totalMs": null
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,33 @@
+{
+  "dateJapan": "2026-10-16",
+  "head": "bb84aa639b1f2b241fe3744ed46877de0995298a",
+  "manifestVersion": "2.6.2",
+  "files": [
+    {
+      "name": "content.js",
+      "sha256": "FEED118E7686D2944FA5BC8FB7997216A35BD22DC822D75E29A5220798859CDD"
+    },
+    {
+      "name": "content-controller.js",
+      "sha256": "02596DE376726166C78FEF07953C0AD691C582E8B97E3CE4C9B08862173CDCF6"
+    },
+    {
+      "name": "egov-shared.js",
+      "sha256": "11EDE20E4D9FF98A58FC8111DE2C85300207A9974DE7469D613554FF6C2E7278"
+    },
+    {
+      "name": "background.js",
+      "sha256": "6DB150D59D134D91649E56BC5945AD2B9673A158B374A760080C5D5CB9C48B64"
+    },
+    {
+      "name": "viewer.js",
+      "sha256": "7BD8496A018EA64AC0D3CBCB07AB7B50A933E4A2CFEEC5CF54ED6107A3C8F243"
+    }
+  ],
+  "existingModifiedFiles": [
+    "shared/external-files-background.js",
+    "shared/external-files-options.js",
+    "tests/external-files.test.cjs"
+  ],
+  "investigationArtifactsOnly": true
+}
