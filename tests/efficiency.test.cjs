@@ -98,7 +98,7 @@ test('search shares an in-flight query and rejects stale results even if transpo
 test('reference shards preserve every source record and the export reconstructs all laws', async () => {
   const source = fs.readFileSync(path.join(root, 'data/references.json'));
   const original = JSON.parse(source.toString('utf8').replace(/^\uFEFF/, ''));
-  const manifest = JSON.parse(read('data/reference-shards/manifest.json'));
+  const manifest = JSON.parse(read('data/reference-shards/shard-index.json'));
   assert.equal(createHash('sha256').update(source).digest('hex'), manifest.sourceSha256);
   assert.equal(Object.keys(manifest.shards).length, 256);
   for (const [name, hash] of Object.entries(manifest.shards)) {

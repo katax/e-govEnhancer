@@ -8,7 +8,7 @@ $manifest = Get-Content -LiteralPath $manifestPath -Raw -Encoding UTF8 | Convert
 
 # Refuse stale runtime shards after the source reference data is updated.
 $shardRoot = Join-Path $repoRoot 'data\reference-shards'
-$shardManifestPath = Join-Path $shardRoot 'manifest.json'
+$shardManifestPath = Join-Path $shardRoot 'shard-index.json'
 if (-not (Test-Path -LiteralPath $shardManifestPath)) {
   throw '参照データを分割してください: node tools/build-reference-shards.mjs'
 }

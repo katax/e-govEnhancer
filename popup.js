@@ -23,9 +23,13 @@ document.addEventListener('DOMContentLoaded', () => {
     FAVORITES_MAX,
     persistLocal,
     toggleFavoriteRecord,
+    isShortcutQuery,
+    findShortcutFavorite,
+    editLawShortcut,
   } = app;
   const searchForm    = document.getElementById('searchForm');
   const searchInput   = document.getElementById('searchInput');
+  const shortcutStatus = document.getElementById('shortcutStatus');
   const resultsEl     = document.getElementById('searchResults');
   const histPanelEl   = document.getElementById('historyPanel');
   const histListEl    = document.getElementById('historyList');
@@ -71,6 +75,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // パネル状態: null=Mode0, 'law'=Mode2, 'favorites'=Mode3
   let historyMode    = null;
   let histFocusedIdx = -1;
+  let shortcutResultQuery = '';
   let isEmptyState   = false; // 入力が空のとき検索履歴をインライン表示中
 
   // ツールチップ
@@ -127,6 +132,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (changes.favFolders) favFolders = changes.favFolders.newValue || [];
       if (changes.folderCollapsed) folderCollapsed = changes.folderCollapsed.newValue || {};
       if (historyMode === 'favorites') renderFavoritesPanel();
+      updateShortcutStatus();
     }
     if (area === 'local' && changes.liteModeDefault) {
       liteModeDefault = changes.liteModeDefault.newValue === true;
@@ -253,6 +259,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const query = searchInput.value.trim();
     if (query.length === 0) return true;
+    if (isShortcutQuery(query)) return true;
 
     return focusedResultIndex >= 0;
   }
@@ -363,7 +370,8 @@ document.addEventListener('DOMContentLoaded', () => {
   showEmptyState();
 
   // 初回表示をブロックしない。履歴とコマンド指定モードは描画後に反映する。
-  loadHistories()
+  const historiesReady = loadHistories();
+  historiesReady
     .then(async () => {
       const { requestedPopupMode = '' } = await chrome.storage.session.get('requestedPopupMode').catch(() => ({ requestedPopupMode: '' }));
       const initialMode = requestedPopupMode === 'law' || requestedPopupMode === 'favorites'
@@ -375,6 +383,7 @@ document.addEventListener('DOMContentLoaded', () => {
       } else if (historyMode === null && !searchInput.value.trim()) {
         showEmptyState();
       }
+      updateShortcutStatus();
     })
     .catch(() => {});
   document.addEventListener('keydown', (e) => {
@@ -391,6 +400,16 @@ document.addEventListener('DOMContentLoaded', () => {
     const activeEl = document.activeElement;
     if (activeEl === searchInput) return;
     if (isEditableForModeSwitch(activeEl)) return;
+    if (document.getElementById('egov-law-shortcut-dialog')) return;
+    // Continue the code when typing from its candidate list.
+    if (!e.ctrlKey && !e.altKey && !e.metaKey && !e.isComposing && /^[A-Za-z0-9]$/.test(e.key)) {
+      e.preventDefault();
+      searchInput.value = historyMode === 'favorites' && isShortcutQuery(searchInput.value)
+        ? searchInput.value + e.key : e.key;
+      searchInput.focus();
+      searchInput.dispatchEvent(new Event('input', { bubbles: true }));
+      return;
+    }
     if (historyMode !== null) {
       if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Delete', 'Backspace', 'Enter', 'Escape'].includes(e.key)) {
         handleHistoryKeydown(e);
@@ -409,6 +428,7 @@ document.addEventListener('DOMContentLoaded', () => {
     showLoading(false);
     committedCompositionQuery = null;
     isComposing = true;
+    shortcutStatus.hidden = true;
     if (historyMode !== null) hideHistoryPanel();
   });
   searchInput.addEventListener('compositionend', () => {
@@ -416,6 +436,7 @@ document.addEventListener('DOMContentLoaded', () => {
     clearTimeout(debounceTimer);
     const query = searchInput.value.trim();
     committedCompositionQuery = query;
+    if (updateShortcutStatus()) return;
     if (query.length >= 1) debounceTimer = setTimeout(() => {
       committedCompositionQuery = null;
       doSearch(query);
@@ -428,11 +449,12 @@ document.addEventListener('DOMContentLoaded', () => {
   searchInput.addEventListener('input', () => {
     lawSearch.cancel();
     showLoading(false);
-    if (historyMode !== null && searchInput.value.length > 0) {
+    if (historyMode !== null && searchInput.value.length > 0 && !isShortcutQuery(searchInput.value)) {
       hideHistoryPanel();
     }
     if (isComposing) return;
     clearTimeout(debounceTimer);
+    if (updateShortcutStatus()) return;
     const query = searchInput.value.trim();
     const justCommitted = committedCompositionQuery === query;
     committedCompositionQuery = null;
@@ -456,6 +478,18 @@ document.addEventListener('DOMContentLoaded', () => {
   // キーボードナビゲーション（Mode0）
   // ================================================
   searchInput.addEventListener('keydown', (e) => {
+    if (e.isComposing || isComposing || e.keyCode === 229) return;
+    if (e.key === 'Enter' && e.shiftKey && historyMode === 'favorites') {
+      e.stopPropagation();
+      handleHistoryKeydown(e);
+      return;
+    }
+    if (e.key === 'Enter' && !isComposing && !e.isComposing && isShortcutQuery(searchInput.value)) {
+      e.preventDefault();
+      e.stopPropagation();
+      launchShortcut({ alternate: e.ctrlKey });
+      return;
+    }
     // 履歴パネル表示中はパネル内操作に委譲
     if (historyMode !== null) {
       if (e.key === 'Escape') {
@@ -485,6 +519,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
     e.preventDefault();
 
+    if (historyMode === 'favorites' && isShortcutQuery(searchInput.value)) {
+      if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+        const count = getHistItemCount();
+        if (count) {
+          const direction = e.key === 'ArrowDown' ? 1 : -1;
+          highlightHistItem((histFocusedIdx + direction + count) % count, { keepInputFocus: true });
+          searchInput.focus();
+        }
+        return;
+      }
+      if (e.key === 'Backspace') {
+        searchInput.value = searchInput.value.slice(0, -1);
+        searchInput.focus();
+        searchInput.dispatchEvent(new Event('input', { bubbles: true }));
+        return;
+      }
+    }
+
     if (e.key === 'ArrowUp')   { moveHistFocus(-1, getHistItemCount()); return; }
     if (e.key === 'ArrowDown') { moveHistFocus(+1, getHistItemCount()); return; }
 
@@ -501,6 +553,11 @@ document.addEventListener('DOMContentLoaded', () => {
       deleteHistItem(getFocusedArrayIdx()); return;
     }
     if (e.key === 'Enter') {
+      if (e.shiftKey && historyMode === 'favorites') {
+        const favorite = favorites[getFocusedArrayIdx()];
+        if (favorite) openFavoriteShortcutEditor(favorite.lawId);
+        return;
+      }
       if (e.shiftKey && historyMode === 'law') {
         // Mode2: Shift+Enter でお気に入りトグル
         const idx = getFocusedArrayIdx();
@@ -811,6 +868,31 @@ document.addEventListener('DOMContentLoaded', () => {
     hideCursorBriefly();
     const isHoverReady = makeHoverGuard();
 
+    const code = !isComposing && isShortcutQuery(searchInput.value) ? searchInput.value.toUpperCase() : '';
+    favFolderBtn.style.display = code ? 'none' : '';
+    if (code) {
+      shortcutResultQuery = searchInput.value;
+      // Search all folders, including collapsed ones, without changing saved order.
+      const matches = favorites.map((item, arrayIdx) => ({ ...item, arrayIdx }))
+        .filter(item => typeof item.shortcut === 'string' && item.shortcut.toUpperCase().startsWith(code))
+        .sort((a, b) => Number(b.shortcut.toUpperCase() === code) - Number(a.shortcut.toUpperCase() === code));
+      matches.forEach((item, visualIdx) => {
+        const li = createFavItemLi(item, item.arrayIdx, visualIdx, isHoverReady);
+        li.draggable = false;
+        histListEl.appendChild(li);
+      });
+      histFocusedIdx = -1;
+      if (matches.length) highlightHistItem(0, { keepInputFocus: true });
+      else {
+        const empty = document.createElement('li');
+        empty.className = 'history-empty shortcut-empty';
+        empty.textContent = '一致する起動コードはありません';
+        histListEl.appendChild(empty);
+      }
+      return;
+    }
+    shortcutResultQuery = '';
+
     if (favorites.length === 0 && favFolders.length === 0) {
       const empty = document.createElement('li');
       empty.className   = 'history-empty';
@@ -906,6 +988,15 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  function openFavoriteShortcutEditor(lawId) {
+    hideTooltip();
+    editLawShortcut(lawId, { onSaved(updated) {
+      favorites = updated;
+      renderFavoritesPanel();
+      updateShortcutStatus();
+    } }).catch(error => showToast(error.message));
+  }
+
   // isHoverReady: () => boolean（makeHoverGuard の戻り値）
   function createFavItemLi(item, arrayIdx, visualIdx, isHoverReady) {
     const li = document.createElement('li');
@@ -917,7 +1008,12 @@ document.addEventListener('DOMContentLoaded', () => {
     li.innerHTML =
       `<span class="hist-icon">★</span>` +
       `<span class="hist-text">${formatLawNameHtml(item.lawName)}</span>` +
+      `<button type="button" class="fav-shortcut-btn" title="起動ショートカットを設定 (Shift+Enter)">${escapeHtml(item.shortcut || '未設定')}</button>` +
       `<button class="hist-del-btn" title="削除 (Ctrl+Del)">×</button>`;
+    li.querySelector('.fav-shortcut-btn').addEventListener('click', (ev) => {
+      ev.stopPropagation();
+      openFavoriteShortcutEditor(item.lawId);
+    });
     li.dataset.tooltipName = item.lawName || '';
     li.dataset.tooltipNum  = item.lawNum  || '';
 
@@ -936,7 +1032,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     li.addEventListener('mouseleave', () => hideTooltip());
     li.addEventListener('click', (ev) => {
-      if (ev.target instanceof Element && ev.target.closest('.hist-del-btn')) return;
+      if (ev.target instanceof Element && ev.target.closest('.hist-del-btn, .fav-shortcut-btn')) return;
       selectHistItem(parseInt(li.dataset.idx), { alternate: ev.ctrlKey });
     });
 
@@ -1318,11 +1414,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  function highlightHistItem(idx) {
+  function highlightHistItem(idx, { keepInputFocus = false } = {}) {
     const items = histListEl.querySelectorAll('.history-item');
     items.forEach((el, i) => el.classList.toggle('history-item-focused', i === idx));
     if (idx >= 0 && items[idx]) {
-      blurSearchInputForListSelection();
+      if (!keepInputFocus) blurSearchInputForListSelection();
       items[idx].scrollIntoView({ block: 'nearest' });
       ensureFavoriteFolderHeaderVisible(items[idx]);
       // キーボードフォーカス時もツールチップ表示
@@ -1420,6 +1516,11 @@ document.addEventListener('DOMContentLoaded', () => {
   // フォーム送信
   searchForm.addEventListener('submit', (e) => {
     e.preventDefault();
+    if (isComposing) return;
+    if (isShortcutQuery(searchInput.value)) {
+      launchShortcut();
+      return;
+    }
     const query = searchInput.value.trim();
     if (query) {
       doSearch(query);
@@ -1489,6 +1590,13 @@ document.addEventListener('DOMContentLoaded', () => {
   async function doSearch(query) {
     clearTimeout(debounceTimer);
     committedCompositionQuery = null;
+    // Every search entry point (including history) excludes ASCII-only codes.
+    if (isShortcutQuery(query)) {
+      lawSearch.cancel();
+      showLoading(false);
+      updateShortcutStatus();
+      return;
+    }
     if (historyMode !== null) hideHistoryPanel();
     const request = lawSearch.start(query);
     isEmptyState       = false;
@@ -1539,6 +1647,51 @@ document.addEventListener('DOMContentLoaded', () => {
       updateLiteModeTitleBadge();
       if (data.folderCollapsed && typeof data.folderCollapsed === 'object') folderCollapsed = data.folderCollapsed;
     } catch (_) {}
+  }
+
+  function updateShortcutStatus() {
+    const code = searchInput.value;
+    const isCode = !isComposing && isShortcutQuery(code);
+    shortcutStatus.hidden = !isCode;
+    if (!isCode) {
+      if (shortcutResultQuery && historyMode === 'favorites') {
+        renderFavoritesPanel();
+        searchInput.focus();
+      }
+      return false;
+    }
+    clearTimeout(debounceTimer);
+    lawSearch.cancel();
+    showLoading(false);
+    currentResults = [];
+    focusedResultIndex = -1;
+    isEmptyState = false;
+    resultsEl.innerHTML = '';
+    if (historyMode !== 'favorites') showHistoryPanel('favorites');
+    else renderFavoritesPanel();
+    searchInput.focus();
+    const count = getHistItemCount();
+    const favorite = findShortcutFavorite(favorites, code);
+    shortcutStatus.textContent = code.length > 5
+      ? '起動コードは半角英数字5文字以内です（法令検索は行いません）。'
+      : favorite ? `${code.toUpperCase()}：Enterで「${favorite.lawName}」を開く · ↑↓で選択`
+        : count ? `${code.toUpperCase()}：${count}件の候補 · ↑↓で選択、Enterで開く`
+          : `${code.toUpperCase()}：登録された起動ショートカットはありません。`;
+    favFolderBtn.style.display = 'none';
+    return true;
+  }
+
+  async function launchShortcut({ alternate = false } = {}) {
+    const code = searchInput.value;
+    clearTimeout(debounceTimer);
+    lawSearch.cancel();
+    // Fast typing immediately after opening the popup must wait for saved favorites.
+    await historiesReady;
+    if (searchInput.value !== code || isComposing) return;
+    if (shortcutResultQuery !== code || historyMode !== 'favorites') updateShortcutStatus();
+    const arrayIdx = getFocusedArrayIdx();
+    const favorite = arrayIdx >= 0 ? favorites[arrayIdx] : findShortcutFavorite(favorites, code);
+    if (favorite) openLaw(favorite, { alternate });
   }
 
   function pushQueryHistory(query) {

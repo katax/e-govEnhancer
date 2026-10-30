@@ -12,6 +12,186 @@
   });
   const FAVORITES_MAX = 50;
 
+  function isShortcutQuery(value) {
+    return typeof value === 'string' && /^[A-Za-z0-9]+$/.test(value);
+  }
+
+  function normalizeLawShortcut(value) {
+    if (value === '') return '';
+    if (!isShortcutQuery(value) || value.length > 5) {
+      throw new Error('ショートカットは半角英数字1〜5文字で入力してください。');
+    }
+    return value.toUpperCase();
+  }
+
+  function findShortcutFavorite(favorites, value) {
+    if (!isShortcutQuery(value) || value.length > 5) return null;
+    const code = value.toUpperCase();
+    const matches = favorites.filter(favorite => typeof favorite.shortcut === 'string' && favorite.shortcut.toUpperCase() === code);
+    // Do not open an arbitrary law if corrupt or older imported data contains duplicates.
+    return matches.length === 1 ? matches[0] : null;
+  }
+
+  async function saveLawShortcut(lawId, value, storage = global.chrome.storage.local, { overwriteLawIds = [] } = {}) {
+    const shortcut = normalizeLawShortcut(value);
+    const { favorites = [] } = await storage.get(['favorites']);
+    const favorite = favorites.find(item => item.lawId === lawId);
+    if (!favorite) throw new Error('先にこの法令をお気に入りに追加してください。');
+    const conflicts = shortcut ? favorites.filter(item => item.lawId !== lawId && typeof item.shortcut === 'string' && item.shortcut.toUpperCase() === shortcut) : [];
+    if (conflicts.some(item => !overwriteLawIds.includes(item.lawId))) {
+      const error = new Error(`「${shortcut}」は${conflicts.map(item => `「${item.lawName}」`).join('、')}で使用されています。上書きすると、元の法令の起動コードを解除して「${favorite.lawName}」に割り当てます。`);
+      error.code = 'SHORTCUT_CONFLICT';
+      error.conflicts = conflicts.map(item => ({ lawId: item.lawId, lawName: item.lawName }));
+      throw error;
+    }
+    const updated = favorites.map(item => {
+      if (conflicts.includes(item)) {
+        const record = { ...item };
+        delete record.shortcut;
+        return record;
+      }
+      if (item.lawId !== lawId) return item;
+      const record = { ...item };
+      if (shortcut) record.shortcut = shortcut;
+      else delete record.shortcut;
+      return record;
+    });
+    await storage.set({ favorites: updated });
+    return updated;
+  }
+
+  async function editLawShortcut(lawId, { onSaved } = {}) {
+    if (document.getElementById('egov-law-shortcut-dialog')) return;
+    const { favorites = [] } = await global.chrome.storage.local.get(['favorites']);
+    const favorite = favorites.find(item => item.lawId === lawId);
+    if (!favorite) throw new Error('先にこの法令をお気に入りに追加してください。');
+    if (document.getElementById('egov-law-shortcut-dialog')) return;
+    const previousFocus = document.activeElement;
+    const dialog = document.createElement('dialog');
+    dialog.id = 'egov-law-shortcut-dialog';
+    dialog.className = 'shortcut-editor';
+    dialog.setAttribute('aria-label', '法令起動ショートカットの設定');
+    dialog.style.cssText = 'width:320px;max-width:85vw;padding:20px;border:1px solid #b6c6da;border-radius:10px;background:white;color:#172b45;font:14px/1.6 sans-serif;';
+    const form = document.createElement('form');
+    const header = document.createElement('div');
+    header.className = 'shortcut-editor-header';
+    const eyebrow = document.createElement('span');
+    eyebrow.className = 'shortcut-editor-eyebrow';
+    eyebrow.textContent = 'お気に入り';
+    const title = document.createElement('strong');
+    title.className = 'shortcut-editor-title';
+    title.textContent = '起動ショートカット';
+    const lawName = document.createElement('p');
+    lawName.className = 'shortcut-editor-law';
+    lawName.textContent = favorite.lawName;
+    header.append(eyebrow, title, lawName);
+    const label = document.createElement('label');
+    label.className = 'shortcut-editor-label';
+    label.textContent = '起動ショートカット（半角英数字・最大5文字）';
+    label.style.display = 'block';
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.value = favorite.shortcut || '';
+    input.autocomplete = 'off';
+    input.spellcheck = false;
+    input.setAttribute('aria-describedby', 'shortcut-editor-help shortcut-editor-error');
+    input.style.cssText = 'box-sizing:border-box;width:100%;padding:8px;font:18px monospace;text-transform:uppercase;';
+    const field = document.createElement('span');
+    field.className = 'shortcut-editor-field';
+    const count = document.createElement('span');
+    count.className = 'shortcut-editor-count';
+    count.textContent = `${input.value.length} / 5`;
+    field.append(input, count);
+    label.appendChild(field);
+    const help = document.createElement('p');
+    help.id = 'shortcut-editor-help';
+    help.className = 'shortcut-editor-help';
+    help.textContent = '大文字・小文字は区別しません。空欄で保存すると解除します。';
+    const error = document.createElement('p');
+    error.id = 'shortcut-editor-error';
+    error.className = 'shortcut-editor-error';
+    error.hidden = true;
+    error.setAttribute('role', 'alert');
+    error.style.color = '#b42318';
+    const overwrite = document.createElement('button');
+    overwrite.type = 'button';
+    overwrite.className = 'shortcut-editor-overwrite';
+    overwrite.textContent = '上書きして保存';
+    overwrite.hidden = true;
+    const save = document.createElement('button');
+    save.type = 'submit';
+    save.className = 'shortcut-editor-save';
+    save.textContent = '保存';
+    const cancel = document.createElement('button');
+    cancel.type = 'button';
+    cancel.className = 'shortcut-editor-cancel';
+    cancel.textContent = 'キャンセル';
+    for (const button of [save, cancel]) button.style.cssText = 'padding:6px 12px;margin-right:8px;cursor:pointer;';
+    const body = document.createElement('div');
+    body.className = 'shortcut-editor-body';
+    body.append(label, help, error, overwrite);
+    const actions = document.createElement('div');
+    actions.className = 'shortcut-editor-actions';
+    actions.append(cancel, save);
+    form.append(header, body, actions);
+    dialog.appendChild(form);
+    // Keep page-level keyboard shortcuts away from this editor.
+    let composing = false;
+    let conflictCode = '';
+    let conflictIds = [];
+    input.addEventListener('input', () => {
+      count.textContent = `${input.value.length} / 5`;
+      error.hidden = true;
+      overwrite.hidden = true;
+      conflictCode = '';
+      conflictIds = [];
+      input.removeAttribute('aria-invalid');
+    });
+    input.addEventListener('compositionstart', () => { composing = true; });
+    input.addEventListener('compositionend', () => { composing = false; });
+    dialog.addEventListener('keydown', event => {
+      event.stopPropagation();
+      if (event.key === 'Enter' && (composing || event.isComposing || event.keyCode === 229)) event.preventDefault();
+    });
+    dialog.addEventListener('click', event => event.stopPropagation());
+    cancel.addEventListener('click', () => dialog.close());
+    dialog.addEventListener('close', () => {
+      dialog.remove();
+      if (previousFocus?.isConnected) previousFocus.focus();
+    });
+    async function submitShortcut(replaceConflicts = false) {
+      if (composing || save.disabled) return;
+      save.disabled = true;
+      overwrite.disabled = true;
+      try {
+        const overwriteLawIds = replaceConflicts && input.value === conflictCode ? conflictIds : [];
+        const updated = await saveLawShortcut(lawId, input.value, global.chrome.storage.local, { overwriteLawIds });
+        onSaved?.(updated);
+        dialog.close();
+      } catch (failure) {
+        error.textContent = failure.message;
+        error.hidden = false;
+        input.setAttribute('aria-invalid', 'true');
+        if (failure.code === 'SHORTCUT_CONFLICT') {
+          conflictCode = input.value;
+          conflictIds = failure.conflicts.map(item => item.lawId);
+          overwrite.hidden = false;
+        }
+        save.disabled = false;
+        overwrite.disabled = false;
+      }
+    }
+    form.addEventListener('submit', event => {
+      event.preventDefault();
+      submitShortcut();
+    });
+    overwrite.addEventListener('click', () => submitShortcut(true));
+    document.body.appendChild(dialog);
+    dialog.showModal();
+    input.focus();
+    input.select();
+  }
+
   function runWhenIdle(callback, timeout = 1500) {
     if (typeof global.requestIdleCallback === 'function') {
       global.requestIdleCallback(callback, { timeout });
@@ -231,6 +411,11 @@
   }
 
   global.EgovApp = Object.freeze({
+    isShortcutQuery,
+    normalizeLawShortcut,
+    findShortcutFavorite,
+    saveLawShortcut,
+    editLawShortcut,
     FAVORITES_MAX,
     STORAGE_KEYS,
     createFavoritesStore,

@@ -1,4 +1,9 @@
 document.addEventListener('DOMContentLoaded', async () => {
+  const extensionVersion = document.getElementById('extensionVersion');
+  if (extensionVersion && chrome.runtime?.getManifest) {
+    extensionVersion.textContent = `バージョン ${chrome.runtime.getManifest().version}`;
+  }
+
   const googleDriveSyncCard = document.getElementById('googleDriveSyncCard');
   // 一般公開版ではGoogle Drive同期を停止し、manifestからidentity / alarms / OAuth関連設定も外している。
   // APIクォータ、プライバシー説明、認証運用を整えて再公開する場合は、background.jsの機能フラグと

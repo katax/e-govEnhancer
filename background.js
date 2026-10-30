@@ -1,9 +1,6 @@
 importScripts('shared/egov-shared.js', 'shared/normal-response-cache-background.js',
   'shared/law-update-check.js', 'shared/law-update-check-background.js');
 
-// Retire the previous external-file poller without touching local records/files.
-chrome.alarms.clear('egov-external-files-poll').catch(() => {});
-
 chrome.runtime.onStartup?.addListener(() => {
   chrome.storage.session.setAccessLevel({ accessLevel: 'TRUSTED_AND_UNTRUSTED_CONTEXTS' }).catch(() => {});
 });

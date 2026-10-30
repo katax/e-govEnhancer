@@ -22,5 +22,6 @@ for (let i = 0; i < shards.length; i++) {
   await fs.writeFile(path.join(destination, `${name}.json`), text);
   manifest.shards[name] = createHash('sha256').update(text).digest('hex');
 }
-await fs.writeFile(path.join(destination, 'manifest.json'), JSON.stringify(manifest, null, 2) + '\n');
+// Avoid a second manifest.json in the extension package, which the Web Store rejects.
+await fs.writeFile(path.join(destination, 'shard-index.json'), JSON.stringify(manifest, null, 2) + '\n');
 console.log(`Built 256 reference shards for ${Object.keys(references).length} laws.`);

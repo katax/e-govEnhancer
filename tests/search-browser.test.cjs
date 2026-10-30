@@ -27,20 +27,20 @@ test('popup keeps latest results and clearing input invalidates an in-flight sea
     return route.fulfill({ body: fs.readFileSync(path.join(__dirname, '..', file)), contentType });
   });
   await page.goto('https://extension.test/popup.html');
-  await page.locator('#searchInput').fill('old');
+  await page.locator('#searchInput').fill('旧検索');
   await page.waitForFunction(() => requests.length === 1);
-  await page.locator('#searchInput').fill('new');
+  await page.locator('#searchInput').fill('新検索');
   await page.waitForFunction(() => requests.length === 2);
-  await page.evaluate(() => finishSearch('new'));
-  await page.waitForFunction(() => document.querySelector('#searchResults').textContent.includes('new result'));
-  await page.evaluate(() => finishSearch('old'));
-  assert.match(await page.locator('#searchResults').innerText(), /new result/);
-  assert.doesNotMatch(await page.locator('#searchResults').innerText(), /old result/);
-  await page.locator('#searchInput').fill('later');
+  await page.evaluate(() => finishSearch('新検索'));
+  await page.waitForFunction(() => document.querySelector('#searchResults').textContent.includes('新検索 result'));
+  await page.evaluate(() => finishSearch('旧検索'));
+  assert.match(await page.locator('#searchResults').innerText(), /新検索 result/);
+  assert.doesNotMatch(await page.locator('#searchResults').innerText(), /旧検索 result/);
+  await page.locator('#searchInput').fill('後続検索');
   await page.waitForFunction(() => requests.length === 3);
   await page.locator('#searchInput').fill('');
-  await page.evaluate(() => finishSearch('later'));
-  assert.doesNotMatch(await page.locator('#searchResults').innerText(), /later result/);
+  await page.evaluate(() => finishSearch('後続検索'));
+  assert.doesNotMatch(await page.locator('#searchResults').innerText(), /後続検索 result/);
   // Chrome can emit a final input immediately after compositionend.
   await page.locator('#searchInput').evaluate(input => {
     input.dispatchEvent(new CompositionEvent('compositionstart'));
@@ -52,11 +52,11 @@ test('popup keeps latest results and clearing input invalidates an in-flight sea
   await page.evaluate(() => finishSearch('法'));
   await page.waitForFunction(() => document.querySelector('#searchResults').textContent.includes('法 result'));
   assert.equal(await page.evaluate(() => requests.filter(request => request.query === '法').length), 1);
-  await page.locator('#searchInput').fill('manual');
+  await page.locator('#searchInput').fill('手動検索');
   await page.locator('#searchInput').press('Enter');
   await page.waitForFunction(() => requests.length === 5);
-  await page.evaluate(() => finishSearch('manual'));
-  await page.waitForFunction(() => document.querySelector('#searchResults').textContent.includes('manual result'));
+  await page.evaluate(() => finishSearch('手動検索'));
+  await page.waitForFunction(() => document.querySelector('#searchResults').textContent.includes('手動検索 result'));
   // Check after the canceled debounce would have fired.
   await page.evaluate(() => new Promise(resolve => setTimeout(resolve, 500)));
   assert.equal(await page.evaluate(() => requests.length), 5);

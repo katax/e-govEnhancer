@@ -167,6 +167,13 @@
       folderId: raw.folderId ? raw.folderId.trim() : null,
     };
 
+    if (raw.shortcut !== undefined && raw.shortcut !== '') {
+      if (typeof raw.shortcut !== 'string' || !/^[A-Za-z0-9]{1,5}$/.test(raw.shortcut)) {
+        throw new Error(`favorites[${index}].shortcut は半角英数字1〜5文字で指定してください。`);
+      }
+      favorite.shortcut = raw.shortcut.toUpperCase();
+    }
+
     if (raw.lastScrollTop !== undefined) {
       favorite.lastScrollTop = Math.round(raw.lastScrollTop);
     }
@@ -243,6 +250,12 @@
     }
 
     const favorites = raw.favorites.map((favorite, index) => sanitizeFavoriteRecord(favorite, index, folderIds));
+    const shortcuts = new Set();
+    for (const favorite of favorites) {
+      if (!favorite.shortcut) continue;
+      if (shortcuts.has(favorite.shortcut)) throw new Error(`起動ショートカットが重複しています: ${favorite.shortcut}`);
+      shortcuts.add(favorite.shortcut);
+    }
     const lawIds = new Set();
     for (const favorite of favorites) {
       if (lawIds.has(favorite.lawId)) {
