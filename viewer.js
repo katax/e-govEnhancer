@@ -84,6 +84,8 @@
   const sourceUrl = params.get('sourceUrl') || (localViewerUrl ? localViewerUrl.href : (lawId ? `https://laws.e-gov.go.jp/law/${encodeURIComponent(lawId)}` : ''));
   const fallbackLawName = localRule?.title || params.get('lawName') || '法令ビューア';
   const embeddedMode = params.get('embedded') === '1';
+  const normalCacheUrl = params.get('normalCache') || '';
+  const referenceBodyMode = !!localRule && params.get('referenceBody') === '1';
   const API_V2_BASE = 'https://laws.e-gov.go.jp/api/2';
   const LITE_FONT_SIZE_KEY = 'liteFontSize';
   const LITE_CONTENT_WIDTH_KEY = 'liteContentWidth';
@@ -163,6 +165,7 @@
   let externalReferencesAutoEnable = false;
   let externalReferencesEnabled = false;
   let externalReferencesLoading = false;
+  let referencePrefetchPending = false;
   let referenceAnalysisGeneration = 0;
   let activeReferencesPopup = null;
   let activeReferenceViewerPopup = null;
@@ -205,6 +208,13 @@
   document.body.dataset.fontSize = '2';
   document.body.dataset.contentWidth = 'full';
   if (embeddedMode) document.body.dataset.embedded = 'true';
+  if (normalCacheUrl) {
+    document.body.dataset.normalOffline = 'true';
+    const notice = document.getElementById('normal-cache-fallback-notice');
+    notice.hidden = false;
+    document.querySelector('.viewer-header').append(notice);
+  }
+  if (referenceBodyMode) document.body.dataset.referenceBody = 'true';
   if (localRule) normalModeButton.hidden = true;
 
   function setViewerToggleButtonState(button, active, title) {
@@ -255,8 +265,8 @@
       externalReferencesEnabled,
       `${externalReferencesEnabled ? '逆参照リンクを無効化' : '逆参照リンクを有効化'}（E）`
     );
-    externalReferencesButton.setAttribute('aria-busy', String(externalReferencesLoading));
-    externalReferencesButton.disabled = externalReferencesLoading;
+    externalReferencesButton.setAttribute('aria-busy', String(externalReferencesLoading || referencePrefetchPending));
+    externalReferencesButton.disabled = externalReferencesLoading || referencePrefetchPending;
     setViewerToggleButtonState(
       definitionLinksButton,
       liteDefTooltipEnabled,
@@ -302,6 +312,7 @@
     persistLocal({ [LITE_CONTENT_WIDTH_KEY]: contentWidthSelect.value });
   });
   function openNormalMode() {
+    if (normalCacheUrl) { window.open(normalCacheUrl, '_blank', 'noopener'); return; }
     if (localRule) return;
     location.href = sourceUrl || `https://laws.e-gov.go.jp/law/${encodeURIComponent(lawId)}`;
   }
@@ -1537,7 +1548,7 @@
   async function loadLiteLawDirectly() {
     // バックグラウンドが旧版のままでも表示できるよう、従来の安全な取得順を残す。
     const cached = forceLiteDownload ? null : await readCachedLiteLaw(revisionIdParam || lawId);
-    if (cached) return { ok: true, ...cached };
+    if (cached) return { ok: true, ...cached, fromCache: true };
     await loadRevisions();
     currentRevisionId = revisionIdParam || findCurrentLawRevisionId(revisions);
     const target = currentRevisionId || lawId;
@@ -1552,15 +1563,16 @@
     return { ok: true, cacheTarget: target, currentRevisionId, revisions, xmlText, downloadedAt };
   }
 
+  let referenceLawContext = null;
   async function finishLawLoad() {
-    if (externalReferencesEnabled) {
-      const { includeExternal } = getReverseReferenceScopeFlags(reverseReferenceScope);
-      applyExternalReferenceLinksForLaw(includeExternal ? await getLawReferencesData(lawId) : {});
-    } else {
-      const stored = await chrome.storage.local.get([EXTERNAL_REFERENCES_AUTO_ENABLE_KEY]).catch(() => ({}));
-      if (stored[EXTERNAL_REFERENCES_AUTO_ENABLE_KEY] === true && externalReferencesAutoEnable) {
-        runWhenIdle(() => enableExternalReferenceLinks(), 600);
-      }
+    const generation = lawLoadGeneration;
+    const wasEnabled = externalReferencesEnabled;
+    externalReferencesEnabled = false;
+    const stored = await chrome.storage.local.get([EXTERNAL_REFERENCES_AUTO_ENABLE_KEY]).catch(() => ({}));
+    if (wasEnabled || stored[EXTERNAL_REFERENCES_AUTO_ENABLE_KEY] === true && externalReferencesAutoEnable) {
+      runWhenIdle(() => {
+        if (generation === lawLoadGeneration) void enableExternalReferenceLinks({ silent: true });
+      }, 600);
     }
     await refreshFavoriteButton();
   }
@@ -1575,6 +1587,7 @@
   document.getElementById('lite-cache-date').hidden = !!localRule;
   document.getElementById('lite-redownload-button').hidden = !!localRule;
   document.getElementById('lite-redownload-button').addEventListener('click', () => {
+    if (normalCacheUrl) { location.href = normalCacheUrl; return; }
     try {
       sessionStorage.setItem('egov-lite-cache-force', JSON.stringify({ lawId, revisionId: revisionIdParam, time: Date.now() }));
       location.reload();
@@ -1603,6 +1616,8 @@
 
   async function loadLaw() {
     const generation = ++lawLoadGeneration;
+    referenceLawContext = null;
+    referenceAnalysisGeneration++;
     globalThis.EgovLawUpdates.setButtonState(document.getElementById('lite-redownload-button'), false);
     if (!lawId) {
       articleElementsCache = [];
@@ -1613,19 +1628,38 @@
     contentEl.innerHTML = `<p class="viewer-status">${localRule ? '同梱された規則データ' : 'e-Gov APIから条文XML'}を読み込んでいます...</p>`;
     let renderedTarget = '';
     try {
+      if (normalCacheUrl) {
+        const result = await chrome.runtime.sendMessage({type:'egov-read-normal-offline',url:normalCacheUrl});
+        if (generation !== lawLoadGeneration) return;
+        if (!result?.ok || result.record?.lawId !== lawId) throw new Error('この法令の通常モードの保存済み本文が見つかりません');
+        const record=result.record;
+        if(record.kind==='json')renderLawXml(globalThis.EgovNormalCacheReader.xml(record));
+        else {
+          const info=globalThis.EgovNormalCacheReader.html(record,contentEl);
+          lawTitleText=info.title;lawNumText=info.lawNum;titleEl.textContent=info.title;
+        }
+        revisionSelect.innerHTML='<option>通常モードの保存済み本文</option>';
+        revisionSelect.disabled=true;
+        document.getElementById('lite-cache-date').textContent='法令ファイル取得日時：'+new Date(record.downloadedAt).toLocaleString('ja-JP');
+        document.getElementById('lite-redownload-button').textContent='e-Govで再接続';
+        jumpToInitialHash();
+        return;
+      }
       if (localRule) {
         const response = await fetch(chrome.runtime.getURL(localRule.dataPath));
         if (!response.ok) throw new Error(`同梱データを読み込めません（HTTP ${response.status}）`);
         const xmlText = await response.text();
         if (generation !== lawLoadGeneration) return;
         renderLawXml(xmlText);
+        referenceLawContext = { mode: 'local', lawId };
         revisionSelect.innerHTML = `<option value="local">${escapeHtml(localRule.sourceLabel)}</option>`;
         revisionSelect.disabled = true;
         sourceNoticeEl.hidden = false;
         const sourceLinkLabel = localRule.sourceLinkLabel || '裁判所の公式規則集';
-        sourceNoticeEl.innerHTML = `同梱ローカル版（${escapeHtml(localRule.sourceLabel)}）・<a href="${escapeHtml(localRule.officialUrl)}" target="_blank" rel="noreferrer">${escapeHtml(sourceLinkLabel)}</a>`;
+        sourceNoticeEl.innerHTML = `<a href="${escapeHtml(localRule.officialUrl)}" target="_blank" rel="noreferrer">同梱ローカル版（${escapeHtml(localRule.sourceLabel)}）・<span>${escapeHtml(sourceLinkLabel)}</span></a>`;
+        sourceNoticeEl.title = sourceNoticeEl.textContent;
         jumpToInitialHash();
-        await refreshFavoriteButton();
+        if (!referenceBodyMode) await finishLawLoad();
         return;
       }
       // Return XML directly so display also works when caching is disabled or full.
@@ -1640,6 +1674,38 @@
       currentRevisionId = revisionIdParam || result.currentRevisionId || currentRevisionId;
       renderRevisionSelect();
       const displayedRevision = renderLawXml(result.xmlText) || currentRevisionId;
+      const revisionDate = revisionIdParam?.match(/^[0-9A-Z]{15}_(\d{4})(\d{2})(\d{2})_/);
+      referenceLawContext = { mode: 'lite', lawId, view: revisionIdParam || 'current',
+        revisionId: displayedRevision, downloadedAt: result.downloadedAt,
+        occasion: revisionDate ? `${revisionDate[1]}-${revisionDate[2]}-${revisionDate[3]}`
+          : new Date(result.downloadedAt + 9 * 3600000).toISOString().slice(0, 10) };
+      // Prepare only data here, never decorate provisions while links are OFF.
+      const referenceContext = referenceLawContext;
+      const invalidation = !result.fromCache ? chrome.runtime.sendMessage({
+        type: 'egov-invalidate-law-references', context: referenceContext,
+      }).catch(() => null) : Promise.resolve();
+      runWhenIdle(() => {
+        if (generation !== lawLoadGeneration) return;
+        void invalidation.then(() => {
+          if (generation !== lawLoadGeneration) return;
+          referencePrefetchPending = true;
+          syncViewerToggleButtons();
+          const finish = showToast('逆リンク情報を取得・保存しています…', { persistent: true });
+          return chrome.runtime.sendMessage({ type: 'egov-prepare-law-references', context: referenceContext })
+            .then(result => {
+              if (generation !== lawLoadGeneration) return finish();
+              finish(!result?.ok ? '逆リンク情報の取得・保存に失敗しました' : result.cacheStatus === 'not-saved'
+                ? '逆リンク情報を取得しました（キャッシュ未保存）' : '逆リンク情報の準備が完了しました');
+            }, () => finish(generation === lawLoadGeneration ? '逆リンク情報の取得・保存に失敗しました' : undefined))
+            .finally(() => {
+              finish();
+              if (generation === lawLoadGeneration) {
+                referencePrefetchPending = false;
+                syncViewerToggleButtons();
+              }
+            });
+        }).catch(() => {});
+      }, 600);
       renderedTarget = result.cacheTarget || lawId;
       jumpToInitialHash();
       const date = new Date(result.downloadedAt);
@@ -1702,7 +1768,9 @@
     renderLiteArticleBookmarkGutters();
   }
 
-  function showToast(message) {
+  const persistentToast = new Map();
+  function showToast(message, { persistent = false } = {}) {
+    if (persistentToast.size && !persistent) return () => {};
     let el = document.getElementById('lite-indicator');
     if (!el) {
       el = document.createElement('div');
@@ -1712,6 +1780,19 @@
     el.textContent = message;
     el.style.display = 'block';
     clearTimeout(indicatorTimer);
+    if (persistent) {
+      const token = {};
+      persistentToast.set(token, message);
+      return (completionMessage) => {
+        if (!persistentToast.delete(token)) return;
+        if (persistentToast.size) {
+          el.textContent = [...persistentToast.values()].at(-1);
+          return;
+        }
+        if (completionMessage) showToast(completionMessage);
+        else el.style.display = 'none';
+      };
+    }
     indicatorTimer = setTimeout(() => { el.style.display = 'none'; }, 1600);
   }
 
@@ -1842,6 +1923,7 @@
   }
 
   function toggleCompareMode(force) {
+    if (normalCacheUrl) return;
     compareMode = typeof force === 'boolean' ? force : !compareMode;
     document.body.dataset.compareMode = compareMode ? 'on' : 'off';
     compareModeButton.classList.toggle('is-active', compareMode);
@@ -2794,6 +2876,15 @@
 
   function openReferenceSource(source, event = null) {
     if (!source) return;
+    if (source.sourceUrl?.startsWith(chrome.runtime.getURL('viewer.html') + '?localRule=')) {
+      hideReferencesPopup();
+      if (shouldOpenReferenceSourcePopup(event || {}, source.sourceLawId)) {
+        globalThis.EgovApp.showLocalReferencePopup(source, event ? { x: event.clientX, y: event.clientY } : null);
+        return;
+      }
+      void chrome.runtime.sendMessage({ type: 'egov-open-law-reference-tab', url: source.sourceUrl });
+      return;
+    }
     const sourceLawId = source.sourceLawId || getLawIdFromUrl(source.sourceUrl || '');
     hideReferencesPopup();
 
@@ -2828,10 +2919,10 @@
     });
   }
 
-  function applyReferenceLinksForLaw(lawReferences, { clear = false } = {}) {
+  async function applyReferenceLinksForLaw(lawReferences, { clear = false, isCurrent = () => externalReferencesEnabled } = {}) {
     if (clear) clearExternalReferenceLinks();
     return applyReferenceLinksInBatches(lawReferences, {
-      isEnabled: () => externalReferencesEnabled,
+      isEnabled: isCurrent,
       findTarget: findLiteReferenceTargetElement,
       makeClickable: makeReferenceClickable,
       schedule: (step) => runWhenIdle(step, 250),
@@ -2839,29 +2930,24 @@
     });
   }
 
-  function applyExternalReferenceLinksForLaw(lawReferences) {
+  async function applyExternalReferenceLinksForLaw(lawReferences) {
     const generation = ++referenceAnalysisGeneration;
+    const isCurrent = () => externalReferencesEnabled && generation === referenceAnalysisGeneration;
     const { includeInternal, includeExternal } = getReverseReferenceScopeFlags(reverseReferenceScope);
-    const externalReferences = includeExternal ? mergeLawReferences(lawReferences) : {};
-    applyReferenceLinksForLaw(externalReferences, { clear: true }).then((applied) => {
-      if (!applied || !externalReferencesEnabled || generation !== referenceAnalysisGeneration) return;
-      if (!includeInternal) return;
-      runWhenIdle(() => {
-        if (!externalReferencesEnabled || generation !== referenceAnalysisGeneration) return;
-        const internalReferences = collectInternalLawReferences(contentEl, {
-          lawId,
-          lawTitle: lawTitleText,
-          baseUrl: sourceUrl || location.href,
-        });
-        if (!externalReferencesEnabled || generation !== referenceAnalysisGeneration) return;
-        const mergedReferences = mergeLawReferences(externalReferences, internalReferences);
-        const referencesToRefresh = {};
-        Object.keys(internalReferences).forEach((targetKey) => {
-          if (mergedReferences[targetKey]) referencesToRefresh[targetKey] = mergedReferences[targetKey];
-        });
-        applyReferenceLinksForLaw(referencesToRefresh);
-      }, 250);
-    });
+    const work = globalThis.EgovShared;
+    const externalReferences = includeExternal ? await work.mergeLawReferencesAsync([lawReferences], isCurrent) : {};
+    if (!isCurrent()) return false;
+    if (!await applyReferenceLinksForLaw(externalReferences, { clear: true, isCurrent }) || !isCurrent()) return false;
+    if (!includeInternal) return true;
+    const internalReferences = await work.collectInternalLawReferencesAsync(contentEl, {
+      lawId: lawId,
+      lawTitle: lawTitleText,
+      baseUrl: sourceUrl || location.href,
+    }, isCurrent);
+    if (!isCurrent()) return false;
+    const merged = await work.mergeLawReferencesAsync([externalReferences, internalReferences], isCurrent);
+    if (!isCurrent()) return false;
+    return applyReferenceLinksForLaw(merged, { isCurrent });
   }
 
   async function enableExternalReferenceLinks({ silent = false } = {}) {
@@ -2873,19 +2959,28 @@
     }
     externalReferencesLoading = true;
     syncViewerToggleButtons();
+    let finishNotice = () => {};
     try {
-      if (!silent) showToast('逆参照リンクを読み込んでいます');
+      if (!silent) finishNotice = showToast('逆参照リンクを設定しています…', { persistent: true });
       const stored = await chrome.storage.local.get([REVERSE_REFERENCE_SCOPE_KEY]).catch(() => ({}));
       reverseReferenceScope = normalizeReverseReferenceScope(
         stored[REVERSE_REFERENCE_SCOPE_KEY] ?? reverseReferenceScope
       );
       const { includeExternal } = getReverseReferenceScopeFlags(reverseReferenceScope);
-      const lawReferences = includeExternal ? await getLawReferencesData(lawId) : {};
+      if (includeExternal && globalThis.EgovShared.REVERSE_REFERENCE_SOURCE === 'api' && !referenceLawContext) throw new Error('この法令のAPI引用元は利用できません');
+      const generation = lawLoadGeneration;
+      const lawReferences = includeExternal ? await getLawReferencesData(lawId, undefined, referenceLawContext) : {};
+      if (generation !== lawLoadGeneration) return false;
       externalReferencesEnabled = true;
-      applyExternalReferenceLinksForLaw(lawReferences);
-      if (!silent) showToast('逆参照リンクを設定しました');
+      if (!await applyExternalReferenceLinksForLaw(lawReferences)) return false;
+      finishNotice('逆参照リンクを設定しました');
       return true;
+    } catch (error) {
+      finishNotice();
+      showToast(`逆参照リンクを取得できませんでした：${error.message || error}`);
+      return false;
     } finally {
+      finishNotice();
       externalReferencesLoading = false;
       syncViewerToggleButtons();
     }
@@ -2901,6 +2996,8 @@
   }
 
   function toggleExternalReferenceLinks() {
+    if (normalCacheUrl) return;
+    if (externalReferencesLoading || referencePrefetchPending) return;
     if (externalReferencesEnabled) {
       disableExternalReferenceLinks();
       return;

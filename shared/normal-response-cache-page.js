@@ -83,7 +83,7 @@
         if (s.cancelled || states.get(xhr) !== s) return;
         if (xhr.status !== 200) return failed();
         const downloadedAt = Date.now();
-        window.postMessage({ channel, direction: 'notice', request, downloadedAt }, location.origin);
+        window.postMessage({ channel, direction: 'notice', request, downloadedAt, fromCache: false }, location.origin);
         const text = xhr.responseType === 'json' ? JSON.stringify(xhr.response) : xhr.responseText;
         if (typeof text !== 'string' || text.length > 8 * 1024 * 1024) return;
         window.postMessage({ channel, direction: 'request', id: `${prefix}:${++sequence}`, action: 'put',
@@ -111,7 +111,7 @@
       for (const property of Object.values(properties)) property.configurable = true;
       Object.defineProperties(xhr, properties);
       s.synthetic = true;
-      window.postMessage({ channel, direction: 'notice', request, downloadedAt: cached.downloadedAt }, location.origin);
+      window.postMessage({ channel, direction: 'notice', request, downloadedAt: cached.downloadedAt, fromCache: true }, location.origin);
       for (const type of ['loadstart', 'readystatechange', 'progress', 'load', 'loadend']) {
         if (s.cancelled || states.get(xhr) !== s) break;
         xhr.dispatchEvent(new ProgressEvent(type));

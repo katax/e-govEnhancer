@@ -31,10 +31,10 @@ async function open(t,initial={}) {
   },initial);
   const page=await context.newPage();const errors=[],dialogs=[];
   page.on('pageerror',error=>errors.push(error.message));t.after(()=>assert.deepEqual(errors,[]));
-  let cancel=false;
-  page.on('dialog',async dialog=>{dialogs.push(dialog.message());if(cancel){cancel=false;await dialog.dismiss();}else await dialog.accept();});
+  let cancel=false,mergeChoices=[];
+  page.on('dialog',async dialog=>{dialogs.push(dialog.message());if(dialog.message().startsWith('登録済みの法令 ')){if(mergeChoices.shift())await dialog.accept();else await dialog.dismiss();}else if(cancel){cancel=false;await dialog.dismiss();}else await dialog.accept();});
   await page.goto('https://extension.test/options.html');
-  return {page,dialogs,cancelNext:()=>{cancel=true;}};
+  return {page,dialogs,cancelNext:()=>{cancel=true;},chooseMerge:(...choices)=>{mergeChoices=choices;}};
 }
 const stored=page=>page.evaluate(()=>JSON.parse(localStorage.getItem('settings')));
 async function upload(page,id,data) {
@@ -63,6 +63,29 @@ test('favorites merge and replace use the actual options file-import flow',async
   assert.deepEqual(result.favFolders,[{id:'folder',name:'Remote'}]);
   assert.equal(result.favorites[0].folderId,'folder');assert.equal(result.unrelated,'keep');
   assert.match(s.dialogs[0],/マージ/);assert.match(s.dialogs.at(-1),/置き換え/);
+});
+
+test('favorites asks once per field and applies each merge choice independently',async t=>{
+  for(const shortcut of [false,true]) for(const folder of [false,true]) {
+    const s=await open(t,{favorites:[{...favorite('A','local'),shortcut:'OLD'},favorite('B','local')],favFolders:[{id:'local',name:'Local'}],folderCollapsed:{}});
+    s.chooseMerge(shortcut,folder);
+    await upload(s.page,'importFavoritesInput',favorites([{...favorite('A','remote'),shortcut:'NEW'},favorite('B')],[{id:'remote',name:'Remote'}]));
+    await status(s.page,'favoritesTransferStatus','マージしました');
+    const result=await stored(s.page);
+    assert.equal(result.favorites[0].shortcut,shortcut?'NEW':'OLD');
+    assert.equal(result.favorites[0].folderId,folder?'remote':'local');
+    assert.equal(result.favorites[1].folderId,folder?null:'local');
+    assert.equal(s.dialogs.length,3);
+    assert.match(s.dialogs[1],/2 件のショートカットキー/);
+    assert.match(s.dialogs[2],/2 件のフォルダ/);
+  }
+});
+
+test('favorites without duplicates needs only the import confirmation',async t=>{
+  const s=await open(t,{favorites:[favorite('A')],favFolders:[]});
+  await upload(s.page,'importFavoritesInput',favorites([favorite('B')]));
+  await status(s.page,'favoritesTransferStatus','マージしました');
+  assert.equal(s.dialogs.length,1);
 });
 
 test('memo merge keeps untouched laws, updates newer IDs, and replacement removes missing laws',async t=>{

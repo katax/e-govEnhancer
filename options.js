@@ -558,15 +558,24 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const summary = buildExportSummary(validated);
     const merge = document.getElementById('favoritesImportMode').value === 'merge';
-    const ok = window.confirm(`${merge ? '現在のお気に入りを残して、ファイルの内容をマージしますか？重複する法令は現在の登録内容を優先します。' : 'お気に入りデータを置き換えますか？'}\n\n読み込みファイル：${summary}`);
+    const ok = window.confirm(`${merge ? '現在のお気に入りを残して、ファイルの内容をマージしますか？登録済み法令が含まれる場合は、続けてショートカットキーとフォルダの扱いをそれぞれ一括で確認します。' : 'お気に入りデータを置き換えますか？'}\n\n読み込みファイル：${summary}`);
     if (!ok) {
       setTransferStatus('インポートをキャンセルしました。', 'info');
       return;
     }
 
     const current = merge ? await chrome.storage.local.get(['favorites', 'favFolders', 'folderCollapsed']) : {};
+    const mergeOptions = {};
+    if (merge) {
+      const registeredIds = new Set((current.favorites || []).map(favorite => favorite.lawId));
+      const duplicateCount = validated.favorites.filter(favorite => registeredIds.has(favorite.lawId)).length;
+      if (duplicateCount) {
+        mergeOptions.overwriteShortcut = window.confirm(`登録済みの法令 ${duplicateCount} 件のショートカットキーを、読み込み元の設定で一括上書きしますか？\n\nOK：読み込み元で上書き（未設定の場合は既存のキーを解除）\nキャンセル：既存の設定を維持して続行`);
+        mergeOptions.overwriteFolder = window.confirm(`登録済みの法令 ${duplicateCount} 件のフォルダを、読み込み元の設定で一括上書きしますか？\n\nOK：読み込み元で上書き（未分類の場合は未分類に移動）\nキャンセル：既存の設定を維持して続行`);
+      }
+    }
     const result = merge ? mergeFavoritesImport({ type: FAVORITES_EXPORT_TYPE, version: FAVORITES_EXPORT_VERSION,
-      favorites: current.favorites || [], favFolders: current.favFolders || [], folderCollapsed: current.folderCollapsed || {} }, validated) : validated;
+      favorites: current.favorites || [], favFolders: current.favFolders || [], folderCollapsed: current.folderCollapsed || {} }, validated, mergeOptions) : validated;
     await chrome.storage.local.set({
       favorites: result.favorites,
       favFolders: result.favFolders,
@@ -662,18 +671,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   async function readBundledReferencesForExport() {
-    const payload = {};
-    // Export needs the complete data, but normal viewing reads just one shard.
-    for (let start = 0; start < 256; start += 8) {
-      const shards = await Promise.all(Array.from({ length: 8 }, async (_, offset) => {
-        const name = (start + offset).toString(16).padStart(2, '0');
-        const response = await fetch(chrome.runtime.getURL(`data/reference-shards/${name}.json`), { cache: 'force-cache' });
-        if (!response.ok) throw new Error(`同梱データを読み込めませんでした: HTTP ${response.status}`);
-        return response.json();
-      }));
-      for (const shard of shards) Object.assign(payload, shard);
-    }
-    return payload;
+    const response = await fetch(chrome.runtime.getURL('data/local-references/references.json'));
+    if (!response.ok) throw new Error('同梱逆リンクデータを読み込めませんでした');
+    return response.json();
   }
 
   async function exportReferences() {
@@ -951,7 +951,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   try {
     const commands = await chrome.commands.getAll();
-    const actionCommand = commands.find((c) => c.name === '_execute_action');
+    const actionCommand = commands.find((c) => c.name === 'open_search_popup');
     const favoritesCommand = commands.find((c) => c.name === 'open_favorites_popup');
     const historyCommand = commands.find((c) => c.name === 'open_history_popup');
     const shortcutEl = document.getElementById('currentShortcut');

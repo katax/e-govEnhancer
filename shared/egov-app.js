@@ -316,6 +316,46 @@
     popup.style.top = `${y}px`;
   }
 
+  function isLocalReferenceSource(source) {
+    const url = source?.sourceUrl || '';
+    return url.startsWith('viewer.html?localRule=') || (!!global.chrome?.runtime?.getURL
+      && url.startsWith(global.chrome.runtime.getURL('viewer.html') + '?localRule='));
+  }
+
+  function showLocalReferencePopup(source, point = null) {
+    if (!isLocalReferenceSource(source)) return null;
+    global.document.querySelector('.egov-local-reference-viewer')?.remove();
+    const popup = global.document.createElement('section');
+    popup.className = 'egov-local-reference-viewer';
+    popup.setAttribute('role', 'dialog');
+    popup.setAttribute('aria-label', source.sourceLawTitle || '同梱法令');
+    Object.assign(popup.style, { position: 'fixed', zIndex: '2147483647', width: 'min(900px, calc(100vw - 24px))',
+      height: 'min(740px, calc(100vh - 24px))', display: 'flex', flexDirection: 'column',
+      background: '#fff', border: '1px solid #afc7e3', borderRadius: '10px', overflow: 'hidden',
+      boxShadow: '0 8px 32px #0004' });
+    const header = global.document.createElement('div');
+    Object.assign(header.style, { display: 'flex', alignItems: 'center', gap: '12px', padding: '8px 12px', background: '#edf5ff', color: '#194b80' });
+    const title = global.document.createElement('strong');
+    title.textContent = `${source.sourceLawTitle || '同梱法令'}（ローカル）`;
+    title.style.flex = '1';
+    const close = global.document.createElement('button');
+    close.type = 'button'; close.textContent = '×'; close.setAttribute('aria-label', '閉じる');
+    close.addEventListener('click', () => popup.remove());
+    header.append(title, close);
+    const frame = global.document.createElement('iframe');
+    frame.title = source.sourceLawTitle || '同梱法令の全文';
+    const frameUrl = new URL(source.sourceUrl.startsWith('viewer.html?') ? global.chrome.runtime.getURL(source.sourceUrl) : source.sourceUrl);
+    frameUrl.searchParams.set('embedded', '1');
+    frameUrl.searchParams.set('referenceBody', '1');
+    frame.src = frameUrl.href;
+    Object.assign(frame.style, { width: '100%', flex: '1', minHeight: '0', border: '0', background: '#fff' });
+    popup.append(header, frame);
+    popup.addEventListener('click', event => event.stopPropagation());
+    global.document.body.append(popup);
+    positionFixedPopup(popup, point);
+    return popup;
+  }
+
   function createReferencePopup({
     targetKey,
     sources,
@@ -349,6 +389,7 @@
           <button type="button" class="${classPrefix}-reference-link${row.isInternal ? ` ${classPrefix}-reference-link-internal` : row.isRelated ? ` ${classPrefix}-reference-link-related` : ''}" data-index="${index}">
             <span class="${classPrefix}-reference-related-badge">${row.isInternal ? '同一法令' : row.isRelated ? '関連' : ''}</span>
             ${row.isSameArticle ? `<span class="${classPrefix}-reference-related-badge ${classPrefix}-reference-same-article-badge">同一条文</span>` : ''}
+              ${isLocalReferenceSource(row.source) ? `<span class="${classPrefix}-reference-related-badge ${classPrefix}-reference-local-badge">ローカル</span>` : ''}
             ${row.isInternal ? `
               <span class="${classPrefix}-reference-link-title">
                 <span class="${classPrefix}-reference-link-provision">${escapeHtml(row.source?.sourceProvisionLabel || '')}</span>
@@ -420,6 +461,8 @@
     STORAGE_KEYS,
     createFavoritesStore,
     createReferencePopup,
+    isLocalReferenceSource,
+    showLocalReferencePopup,
     formatReferenceBranchLabel,
     getReferenceTargetLabel,
     persistLocal,

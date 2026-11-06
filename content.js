@@ -2484,8 +2484,10 @@
       `${externalReferencesEnabled ? '逆参照リンクを無効化' : '逆参照リンクを有効化'}（E）`
     );
     if (externalButton) {
-      externalButton.disabled = externalReferencesLoading;
-      externalButton.setAttribute('aria-busy', String(externalReferencesLoading));
+      const busy = externalReferencesLoading || (globalThis.EgovShared.REVERSE_REFERENCE_SOURCE === 'api'
+        && globalThis.EgovNormalLawContext?.isPreparing());
+      externalButton.disabled = !!busy;
+      externalButton.setAttribute('aria-busy', String(!!busy));
     }
     setHeaderToggleButtonState(
       document.getElementById('egov-ext-definition-button'),
@@ -2669,7 +2671,11 @@
     setTimeout(() => observer.disconnect(), 10000);
   }
 
-  function showPageIndicator(message, anchorEl = null) {
+  const persistentPageIndicator = new Map();
+  let pageIndicatorHideTimer = null;
+  function showPageIndicator(message, anchorEl = null, { persistent = false } = {}) {
+    if (persistentPageIndicator.size && !persistent) return () => {};
+    clearTimeout(pageIndicatorHideTimer);
     let ind = document.getElementById('egov-page-indicator');
     if (!ind) {
       ind = document.createElement('div');
@@ -2706,11 +2712,30 @@
     ind.style.setProperty('opacity', '1', 'important');
 
     clearTimeout(pageIndicatorTimer);
+    if (persistent) {
+      const token = {};
+      persistentPageIndicator.set(token, message);
+      return (completionMessage) => {
+        if (!persistentPageIndicator.delete(token)) return;
+        if (persistentPageIndicator.size) {
+          ind.textContent = [...persistentPageIndicator.values()].at(-1);
+          return;
+        }
+        if (completionMessage) showPageIndicator(completionMessage);
+        else {
+          ind.style.setProperty('opacity', '0', 'important');
+          ind.style.setProperty('display', 'none', 'important');
+        }
+      };
+    }
     pageIndicatorTimer = setTimeout(() => {
       ind.style.setProperty('opacity', '0', 'important');
-      setTimeout(() => { ind.style.setProperty('display', 'none', 'important'); }, 180);
+      pageIndicatorHideTimer = setTimeout(() => { ind.style.setProperty('display', 'none', 'important'); }, 180);
     }, 1400);
   }
+
+  globalThis.EgovReferenceNotice = () => showPageIndicator('逆リンク情報を取得・保存しています…', null, { persistent: true });
+  globalThis.EgovReferencePreparationChanged = () => updateHeaderToggleButtonStates();
 
   function getArticleAtViewport25pct() {
     return getArticleAtViewportRatio(0.25);
@@ -4262,9 +4287,7 @@
 
   function getDefinitionTargetText(el) {
     if (!(el instanceof Element)) return '';
-    const parts = parseProvisionPath(el.id || '');
-    if (parts?.article && !parts.paragraph && !parts.item) return buildArticleBodyText(el);
-    return normalizeProvisionMultilineText(extractProvisionText(el, parts));
+    return getProvisionBodyText({ articleEl: el, parts: parseProvisionPath(el.id || '') });
   }
 
   function buildDefinitionCandidateCache() {
@@ -5298,11 +5321,12 @@
     return null;
   }
 
-  function buildReferenceTargetElementIndex() {
+  function* buildReferenceTargetElementIndex() {
     const index = new Map();
     const provisionRoot = document.querySelector('#provisionview');
     if (!(provisionRoot instanceof Element)) return index;
-    provisionRoot.querySelectorAll('[data-article-num], [id*="-At_"]').forEach((element) => {
+    for (const element of provisionRoot.querySelectorAll('[data-article-num], [id*="-At_"]')) {
+      yield;
       const parsed = element.id ? parseProvisionHash(`#${element.id}`) : null;
       const article = String(element.dataset?.articleNum || parsed?.article || '').replace(/_/g, '-');
       const paragraph = String(element.dataset?.paragraphNum || parsed?.paragraph || '').replace(/_/g, '-');
@@ -5312,7 +5336,7 @@
         `${scope ? `${scope}::` : ''}${[article, paragraph, item].filter(Boolean).join('.')}`
       );
       if (targetKey && !index.has(targetKey)) index.set(targetKey, element);
-    });
+    }
     return index;
   }
 
@@ -5660,6 +5684,16 @@
   }
 
   async function openReferenceSource(source, event = null) {
+    if (source?.sourceUrl?.startsWith(chrome.runtime.getURL('viewer.html') + '?localRule=')) {
+      hideReferencesPopup();
+      const popupMode = !isLawRefScrollMode() || lawRefOtherLawPopupEnabled;
+      if (event?.ctrlKey ? !popupMode : popupMode) {
+        globalThis.EgovApp.showLocalReferencePopup(source, event ? { x: event.clientX, y: event.clientY } : null);
+        return;
+      }
+      await chrome.runtime.sendMessage({ type: 'egov-open-law-reference-tab', url: source.sourceUrl });
+      return;
+    }
     const anchor = createReferenceSourceAnchor(source);
     if (!anchor) return;
     const point = event ? { x: event.clientX, y: event.clientY } : null;
@@ -5706,43 +5740,39 @@
     });
   }
 
-  function applyReferenceLinksForLaw(lawReferences, { clear = false } = {}) {
+  async function applyReferenceLinksForLaw(lawReferences, { clear = false, isCurrent = () => externalReferencesEnabled } = {}) {
     if (clear) {
       clearExternalReferenceLinks();
-      referenceTargetElementIndex = buildReferenceTargetElementIndex();
+      const index = await globalThis.EgovShared.runReferenceWork(buildReferenceTargetElementIndex(), isCurrent);
+      if (!isCurrent()) return false;
+      referenceTargetElementIndex = index;
     }
     return applyReferenceLinksInBatches(lawReferences, {
-      isEnabled: () => externalReferencesEnabled,
+      isEnabled: isCurrent,
       findTarget: findReferenceTargetElement,
       makeClickable: makeReferenceClickable,
       schedule: (step) => runWhenIdle(step, 250),
     });
   }
 
-  function applyExternalReferenceLinksForLaw(lawReferences) {
+  async function applyExternalReferenceLinksForLaw(lawReferences) {
     const generation = ++referenceAnalysisGeneration;
+    const isCurrent = () => externalReferencesEnabled && generation === referenceAnalysisGeneration;
     const { includeInternal, includeExternal } = getReverseReferenceScopeFlags(reverseReferenceScope);
-    const externalReferences = includeExternal ? mergeLawReferences(lawReferences) : {};
-    applyReferenceLinksForLaw(externalReferences, { clear: true }).then((applied) => {
-      if (!applied || !externalReferencesEnabled || generation !== referenceAnalysisGeneration) return;
-      if (!includeInternal) return;
-      runWhenIdle(() => {
-        if (!externalReferencesEnabled || generation !== referenceAnalysisGeneration) return;
-        const provisionRoot = document.querySelector('#provisionview');
-        const internalReferences = collectInternalLawReferences(provisionRoot, {
-          lawId: getCurrentLawIdFromUrl(),
-          lawTitle: getCurrentLawName(),
-          baseUrl: location.href,
-        });
-        if (!externalReferencesEnabled || generation !== referenceAnalysisGeneration) return;
-        const mergedReferences = mergeLawReferences(externalReferences, internalReferences);
-        const referencesToRefresh = {};
-        Object.keys(internalReferences).forEach((targetKey) => {
-          if (mergedReferences[targetKey]) referencesToRefresh[targetKey] = mergedReferences[targetKey];
-        });
-        applyReferenceLinksForLaw(referencesToRefresh);
-      }, 250);
-    });
+    const work = globalThis.EgovShared;
+    const externalReferences = includeExternal ? await work.mergeLawReferencesAsync([lawReferences], isCurrent) : {};
+    if (!isCurrent()) return false;
+    if (!await applyReferenceLinksForLaw(externalReferences, { clear: true, isCurrent }) || !isCurrent()) return false;
+    if (!includeInternal) return true;
+    const internalReferences = await work.collectInternalLawReferencesAsync(document.querySelector('#provisionview'), {
+      lawId: getCurrentLawIdFromUrl(),
+      lawTitle: getCurrentLawName(),
+      baseUrl: location.href,
+    }, isCurrent);
+    if (!isCurrent()) return false;
+    const merged = await work.mergeLawReferencesAsync([externalReferences, internalReferences], isCurrent);
+    if (!isCurrent()) return false;
+    return applyReferenceLinksForLaw(merged, { isCurrent });
   }
 
   function setupExternalReferenceInteractions() {
@@ -5762,6 +5792,7 @@
     if (externalReferencesLoading) return false;
     externalReferencesLoading = true;
     updateHeaderToggleButtonStates();
+    let finishNotice = () => {};
     try {
       const ready = await waitForArticles(10000);
       if (!ready) {
@@ -5774,14 +5805,22 @@
         stored[REVERSE_REFERENCE_SCOPE_KEY] ?? reverseReferenceScope
       );
       const { includeExternal } = getReverseReferenceScopeFlags(reverseReferenceScope);
+      const referenceViewAtRequest = location.href;
+      if (!silent) finishNotice = showPageIndicator('逆参照リンクを設定しています…', null, { persistent: true });
       const lawReferences = includeExternal
         ? await getLawReferencesData(getCurrentLawIdFromUrl())
         : {};
+      if (location.href !== referenceViewAtRequest) return false;
       externalReferencesEnabled = true;
-      applyExternalReferenceLinksForLaw(lawReferences);
-      if (!silent) showPageIndicator('逆参照リンクを設定しました');
+      if (!await applyExternalReferenceLinksForLaw(lawReferences)) return false;
+      finishNotice('逆参照リンクを設定しました');
       return true;
+    } catch (error) {
+      finishNotice();
+      showPageIndicator(`逆参照リンクを取得できませんでした：${error.message || error}`);
+      return false;
     } finally {
+      finishNotice();
       externalReferencesLoading = false;
       updateHeaderToggleButtonStates();
     }
@@ -5797,6 +5836,8 @@
   }
 
   function toggleExternalReferenceLinks() {
+    if (externalReferencesLoading || (globalThis.EgovShared.REVERSE_REFERENCE_SOURCE === 'api'
+        && globalThis.EgovNormalLawContext?.isPreparing())) return;
     if (externalReferencesEnabled) {
       disableExternalReferenceLinks();
       return;

@@ -39,6 +39,31 @@ test('folder ID collisions remap new favorites, while equal names reuse local fo
   assert.deepEqual(clone(mergeFavoritesImport(result,incoming)),clone(result));
 });
 
+test('duplicate shortcut and folder policies are independent and preserve other fields',()=>{
+  const local=favorites([{...favorite('A','folder'),shortcut:'OLD',lastScrollTop:42},favorite('B','folder')],[{id:'folder',name:'Local'}]);
+  const incoming=favorites([{...favorite('A','folder'),shortcut:'NEW',lawName:'remote'},favorite('B'),favorite('C','folder')],[{id:'folder',name:'Remote'}]);
+  const original=JSON.stringify([local,incoming]);
+  for(const overwriteShortcut of [false,true]) for(const overwriteFolder of [false,true]) {
+    const result=mergeFavoritesImport(local,incoming,{overwriteShortcut,overwriteFolder});
+    const remote=result.favFolders.find(folder=>folder.name==='Remote').id;
+    assert.equal(result.favorites[0].shortcut,overwriteShortcut?'NEW':'OLD');
+    assert.equal(result.favorites[0].folderId,overwriteFolder?remote:'folder');
+    assert.equal(result.favorites[1].folderId,overwriteFolder?null:'folder');
+    assert.equal(result.favorites[2].folderId,remote);
+    assert.equal(result.favorites[0].lawName,'A');
+    assert.equal(result.favorites[0].lastScrollTop,42);
+  }
+  assert.equal(JSON.stringify([local,incoming]),original);
+  assert.equal(mergeFavoritesImport(local,favorites([favorite('A')]),{overwriteShortcut:true}).favorites[0].shortcut,undefined);
+});
+
+test('shortcut collisions after applying merge policies reject without changing inputs',()=>{
+  const local=favorites([{...favorite('A'),shortcut:'A'},{...favorite('B'),shortcut:'B'}]);
+  const original=JSON.stringify(local);
+  assert.throws(()=>mergeFavoritesImport(local,favorites([{...favorite('A'),shortcut:'B'}]),{overwriteShortcut:true}),/重複/);
+  assert.equal(JSON.stringify(local),original);
+});
+
 test('favorites above the combined limit fail without truncating or mutating inputs',()=>{
   const local=favorites(Array.from({length:50},(_,i)=>favorite('law'+i)));
   const original=JSON.stringify(local);

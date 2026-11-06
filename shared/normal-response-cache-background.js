@@ -12,8 +12,7 @@
     const settings = await chrome.storage.local.get(key);
     return normalizeNormalResponseCacheCapacity(settings[key]) * 1024 * 1024;
   }
-  const digest = async text => Array.from(new Uint8Array(await crypto.subtle.digest(
-    'SHA-256', new TextEncoder().encode(text))), byte => byte.toString(16).padStart(2, '0')).join('');
+  const digest = globalThis.EgovShared.lawCacheDigest;
   const japanDay = () => new Date(Date.now() + 9 * 3600000).toISOString().slice(0, 10);
 
   function validate(message, sender) {
@@ -79,6 +78,12 @@
           return null;
         }
         await touchLawCacheEntry(cache, CACHE, key, response, text);
+        const binding = globalThis.EgovNormalCacheFallback?.binding(sender.url, valid.request) || {};
+        if (Object.entries(binding).some(([name,value])=>response.headers.get(name)!==value)) {
+          const headers = new Headers(response.headers);
+          for(const [name,value] of Object.entries(binding))headers.set(name,value);
+          await putLawCacheEntry(cache,CACHE,key,new Response(text,{headers}));
+        }
         return { text, contentType: response.headers.get('content-type'), downloadedAt: saved };
       });
     }
@@ -104,6 +109,7 @@
       if (bytes > limit) { await trim(cache, limit, 0, ''); return; }
       await trim(cache, limit, bytes, key);
       await putLawCacheEntry(cache, CACHE, key, new Response(value.text, { headers: {
+        ...(globalThis.EgovNormalCacheFallback?.binding(sender.url, valid.request) || {}),
         'content-type': value.contentType, 'x-saved': String(downloadedAt),
         'x-accessed': String(Date.now()), 'x-bytes': String(bytes), 'x-sha256': hash,
       } }));

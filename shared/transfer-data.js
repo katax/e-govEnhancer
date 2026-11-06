@@ -277,7 +277,7 @@
     };
   }
 
-  function mergeFavoritesImport(current, incoming) {
+  function mergeFavoritesImport(current, incoming, { overwriteShortcut = false, overwriteFolder = false } = {}) {
     const local = validateFavoritesImport(current);
     const imported = validateFavoritesImport(incoming);
     const folders = local.favFolders.map(folder => ({ ...folder }));
@@ -300,7 +300,14 @@
     }
     const favorites = new Map(local.favorites.map(favorite => [favorite.lawId, favorite]));
     for (const favorite of imported.favorites) {
-      if (!favorites.has(favorite.lawId)) favorites.set(favorite.lawId, {
+      const existing = favorites.get(favorite.lawId);
+      if (existing) {
+        if (overwriteShortcut) {
+          if (favorite.shortcut) existing.shortcut = favorite.shortcut;
+          else delete existing.shortcut;
+        }
+        if (overwriteFolder) existing.folderId = favorite.folderId ? remap.get(favorite.folderId) : null;
+      } else favorites.set(favorite.lawId, {
         ...favorite, folderId: favorite.folderId ? remap.get(favorite.folderId) : null,
       });
     }

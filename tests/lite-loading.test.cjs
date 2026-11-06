@@ -88,11 +88,13 @@ async function loadViewer(xmlText, force = false) {
   let renders = 0, finishes = 0, message;
   const label = {};
   const context = vm.createContext({
-    lawId: 'law', localRule: null, articleElementsCache: [], contentEl: {}, revisionIdParam: '',
+    lawId: 'law', localRule: null, normalCacheUrl: '', articleElementsCache: [], contentEl: {}, revisionIdParam: '',
     revisions: [], currentRevisionId: '', forceLiteDownload: force,
-    lawLoadGeneration: 0, EgovLawUpdates: { setButtonState() {} }, scheduleLiteLawUpdateCheck() {},
+    lawLoadGeneration: 0, referenceAnalysisGeneration: 0, referenceLawContext: null,
+    EgovLawUpdates: { setButtonState() {} }, scheduleLiteLawUpdateCheck() {}, runWhenIdle() {},
     document: { getElementById: () => label },
     chrome: { runtime: { sendMessage: async value => {
+      if (value.type !== 'egov-load-lite-law') return { ok: true };
       message = value;
       return { ok: true, cacheTarget: 'law', currentRevisionId: 'rev', revisions: [], xmlText, downloadedAt: 1792857600000 };
     } } },

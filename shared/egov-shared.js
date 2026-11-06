@@ -9,6 +9,8 @@
   const REFERENCES_BUNDLED_CACHE_STORE = 'bundled_cache';
   const REFERENCES_CURRENT_META_KEY = 'current';
   const REVERSE_REFERENCE_SCOPE_KEY = 'reverseReferenceScope';
+  // Legacy reader toggle. Restoring the former full corpus requires the backup.
+  const REVERSE_REFERENCE_SOURCE = 'api';
   const REVERSE_REFERENCE_SCOPES = new Set(['internal', 'external', 'both']);
   const LITE_LAW_LEGACY_CACHE_NAMES = ['egov-lite-law-xml-v1', 'egov-lite-law-xml-v2', 'egov-lite-law-xml-v3'];
   // 旧キャッシュには法令IDの取得結果が現行改正IDとして保存されている可能性があるため、再利用しない。
@@ -260,6 +262,23 @@
   }
 
   function formatProvisionSourcePathFromEgovUrl(url, base = LAW_BASE_URL) {
+    // Bundled viewer anchors use paragraph-182-2 rather than e-Gov's
+    // Mp-At_182-Pr_2. Keep navigation URLs unchanged and decode for display.
+    try {
+      const parsed = new URL(String(url || ''), base);
+      if (parsed.searchParams.has('localRule')) {
+        const match = decodeURIComponent(parsed.hash.slice(1)).match(
+          /^(?:(Sp(?:_\d+)?)-)?(article|paragraph|item)-(\d+(?:_\d+)*)(?:-(\d+(?:_\d+)*))?(?:-(\d+(?:_\d+)*))?(?:-\d+)?$/
+        );
+        if (match) {
+          const [, scope, level, article, paragraph, item] = match;
+          if (level === 'paragraph' && !paragraph)
+            return `${scope ? '附則' : '前文'}${formatProvisionBranch(article, '項')}`;
+          return formatProvisionSourcePath({ scope, article,
+            paragraph: level !== 'article' ? paragraph : '', item: level === 'item' ? item : '' });
+        }
+      }
+    } catch (_) {}
     return formatProvisionSourcePath(parseProvisionPathFromEgovUrl(url, base));
   }
 
@@ -533,34 +552,35 @@
     return Array.from({ length: end - start + 1 }, (_, index) => buildKey(start + index));
   }
 
-  function buildInternalProvisionOrder(root, parsedProvisionCache) {
+  function* buildInternalProvisionOrder(root, parsedProvisionCache) {
     const articlesByScope = new Map();
     const paragraphs = new Map();
     const items = new Map();
     const seenArticles = new Set();
     const seenParagraphs = new Map();
     const seenItems = new Map();
-    root.querySelectorAll('[data-article-num], [id*="At_"]').forEach((element) => {
+    for (const element of root.querySelectorAll('[data-article-num], [id*="At_"]')) {
+      yield;
       const parsed = getParsedProvisionElement(element, parsedProvisionCache);
       const article = normalizeReferenceKeyPart(element.dataset?.articleNum || parsed?.article);
       const paragraph = normalizeReferenceKeyPart(element.dataset?.paragraphNum || parsed?.paragraph);
       const item = normalizeReferenceKeyPart(element.dataset?.itemNum || parsed?.item);
       const scope = String(element.dataset?.referenceScope || parsed?.scope || '');
-      if (!article) return;
+      if (!article) continue;
       const articleKey = formatScopedReferenceTargetKey(scope, article);
       if (!articlesByScope.has(scope)) articlesByScope.set(scope, []);
       if (!seenArticles.has(articleKey)) {
         seenArticles.add(articleKey);
         articlesByScope.get(scope).push(article);
       }
-      if (!paragraph) return;
+      if (!paragraph) continue;
       if (!paragraphs.has(articleKey)) paragraphs.set(articleKey, []);
       if (!seenParagraphs.has(articleKey)) seenParagraphs.set(articleKey, new Set());
       if (!seenParagraphs.get(articleKey).has(paragraph)) {
         seenParagraphs.get(articleKey).add(paragraph);
         paragraphs.get(articleKey).push(paragraph);
       }
-      if (!item) return;
+      if (!item) continue;
       const paragraphKey = formatScopedReferenceTargetKey(scope, `${article}.${paragraph}`);
       if (!items.has(paragraphKey)) items.set(paragraphKey, []);
       if (!seenItems.has(paragraphKey)) seenItems.set(paragraphKey, new Set());
@@ -568,7 +588,7 @@
         seenItems.get(paragraphKey).add(item);
         items.get(paragraphKey).push(item);
       }
-    });
+    }
     return { articlesByScope, paragraphs, items };
   }
 
@@ -774,7 +794,7 @@
     return [targetKey];
   }
 
-  function collectInternalLawReferences(root, {
+  function* iterateInternalLawReferences(root, {
     lawId,
     lawTitle = '',
     baseUrl = global.location?.href || LAW_BASE_URL,
@@ -785,29 +805,30 @@
     const parsedProvisionCache = new WeakMap();
     const sourceDetailsCache = new WeakMap();
     const paragraphCountCache = new WeakMap();
-    const provisionOrder = buildInternalProvisionOrder(root, parsedProvisionCache);
+    const provisionOrder = yield* buildInternalProvisionOrder(root, parsedProvisionCache);
     let baseOrigin = '';
     try {
       baseOrigin = new URL(baseUrl, LAW_BASE_URL).origin;
     } catch (_) {}
 
-    root.querySelectorAll('a[href]').forEach((anchor) => {
+    for (const anchor of root.querySelectorAll('a[href]')) {
+      yield;
       let parsedUrl;
       try {
         parsedUrl = new URL(anchor.getAttribute('href') || '', baseUrl);
       } catch (_) {
-        return;
+        continue;
       }
-      if (baseOrigin && parsedUrl.origin !== baseOrigin) return;
+      if (baseOrigin && parsedUrl.origin !== baseOrigin) continue;
       const targetLawId = parsedUrl.pathname.match(/\/law\/([^/?#]+)/)?.[1] || '';
-      if (targetLawId !== lawId) return;
+      if (targetLawId !== lawId) continue;
 
       const targetKey = getReferenceTargetKeyFromEgovUrl(parsedUrl.href, baseUrl);
-      if (!targetKey) return;
+      if (!targetKey) continue;
       const sourceParts = getInternalReferenceSourceParts(anchor, root, parsedProvisionCache);
-      if (!sourceParts?.article) return;
+      if (!sourceParts?.article) continue;
       const sourceUrl = buildInternalReferenceSourceUrl(lawId, sourceParts);
-      if (!sourceUrl) return;
+      if (!sourceUrl) continue;
       let sourceDetails = sourceDetailsCache.get(sourceParts.element);
       if (!sourceDetails) {
         sourceDetails = getInternalReferenceSourceDetails(
@@ -846,17 +867,18 @@
           isInternalLawSource: true,
         });
       });
-    });
+    }
     return result;
   }
 
-  function mergeLawReferences(...referenceSets) {
+  function* iterateMergedLawReferences(...referenceSets) {
     const merged = {};
     const seenByTarget = new Map();
-    referenceSets.forEach((referenceSet) => {
-      Object.entries(referenceSet || {}).forEach(([rawTargetKey, value]) => {
+    for (const referenceSet of referenceSets) {
+      for (const [rawTargetKey, value] of Object.entries(referenceSet || {})) {
+        yield;
         const targetKey = canonicalizeReferenceTargetKey(rawTargetKey);
-        if (!targetKey) return;
+        if (!targetKey) continue;
         if (!merged[targetKey]) merged[targetKey] = { externalLawSources: [] };
         let seen = seenByTarget.get(targetKey);
         if (!seen) {
@@ -864,16 +886,52 @@
           seenByTarget.set(targetKey, seen);
         }
         const sources = Array.isArray(value?.externalLawSources) ? value.externalLawSources : [];
-        sources.forEach((source) => {
+        for (const source of sources) {
+          yield;
           const identity = `${source?.sourceLawId || ''}\n${source?.sourceUrl || ''}`;
-          if (seen.has(identity)) return;
+          if (seen.has(identity)) continue;
           seen.add(identity);
           merged[targetKey].externalLawSources.push(source);
-        });
-      });
-    });
+        }
+      }
+    }
     return merged;
   }
+
+  function finishReferenceWork(iterator) {
+    let step;
+    do { step = iterator.next(); } while (!step.done);
+    return step.value;
+  }
+
+  async function runReferenceWork(iterator, isCurrent = () => true) {
+    // A real task boundary lets input and paint run; Promise.resolve() does not.
+    // Timer tasks also allow ordinary page timers to progress. Boosted
+    // scheduler.yield continuations can repeatedly outrank those tasks.
+    const pause = () => new Promise(resolve => global.setTimeout(resolve, 0));
+    await pause();
+    while (isCurrent()) {
+      const start = performance.now();
+      for (let count = 0; count < 1000; count++) {
+        if (!isCurrent()) return null;
+        const step = iterator.next();
+        if (step.done) return step.value;
+        if (performance.now() - start >= 4) break;
+      }
+      await pause();
+    }
+    return null;
+  }
+
+  function collectInternalLawReferences(root, options) {
+    return finishReferenceWork(iterateInternalLawReferences(root, options));
+  }
+  const collectInternalLawReferencesAsync = (root, options, isCurrent) =>
+    runReferenceWork(iterateInternalLawReferences(root, options), isCurrent);
+  function mergeLawReferences(...sets) {
+    return finishReferenceWork(iterateMergedLawReferences(...sets));
+  }
+  const mergeLawReferencesAsync = (sets, isCurrent) => runReferenceWork(iterateMergedLawReferences(...sets), isCurrent);
 
   function configureReferenceClickable({
     clickable,
@@ -935,6 +993,7 @@
           resolve(false);
           return;
         }
+        const started = performance.now();
         const end = Math.min(targetKeys.length, index + batchSize);
         for (; index < end; index += 1) {
           if (!isEnabled()) {
@@ -947,6 +1006,7 @@
           if (!sources.length) continue;
           const target = findTarget(targetKey);
           if (target) makeClickable(target, targetKey, sources);
+          if (performance.now() - started >= 4) { index += 1; break; }
         }
         if (index < targetKeys.length) {
           schedule(step);
@@ -954,7 +1014,7 @@
         }
         resolve(true);
       };
-      step();
+      schedule(step);
     });
   }
 
@@ -1495,21 +1555,37 @@
     });
   }
 
-  async function getLawReferencesData(lawId, runtime = global.chrome?.runtime) {
+  async function getLawReferencesData(lawId, runtime = global.chrome?.runtime, context) {
     if (!lawId || !runtime?.sendMessage) return {};
+    const api = REVERSE_REFERENCE_SOURCE === 'api';
+    const normal = api && !context;
     try {
+      if (api && !context) {
+        const start = Date.now();
+        while (!(context = global.EgovNormalLawContext?.get(lawId))) {
+          if (Date.now() - start > 15000) throw new Error('法令ファイルの読み込み完了を確認できませんでした。再読み込み後にお試しください');
+          await new Promise(resolve => setTimeout(resolve, 100));
+        }
+      }
       const response = await runtime.sendMessage({
         type: 'egov-get-imported-law-references',
-        lawId,
+        lawId, context,
       });
+      if (normal) {
+        const current = global.EgovNormalLawContext?.get(lawId);
+        if (!current || current.downloadedAt !== context.downloadedAt || current.normalRevision !== context.normalRevision
+            || current.view !== context.view) throw new Error('表示中の法令が変わりました。もう一度お試しください');
+      }
       if (response?.ok && isPlainObject(response.lawReferences)) {
         return response.lawReferences;
       }
-    } catch (_) {}
+      if (api) throw new Error(response?.error || '引用元の取得に失敗しました');
+    } catch (error) { if (api) throw error; }
     return {};
   }
 
   global.EgovShared = Object.freeze({
+    REVERSE_REFERENCE_SOURCE,
     textHighlightQuoteMatches,
     recoverTextHighlightQuoteRange,
     readTextHighlightStorage,
@@ -1536,10 +1612,14 @@
     putLawCacheEntry,
     deleteLawCacheEntry,
     touchLawCacheEntry,
+    lawCacheDigest,
     canonicalizeReferenceTargetKey,
     cleanLawNameForSearch,
     cloneDefinitionPatterns,
     collectInternalLawReferences,
+    collectInternalLawReferencesAsync,
+    mergeLawReferencesAsync,
+    runReferenceWork,
     collectSearchTextSegments,
     configureReferenceClickable,
     DEFINITION_PATTERNS,

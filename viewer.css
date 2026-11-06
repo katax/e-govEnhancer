@@ -69,12 +69,43 @@ h1 {
 
 .viewer-source-notice {
   margin: 2px 0 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
   color: #8a5a00;
   font-size: 11px;
   line-height: 1.35;
 }
 
-.viewer-source-notice a { color: #075d8f; }
+.viewer-source-notice a { color: inherit; text-decoration: none; }
+.viewer-source-notice a span { color: #075d8f; text-decoration: underline; }
+
+.viewer-header:has(.viewer-source-notice:not([hidden])) {
+  flex-wrap: wrap;
+}
+
+.viewer-title-block:has(.viewer-source-notice:not([hidden])) {
+  flex: 1 1 14em;
+}
+
+.viewer-header:has(.viewer-source-notice:not([hidden])) .viewer-actions {
+  max-width: 100%;
+}
+
+.normal-cache-fallback-notice {
+  margin: 0 0 16px; padding: 12px 16px; border: 1px solid #e4bd72;
+  border-radius: 8px; background: #fff5d9; color: #664500;
+}
+body[data-normal-offline="true"] .viewer-header { flex-wrap: wrap; }
+body[data-normal-offline="true"] .normal-cache-fallback-notice { flex-basis: 100%; margin: 0; }
+body[data-normal-offline="true"] #external-references-button,
+body[data-normal-offline="true"] #compare-mode-button,
+body[data-normal-offline="true"] #normal-mode-button,
+body[data-normal-offline="true"] #definition-links-button { display: none; }
+body[data-normal-offline="true"] #law-content ._div_ArticleTitle { display: block; font-weight: normal; margin-bottom: 10px; }
+body[data-normal-offline="true"] #law-content ._div_ArticleTitle > span:first-child { font-weight: bold; }
+body[data-normal-offline="true"] #law-content ._div_ParagraphSentence { display: block; margin: 8px 0; }
+body[data-normal-offline="true"] #law-content ._div_ItemSentence { display: block; margin: 6px 0 6px 1.5em; }
 
 .viewer-actions {
   display: flex;
@@ -229,6 +260,29 @@ body[data-embedded="true"] .law-content {
   border-radius: 0;
   max-width: none;
   min-height: 100vh;
+}
+
+/* A local reverse-reference popup shows the text, not the standalone viewer UI. */
+body[data-reference-body="true"] .viewer-header,
+body[data-reference-body="true"] .viewer-cache-status,
+body[data-reference-body="true"] #right-pane,
+body[data-reference-body="true"] .lite-bookmark-gutter,
+body[data-reference-body="true"] #lite-indicator {
+  display: none !important;
+}
+
+body[data-reference-body="true"] .viewer-shell {
+  display: block !important;
+  padding: 0 !important;
+}
+
+body[data-reference-body="true"] #law-content {
+  width: 100%;
+  max-width: none !important;
+  margin: 0 !important;
+  padding: 18px 24px 32px;
+  border: 0;
+  border-radius: 0;
 }
 
 .law-content {
@@ -895,6 +949,12 @@ body[data-reference-viewer-open="true"]:not([data-compare-mode="on"])[data-conte
   background: #d8efda;
 }
 
+.egov-lite-reference-popup .egov-lite-reference-related-badge.egov-lite-reference-local-badge {
+  display: inline-block !important;
+  background: #dbeafe !important;
+  color: #1e4f91 !important;
+}
+
 .egov-lite-reference-related-badge {
   display: none;
   margin: 0 0 5px;
@@ -1486,6 +1546,23 @@ body[data-paren-mode] .egov-lite-paren.is-hover {
   }
 
   h1 { white-space: normal; }
+  .viewer-header:has(.viewer-source-notice:not([hidden])) {
+    flex-wrap: nowrap;
+    gap: 4px;
+  }
+  .viewer-title-block:has(.viewer-source-notice:not([hidden])) {
+    flex: none;
+  }
+  .viewer-title-block:has(.viewer-source-notice:not([hidden])) h1 {
+    white-space: nowrap;
+  }
+  .viewer-header:has(.viewer-source-notice:not([hidden])) .viewer-actions {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+  }
+  .viewer-header:has(.viewer-source-notice:not([hidden])) .viewer-actions > * {
+    flex-shrink: 0;
+  }
   .viewer-actions { justify-content: flex-start; }
   #revision-select { min-width: min(100%, 260px); }
   .viewer-shell { padding: 12px; }

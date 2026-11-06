@@ -596,9 +596,9 @@
 
 ### 9.4 外部参照キャッシュ
 
-- 外部参照データは `background.js` が `data/references.json` から法令単位で切り出し、IndexedDB の `egov-extension-references` / `bundled_cache` ストアにオンデマンド保存する。
-- 手動インポートしたデータは `laws` / `meta` ストアに保存し、同梱データ由来のキャッシュとは分離する。
-- 拡張更新時に自動クリアするのは同梱データ由来の `bundled_cache` のみで、手動インポートデータは保持する。
+- 外部参照データは内部APIから取得し、法令本文の取得日時・表示版に紐づけて専用Cache Storageへ保存する。通常・Liteのキャッシュは分離し、法令容量の上限には加算しない。
+- 同梱規則を引用元とする情報は `data/local-references/index.json` の対象IDに一致する場合だけ `references.json` を読み、API結果へ合流する。全法令版JSONと分割JSONは同梱しない。
+- 以前の手動インポートデータはIndexedDBの `laws` / `meta` ストアに保持し、再書き出し可能。ただし現在のAPI方式では表示への適用経路に入らない。旧取得経路は試用切り替え用に残している。
 
 ## 10. 保存データ一覧
 

@@ -211,6 +211,12 @@
   background: #d8efda !important;
 }
 
+.egov-ext-reference-popup .egov-ext-reference-related-badge.egov-ext-reference-local-badge {
+  display: inline-block !important;
+  background: #dbeafe !important;
+  color: #1e4f91 !important;
+}
+
 .egov-ext-reference-related-badge {
   background: #ffe0a3 !important;
   border-radius: 999px !important;

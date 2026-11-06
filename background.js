@@ -1,5 +1,6 @@
-importScripts('shared/egov-shared.js', 'shared/normal-response-cache-background.js',
-  'shared/law-update-check.js', 'shared/law-update-check-background.js');
+importScripts('shared/egov-shared.js', 'shared/normal-cache-fallback-background.js', 'shared/normal-response-cache-background.js',
+  'shared/law-update-check.js', 'shared/law-update-check-background.js', 'shared/inyo-api-background.js',
+  'shared/local-references-background.js');
 
 chrome.runtime.onStartup?.addListener(() => {
   chrome.storage.session.setAccessLevel({ accessLevel: 'TRUSTED_AND_UNTRUSTED_CONTEXTS' }).catch(() => {});
@@ -38,7 +39,7 @@ const {
   openReferencesDb,
   waitForTransaction,
 } = globalThis.EgovShared;
-const bundledReferenceShardPromises = new Map();
+
 const EGOV_API_V2_BASE = 'https://laws.e-gov.go.jp/api/2';
 const liteLawLoadPromises = new Map();
 // Old Lite entries lack download metadata and cannot obey the new policy.
@@ -937,19 +938,8 @@ async function readCachedLawReferences(lawId) {
   }
 }
 
-function getBundledReferencesData(lawId) {
-  let hash = 2166136261;
-  for (let i = 0; i < lawId.length; i++) hash = Math.imul(hash ^ lawId.charCodeAt(i), 16777619);
-  const shard = ((hash >>> 0) & 255).toString(16).padStart(2, '0');
-  if (!bundledReferenceShardPromises.has(shard)) {
-    const promise = (async () => {
-      const response = await fetch(chrome.runtime.getURL(`data/reference-shards/${shard}.json`));
-      if (!response.ok) throw new Error(`References fetch failed: HTTP ${response.status}`);
-      return response.json();
-    })().finally(() => bundledReferenceShardPromises.delete(shard));
-    bundledReferenceShardPromises.set(shard, promise);
-  }
-  return bundledReferenceShardPromises.get(shard);
+async function getBundledReferencesData(lawId) {
+  return { [lawId]: await globalThis.EgovLocalReferences.get(lawId) };
 }
 
 async function openActionPopup(mode = '') {
@@ -1059,8 +1049,28 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     openManualPage().then((tab) => sendResponse({ ok: true, tabId: tab?.id })).catch(() => sendResponse({ ok: false }));
     return true;
   }
+  if (message?.type === 'egov-invalidate-law-references') {
+    const request = globalThis.EgovShared.REVERSE_REFERENCE_SOURCE === 'api'
+      ? globalThis.EgovInyoApi.invalidate(message.context) : Promise.resolve();
+    request.then(() => sendResponse({ ok: true }), () => sendResponse({ ok: false }));
+    return true;
+  }
+  if (message?.type === 'egov-prepare-law-references') {
+    if (globalThis.EgovShared.REVERSE_REFERENCE_SOURCE !== 'api') {
+      sendResponse({ ok: true });
+      return false;
+    }
+    globalThis.EgovInyoApi.prepare(message.context, message.fresh === true)
+      .then(cacheStatus => sendResponse({ ok: true, cacheStatus }))
+      .catch(error => sendResponse({ ok: false, error: error?.message || String(error) }));
+    return true;
+  }
   if (message?.type === 'egov-get-imported-law-references') {
-    getImportedLawReferences(message.lawId)
+    const request = message.context?.mode === 'local' ? Promise.resolve({}) : globalThis.EgovShared.REVERSE_REFERENCE_SOURCE === 'api'
+      ? globalThis.EgovInyoApi.get({ ...message.context, lawId: message.lawId })
+      : getImportedLawReferences(message.lawId);
+    request
+      .then(lawReferences => globalThis.EgovLocalReferences.merge(message.lawId, lawReferences))
       .then((lawReferences) => sendResponse({ ok: true, lawReferences }))
       .catch((error) => sendResponse({ ok: false, error: error?.message || String(error || '') }));
     return true;
@@ -1081,6 +1091,10 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
 });
 
 chrome.commands.onCommand.addListener((command) => {
+  if (command === 'open_search_popup') {
+    openActionPopup().catch(() => {});
+    return;
+  }
   if (command === 'open_favorites_popup') {
     openActionPopup('favorites').catch(() => {});
     return;

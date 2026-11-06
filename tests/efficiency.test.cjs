@@ -95,46 +95,6 @@ test('search shares an in-flight query and rejects stale results even if transpo
   assert.equal(next.isCurrent(), false);
 });
 
-test('reference shards preserve every source record and the export reconstructs all laws', async () => {
-  const source = fs.readFileSync(path.join(root, 'data/references.json'));
-  const original = JSON.parse(source.toString('utf8').replace(/^\uFEFF/, ''));
-  const manifest = JSON.parse(read('data/reference-shards/shard-index.json'));
-  assert.equal(createHash('sha256').update(source).digest('hex'), manifest.sourceSha256);
-  assert.equal(Object.keys(manifest.shards).length, 256);
-  for (const [name, hash] of Object.entries(manifest.shards)) {
-    const buffer = fs.readFileSync(path.join(root, `data/reference-shards/${name}.json`));
-    assert.equal(createHash('sha256').update(buffer).digest('hex'), hash);
-    for (const [lawId, references] of Object.entries(JSON.parse(buffer))) {
-      assert.deepEqual(references, original[lawId]);
-    }
-  }
-  const realm = vm.createContext({
-    chrome: { runtime: { getURL: file => file } },
-    fetch: async file => new Response(read(file)),
-  });
-  const sourceCode = read('options.js');
-  vm.runInContext(sourceCode.slice(sourceCode.indexOf('  async function readBundledReferencesForExport()'),
-    sourceCode.indexOf('  async function exportReferences()')), realm);
-  const exported = await realm.readBundledReferencesForExport();
-  assert.deepEqual(Object.keys(exported).sort(), Object.keys(original).sort());
-  for (const lawId of Object.keys(original)) assert.deepEqual(exported[lawId], original[lawId]);
-});
-
-test('runtime reference lookup loads only the selected shard and shares concurrent reads', async () => {
-  let calls = 0;
-  const realm = vm.createContext({ bundledReferenceShardPromises: new Map(),
-    chrome: { runtime: { getURL: file => file } },
-    fetch: async file => { calls++; assert.match(file, /^data\/reference-shards\/[0-9a-f]{2}\.json$/); return new Response(read(file)); },
-  });
-  const code = read('background.js');
-  vm.runInContext(code.slice(code.indexOf('function getBundledReferencesData('), code.indexOf('async function openActionPopup(')), realm);
-  const law = Object.keys(JSON.parse(read('data/reference-shards/00.json')))[0];
-  const [a, b] = await Promise.all([realm.getBundledReferencesData(law), realm.getBundledReferencesData(law)]);
-  assert.equal(calls, 1);
-  assert.equal(a, b);
-  assert.ok(a[law]);
-});
-
 test('highlight restoration yields by attempts for all failures and mixed successes in both modes', async () => {
   for (const lite of [false, true]) {
     const code = read(lite ? 'shared/text-highlights.js' : 'content.js');

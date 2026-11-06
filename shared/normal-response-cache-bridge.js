@@ -16,6 +16,38 @@
   let uiFrame = 0;
   let checkTimer = 0, checkGeneration = 0, checkedKey = '';
   let revisionLaw = '', revisionHistory = [], displayedRevision = '', badgeFrame = 0;
+  let referenceBody = null;
+  let referencePreparing = false;
+  const referenceTocs = new Map();
+  const referenceView = () => {
+    const url = new URL(location.href);
+    url.searchParams.delete('tab');
+    return url.pathname + url.search;
+  };
+  globalThis.EgovNormalLawContext = Object.freeze({ isPreparing() {
+    return referencePreparing && referenceBody?.view === referenceView();
+  }, get(id) {
+    if (!referenceBody || id !== lawId() || referenceBody.lawId !== id
+        || referenceBody.view !== referenceView() || document.readyState !== 'complete'
+        || !document.querySelector('#provisionview')?.textContent.trim()) return null;
+    return { ...referenceBody, ids: referenceTocs.get(referenceBody.normalRevision) };
+  } });
+  function readReferenceToc(request, value) {
+    try {
+      if (new URL(request.url).pathname !== '/internal-api/SelectLawTocData.json') return;
+      const body = JSON.parse(request.body), result = JSON.parse(value.text).result;
+      if (!result?.success || !result.Toc_Data?.TocBody) return;
+      const ids = new Set();
+      function walk(node) {
+        if (!node || typeof node !== 'object') return;
+        if (typeof node['-ObjectId'] === 'string') ids.add(node['-ObjectId'].replace(/^#/, ''));
+        Object.values(node).forEach(walk);
+      }
+      walk(result.Toc_Data.TocBody);
+      referenceTocs.set(`${body.law_data_id}_${body.subRevision}`, [...ids]);
+      if (referenceTocs.size > 8) referenceTocs.delete(referenceTocs.keys().next().value);
+    } catch (_) {}
+  }
   function updateRevisionBadge() {
     badgeFrame = 0;
     const group = document.querySelector('#titlebar .titlegroup');
@@ -179,7 +211,8 @@
         || url.pathname === '/internal-api/SelectLawTextData.json' && JSON.parse(request.body).law_id === lawId();
     } catch (_) { return false; }
   }
-  function showDate(request, at) {
+  let referencePrepareTimer = 0;
+  function showDate(request, at, fromCache) {
     if (!isBody(request) || !Number.isFinite(at) || at <= 0) return;
     ensureUI();
     if (!label) return;
@@ -187,6 +220,48 @@
     // minimum over past requests makes a fresh download appear stale.
     label.textContent = `法令ファイル取得日時：${new Date(at).toLocaleString('ja-JP')}`;
     displayedRevision = updates.normalBodyRevision(request, lawId());
+    const queryDate = new URLSearchParams(location.search).get('occasion_date');
+    let occasion = queryDate;
+    try { occasion ||= JSON.parse(request.body).occasion; } catch (_) {}
+    occasion ||= location.pathname.match(/\/law\/[0-9A-Z]{15}\/(\d{8})_/)?.[1];
+    const match = String(occasion || '').match(/^(\d{4})[-/]?(\d{2})[-/]?(\d{2})$/);
+    referenceBody = { mode: 'normal', lawId: lawId(), view: referenceView(), normalRevision: displayedRevision,
+      downloadedAt: at, occasion: match ? `${match[1]}-${match[2]}-${match[3]}`
+        : new Date(at + 9 * 3600000).toISOString().slice(0, 10) };
+    const body = referenceBody;
+    const invalidation = fromCache === false ? chrome.runtime.sendMessage({
+      type: 'egov-invalidate-law-references', context: body,
+    }).catch(() => null) : Promise.resolve();
+    clearTimeout(referencePrepareTimer);
+    const preparationDeadline = Date.now() + 30000;
+    const prepare = async () => {
+      if (referenceBody !== body || body.view !== referenceView()) return;
+      const context = globalThis.EgovNormalLawContext.get(body.lawId);
+      if (!context) {
+        if (Date.now() < preparationDeadline) referencePrepareTimer = setTimeout(prepare, 250);
+        return;
+      }
+      await invalidation;
+      if (referenceBody !== body) return;
+      referencePreparing = true;
+      globalThis.EgovReferencePreparationChanged?.();
+      const finish = globalThis.EgovReferenceNotice?.() || (() => {});
+      try {
+        const result = await chrome.runtime.sendMessage({ type: 'egov-prepare-law-references', context });
+        if (referenceBody !== body || body.view !== referenceView()) return;
+        finish(!result?.ok ? '逆リンク情報の取得・保存に失敗しました' : result.cacheStatus === 'not-saved'
+          ? '逆リンク情報を取得しました（キャッシュ未保存）' : '逆リンク情報の準備が完了しました');
+      } catch (_) {
+        if (referenceBody === body && body.view === referenceView()) finish('逆リンク情報の取得・保存に失敗しました');
+      } finally {
+        finish();
+        if (referenceBody === body) {
+          referencePreparing = false;
+          globalThis.EgovReferencePreparationChanged?.();
+        }
+      }
+    };
+    referencePrepareTimer = setTimeout(prepare, 0);
     scheduleRevisionBadge();
     scheduleUpdateCheck(request);
   }
@@ -227,17 +302,24 @@
       if (data.failed && isBody(data.request)) {
         ensureUI();
         if (label) label.textContent = '法令ファイルの取得に失敗しました。再試行してください。';
-      } else showDate(data.request, data.downloadedAt);
+        chrome.runtime.sendMessage({type:'egov-normal-connection-failed'}).catch(()=>{});
+      } else showDate(data.request, data.downloadedAt, data.fromCache);
       return;
     }
     if (data.direction !== 'request' || typeof data.id !== 'string' || data.id.length > 100
         || !['get', 'put'].includes(data.action)) return;
-    if (data.action === 'put') readRevisionHistory(data.request, data.value);
+    if (data.action === 'put') {
+      readRevisionHistory(data.request, data.value);
+      readReferenceToc(data.request, data.value);
+    }
     chrome.runtime.sendMessage({ type: 'egov-normal-response-cache', page,
       action: data.action, request: data.request, build: data.build, value: data.value, force: forceLaw === lawId(),
     }).then(value => {
       if (data.action === 'get') {
-        if (value) readRevisionHistory(data.request, value);
+        if (value) {
+          readRevisionHistory(data.request, value);
+          readReferenceToc(data.request, value);
+        }
         window.postMessage({ channel, direction: 'response', id: data.id, value }, location.origin);
       }
     }).catch(() => {
