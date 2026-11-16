@@ -20,6 +20,7 @@ async function open(t, mode = '', extra = {}, target = 'popup') {
     window.data = { favorites: [favorite], openedLawHistory: [favorite], ...extra };
     window.opened = [];
     window.requests = [];
+    window.messages = [];
     window.close = () => {};
     const listeners = [];
     window.chrome = {
@@ -36,7 +37,7 @@ async function open(t, mode = '', extra = {}, target = 'popup') {
         session: { get: async () => ({ requestedPopupMode: mode }), remove: async () => {} },
         onChanged: { addListener: listener => listeners.push(listener) },
       },
-      runtime: { getURL: file => `https://extension.test/${file}`, sendMessage: async () => ({}), openOptionsPage: async () => {} },
+      runtime: { getURL: file => `https://extension.test/${file}`, sendMessage: async message => { messages.push(message); return {}; }, openOptionsPage: async () => {} },
       tabs: { create: async item => opened.push(item) },
     };
     window.fetch = async url => {
@@ -92,6 +93,24 @@ test('unregistered and long ASCII codes do not search or open the selected histo
   assert.equal(await page.evaluate(() => requests.length + opened.length), 0);
   await page.locator('#searchInput').fill('民法');
   await page.waitForFunction(() => requests.length === 1);
+});
+
+test('Alt and Alt+Ctrl no longer open laws while Alt+M opens the manual', async t => {
+  const company = { ...favorite, lawId: '417AC0000000086', lawName: '会社法', shortcut: 'KSH' };
+  const page = await open(t, 'law', { favorites: [company, { ...favorite, shortcut: 'M' }] });
+  for (const withCtrl of [false, true]) {
+    if (withCtrl) await page.keyboard.down('Control');
+    await page.keyboard.down('Alt');
+    for (const key of 'ksh') await page.keyboard.press(key);
+    await page.keyboard.up('Alt');
+    if (withCtrl) await page.keyboard.up('Control');
+    assert.match(await page.locator('#modeCurrentLabel').innerText(), /法令履歴/);
+    assert.equal(await page.locator('#shortcutStatus').isVisible(), false);
+    assert.equal(await page.evaluate(() => opened.length + requests.length), 0);
+  }
+  await page.keyboard.press('Alt+m');
+  assert.deepEqual(await page.evaluate(() => messages.map(message => message.type)), ['egov-open-manual-page']);
+  assert.equal(await page.evaluate(() => opened.length), 0);
 });
 
 test('prefix search includes collapsed folders, narrows immediately and launches the arrow-selected law', async t => {
@@ -253,17 +272,49 @@ test('favorite editor saves uppercase, rejects duplicates and failed writes, and
 
 });
 
-test('IME confirmation does not launch; a subsequent Enter does', async t => {
+test('IME Enter launches once after the ASCII code is committed', async t => {
   const page = await open(t);
   await page.locator('#searchInput').evaluate(input => {
     input.dispatchEvent(new CompositionEvent('compositionstart'));
     input.value = 'min12';
-    input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', isComposing: true, bubbles: true }));
+    input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Process', code: 'Enter', isComposing: true, bubbles: true }));
+    if (opened.length) throw new Error('Law opened before composition ended');
     input.dispatchEvent(new CompositionEvent('compositionend'));
     input.dispatchEvent(new InputEvent('input', { bubbles: true }));
+    input.form.requestSubmit();
   });
-  assert.equal(await page.evaluate(() => opened.length), 0);
-  await page.locator('#searchInput').press('Enter');
+  await page.waitForFunction(() => opened.length === 1);
+  assert.equal(await page.evaluate(() => requests.length), 0);
+});
+
+test('uncommitted IME text filters ASCII codes while Japanese text waits for confirmation', async t => {
+  const other = { ...favorite, lawId: 'OTHER', lawName: '別の法令', shortcut: 'MX' };
+  const page = await open(t, '', { favorites: [favorite, other] });
+  const input = page.locator('#searchInput');
+  await input.focus();
+  const cdp = await page.context().newCDPSession(page);
+  const compose = text => cdp.send('Input.imeSetComposition', {
+    text, selectionStart: text.length, selectionEnd: text.length,
+  });
+  await compose('m');
+  assert.equal(await input.inputValue(), 'm');
+  assert.equal(await page.locator('.fav-item').count(), 2);
+  await compose('mi');
+  assert.equal(await page.locator('.fav-item').count(), 1);
+  assert.match(await page.locator('#shortcutStatus').innerText(), /Enterで確定/);
+  await input.evaluate(el => {
+    const arrow = new KeyboardEvent('keydown', { key: 'ArrowRight', isComposing: true, bubbles: true, cancelable: true });
+    if (!el.dispatchEvent(arrow)) throw new Error('IME cursor movement was canceled');
+  });
+  await compose('み');
+  assert.equal(await page.locator('#shortcutStatus').isVisible(), false);
+  assert.equal(await page.locator('#historyPanel').isVisible(), false);
+  await page.waitForTimeout(450);
+  assert.equal(await page.evaluate(() => requests.length + opened.length), 0);
+  await compose('min12');
+  await cdp.send('Input.insertText', { text: 'min12' });
+  assert.equal(await page.evaluate(() => requests.length + opened.length), 0);
+  await input.press('Enter');
   await page.waitForFunction(() => opened.length === 1);
 });
 

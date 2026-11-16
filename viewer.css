@@ -435,6 +435,8 @@ body[data-reference-viewer-open="true"]:not([data-compare-mode="on"])[data-conte
 #law-content .law-article {
   content-visibility: auto;
   contain-intrinsic-size: auto 240px;
+  /* Keep the bookmark gutter within the article's paint clip. */
+  overflow-clip-margin: 27px;
 }
 
 .article-title {

@@ -241,6 +241,18 @@ test('definition extraction yields, cancels on disable, and discards old law wor
   assert.equal(await definitionButton.getAttribute('title'), '定義参照を無効化（ALT+D）');
 });
 
+test('the article bookmark gutter can be clicked outside the article box', async t => {
+  const page = await openViewer(t);
+  await page.evaluate(xml => liteTest.renderLawXml(xml), fixture(4));
+  const button = page.locator('.article-title > .lite-bookmark-gutter[data-bookmark-target-key="1"]');
+  await button.click({ timeout: 2000 });
+  assert.equal(await button.getAttribute('class'), 'lite-bookmark-gutter is-bookmarked');
+  // The viewer ignores repeated toggles within 500 ms.
+  await page.waitForTimeout(500);
+  await button.click({ timeout: 2000 });
+  assert.equal(await button.getAttribute('class'), 'lite-bookmark-gutter');
+});
+
 test('external bookmark changes preserve buttons and focus; failed save rolls back', async t => {
   const page = await openViewer(t);
   await page.evaluate(xml => liteTest.renderLawXml(xml), fixture(4));

@@ -46,6 +46,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const lawSearch = shared.createLawSearch();
   let isComposing        = false;
   let committedCompositionQuery = null;
+  let compositionShortcut = null;
   let currentResults     = [];
   let currentSearchQuery = '';
   let currentSearchHasMore = false;
@@ -265,6 +266,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function handleModeArrowNavigation(e) {
+    if (isComposing || e.isComposing || e.keyCode === 229) return false;
     if (!isMainModeArrowKey(e)) return false;
 
     const activeEl = document.activeElement;
@@ -420,9 +422,10 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // ================================================
-  // IME変換確定後に検索
+  // IME変換中は起動コードの候補だけを表示し、法令検索は確定後に実行
   // ================================================
   searchInput.addEventListener('compositionstart', () => {
+    compositionShortcut = null;
     lawSearch.cancel();
     clearTimeout(debounceTimer);
     showLoading(false);
@@ -433,6 +436,17 @@ document.addEventListener('DOMContentLoaded', () => {
   });
   searchInput.addEventListener('compositionend', () => {
     isComposing = false;
+    const shortcut = compositionShortcut;
+    if (shortcut) {
+      // Let Chrome finish applying the committed input before opening the law.
+      setTimeout(() => {
+        if (compositionShortcut !== shortcut) return;
+        compositionShortcut = null;
+        if (searchInput.value.toUpperCase() === shortcut.code) {
+          launchShortcut({ alternate: shortcut.alternate });
+        }
+      }, 0);
+    }
     clearTimeout(debounceTimer);
     const query = searchInput.value.trim();
     committedCompositionQuery = query;
@@ -442,19 +456,25 @@ document.addEventListener('DOMContentLoaded', () => {
       doSearch(query);
     }, 400);
   });
+  searchInput.addEventListener('keyup', (e) => {
+    if (isComposing && (e.key === 'Enter' || e.code === 'Enter' || e.code === 'NumpadEnter')) {
+      compositionShortcut = null;
+    }
+  });
+  searchInput.addEventListener('blur', () => { compositionShortcut = null; });
 
   // ================================================
   // 通常入力（IME非使用時・400msデバウンス）
   // ================================================
-  searchInput.addEventListener('input', () => {
+  searchInput.addEventListener('input', (event) => {
     lawSearch.cancel();
     showLoading(false);
-    if (historyMode !== null && searchInput.value.length > 0 && !isShortcutQuery(searchInput.value)) {
+    if (historyMode !== null && (searchInput.value.length > 0 || isComposing) && !isShortcutQuery(searchInput.value)) {
       hideHistoryPanel();
     }
-    if (isComposing) return;
     clearTimeout(debounceTimer);
     if (updateShortcutStatus()) return;
+    if (isComposing || event.isComposing) return;
     const query = searchInput.value.trim();
     const justCommitted = committedCompositionQuery === query;
     committedCompositionQuery = null;
@@ -478,7 +498,18 @@ document.addEventListener('DOMContentLoaded', () => {
   // キーボードナビゲーション（Mode0）
   // ================================================
   searchInput.addEventListener('keydown', (e) => {
-    if (e.isComposing || isComposing || e.keyCode === 229) return;
+    if (e.isComposing || isComposing || e.keyCode === 229) {
+      const value = searchInput.value;
+      const confirms = e.key === 'Enter' || e.code === 'Enter' || e.code === 'NumpadEnter';
+      compositionShortcut = confirms && !e.shiftKey && !e.altKey && !e.metaKey && isShortcutQuery(value) && value.length <= 5
+        ? { code: value.toUpperCase(), alternate: e.ctrlKey }
+        : null;
+      return;
+    }
+    if (compositionShortcut && e.key === 'Enter') {
+      e.preventDefault();
+      return;
+    }
     if (e.key === 'Enter' && e.shiftKey && historyMode === 'favorites') {
       e.stopPropagation();
       handleHistoryKeydown(e);
@@ -868,10 +899,11 @@ document.addEventListener('DOMContentLoaded', () => {
     hideCursorBriefly();
     const isHoverReady = makeHoverGuard();
 
-    const code = !isComposing && isShortcutQuery(searchInput.value) ? searchInput.value.toUpperCase() : '';
+    const value = searchInput.value;
+    const code = isShortcutQuery(value) ? value.toUpperCase() : '';
     favFolderBtn.style.display = code ? 'none' : '';
     if (code) {
-      shortcutResultQuery = searchInput.value;
+      shortcutResultQuery = value;
       // Search all folders, including collapsed ones, without changing saved order.
       const matches = favorites.map((item, arrayIdx) => ({ ...item, arrayIdx }))
         .filter(item => typeof item.shortcut === 'string' && item.shortcut.toUpperCase().startsWith(code))
@@ -1418,7 +1450,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const items = histListEl.querySelectorAll('.history-item');
     items.forEach((el, i) => el.classList.toggle('history-item-focused', i === idx));
     if (idx >= 0 && items[idx]) {
-      if (!keepInputFocus) blurSearchInputForListSelection();
+      if (!keepInputFocus && !isComposing) blurSearchInputForListSelection();
       items[idx].scrollIntoView({ block: 'nearest' });
       ensureFavoriteFolderHeaderVisible(items[idx]);
       // キーボードフォーカス時もツールチップ表示
@@ -1516,7 +1548,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // フォーム送信
   searchForm.addEventListener('submit', (e) => {
     e.preventDefault();
-    if (isComposing) return;
+    if (isComposing || compositionShortcut) return;
     if (isShortcutQuery(searchInput.value)) {
       launchShortcut();
       return;
@@ -1544,14 +1576,14 @@ document.addEventListener('DOMContentLoaded', () => {
     chrome.runtime.openOptionsPage();
     window.close();
   });
-  document.getElementById('openManual').addEventListener('click', () => {
+  function openManual() {
     chrome.runtime.sendMessage({ type: 'egov-open-manual-page' }).finally(() => window.close());
-  });
+  }
+  document.getElementById('openManual').addEventListener('click', openManual);
   document.addEventListener('keydown', (e) => {
-    if (e.altKey && !e.ctrlKey && !e.metaKey && (e.key === 'm' || e.key === 'M')) {
-      e.preventDefault();
-      chrome.runtime.sendMessage({ type: 'egov-open-manual-page' }).finally(() => window.close());
-    }
+    if (!e.altKey || e.ctrlKey || e.metaKey || e.isComposing || isComposing || e.key.toLowerCase() !== 'm') return;
+    e.preventDefault();
+    if (!e.repeat) openManual();
   });
 
   // ================================================
@@ -1651,7 +1683,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function updateShortcutStatus() {
     const code = searchInput.value;
-    const isCode = !isComposing && isShortcutQuery(code);
+    const isCode = isShortcutQuery(code);
     shortcutStatus.hidden = !isCode;
     if (!isCode) {
       if (shortcutResultQuery && historyMode === 'favorites') {
@@ -1672,6 +1704,10 @@ document.addEventListener('DOMContentLoaded', () => {
     searchInput.focus();
     const count = getHistItemCount();
     const favorite = findShortcutFavorite(favorites, code);
+    if (isComposing && count) {
+      shortcutStatus.textContent = `${code.toUpperCase()}：${count}件の候補 · Enterで確定して開く`;
+      return true;
+    }
     shortcutStatus.textContent = code.length > 5
       ? '起動コードは半角英数字5文字以内です（法令検索は行いません）。'
       : favorite ? `${code.toUpperCase()}：Enterで「${favorite.lawName}」を開く · ↑↓で選択`

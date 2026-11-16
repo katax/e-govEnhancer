@@ -323,6 +323,32 @@ document.addEventListener('DOMContentLoaded', async () => {
     setTimeout(() => URL.revokeObjectURL(url), 0);
   }
 
+  async function chooseJsonExportFile(filename) {
+    if (typeof window.showSaveFilePicker !== 'function') return undefined;
+
+    try {
+      return await window.showSaveFilePicker({
+        id: 'egov-personal-data-export',
+        suggestedName: filename,
+        types: [{ description: 'JSON', accept: { 'application/json': ['.json'] } }],
+      });
+    } catch (error) {
+      if (error.name === 'AbortError') return null;
+      throw error;
+    }
+  }
+
+  async function saveJsonExport(file, filename, text) {
+    if (!file) {
+      downloadJson(filename, text);
+      return;
+    }
+
+    const writable = await file.createWritable();
+    await writable.write(text);
+    await writable.close();
+  }
+
   function isNonEmptyString(value) {
     return typeof value === 'string' && value.trim() !== '';
   }
@@ -512,6 +538,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     clearTransferStatus();
     setTransferSummary('');
 
+    const filename = `e-GovEnhancerFav-${formatDateForFileName()}.json`;
+    const file = await chooseJsonExportFile(filename);
+    if (file === null) return;
+
     const {
       favorites = [],
       favFolders = [],
@@ -527,7 +557,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       folderCollapsed: isPlainObject(folderCollapsed) ? folderCollapsed : {},
     };
 
-    downloadJson(`e-GovEnhancerFav-${formatDateForFileName()}.json`, `${JSON.stringify(payload, null, 2)}\n`);
+    await saveJsonExport(file, filename, `${JSON.stringify(payload, null, 2)}\n`);
 
     setTransferStatus('お気に入りを JSON でエクスポートしました。', 'success');
     setTransferSummary(buildExportSummary(payload));
@@ -590,6 +620,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     clearTextHighlightsTransferStatus();
     setTextHighlightsTransferSummary('');
 
+    const filename = `e-GovEnhancerHighlightsMemos-${formatDateForFileName()}.json`;
+    const file = await chooseJsonExportFile(filename);
+    if (file === null) return;
+
     const stored = await chrome.storage.local.get(null);
     const laws = {};
     for (const [key, value] of Object.entries(stored)) {
@@ -610,10 +644,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       laws: payload.laws,
     };
 
-    downloadJson(
-      `e-GovEnhancerHighlightsMemos-${formatDateForFileName()}.json`,
-      `${JSON.stringify(exportPayload, null, 2)}\n`,
-    );
+    await saveJsonExport(file, filename, `${JSON.stringify(exportPayload, null, 2)}\n`);
     setTextHighlightsTransferStatus('メモとハイライトを JSON で保存しました。', 'success');
     setTextHighlightsTransferSummary(buildTextHighlightsSummary(payload.summary));
   }
